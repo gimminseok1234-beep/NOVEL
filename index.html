@@ -166,6 +166,7 @@
                 <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.61-3.317-11.28-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.596 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
                 <span>Google 계정으로 시작하기</span>
             </button>
+             <button id="anonymous-login-btn" class="mt-4 text-gray-400 hover:text-white text-sm">또는, 먼저 둘러보기 (익명 로그인)</button>
         </div>
     </template>
 
@@ -310,7 +311,6 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const appContainer = document.getElementById('app-container');
-            const loadingOverlay = document.getElementById('loading-overlay');
             let db, auth;
             let currentUserId = null;
             let currentUser = null;
@@ -349,7 +349,7 @@
                     setupAuthListener();
                 } catch (error) {
                     console.error("Firebase 초기화 오류:", error);
-                    loadingOverlay.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">초기화 오류</p><p class="text-sm">${error.message}</p></div>`;
+                    document.getElementById('loading-overlay').innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">초기화 오류</p><p class="text-sm">${error.message}</p></div>`;
                 }
             }
 
@@ -359,13 +359,14 @@
                     if (user) {
                         currentUserId = user.uid;
                         loadProjects();
+                        renderView('home');
                     } else {
                         currentUserId = null;
                         projects = [];
                         Object.values(unsubscribes).forEach(function(unsub) { unsub() });
                         unsubscribes = {};
                         renderView('login');
-                        loadingOverlay.style.display = 'none';
+                        document.getElementById('loading-overlay').style.display = 'none';
                     }
                 });
             }
@@ -393,20 +394,46 @@
             
             // --- Login View Logic ---
             function handleGoogleLogin() {
-                loadingOverlay.style.display = 'flex';
                 const provider = new firebase.auth.GoogleAuthProvider();
                 auth.signInWithPopup(provider).catch(function(error) {
-                    loadingOverlay.style.display = 'none';
                     console.error("Google 로그인 오류:", error);
                     showModal({title: "로그인 오류", text: error.message, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
                 });
             };
-
+            function handleAnonymousLogin() { auth.signInAnonymously().catch(console.error) };
             function handleLogout() {
                 if (autoSaveInterval) clearInterval(autoSaveInterval);
                 auth.signOut();
             };
             
+            function handleLinkAccount() {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.currentUser.linkWithPopup(provider).then(function() {
+                    showModal({title: "계정 연결 성공", text: "이제 Google 계정으로 로그인하여 데이터를 관리할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    renderHome();
+                }).catch(function(error) {
+                    if (error.code === 'auth/credential-already-in-use') {
+                        const credential = firebase.auth.GoogleAuthProvider.credentialFromError(error);
+                        showModal({
+                            title: "계정 통합",
+                            text: "이 Google 계정은 이미 다른 작업실에 사용 중입니다. 익명으로 작업한 내용을 버리고 기존 Google 계정의 작업실로 로그인하시겠습니까?",
+                            buttons: [
+                                { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                                { text: '로그인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: function() {
+                                    auth.signInWithCredential(credential).catch(function(signInError) {
+                                        console.error("재로그인 오류:", signInError);
+                                        showModal({title: "오류", text: "로그인에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                                    });
+                                }}
+                            ]
+                        });
+                    } else {
+                        console.error("계정 연결 오류:", error);
+                        showModal({title: "계정 연결 오류", text: `오류가 발생했습니다: ${error.message}`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    }
+                });
+            };
+
             // --- Home View Logic ---
             function renderHome() {
                 const projectGrid = document.getElementById('project-grid');
@@ -416,7 +443,7 @@
                 if(userIdDisplay && currentUserId) userIdDisplay.textContent = `ID: ${currentUserId}`;
                 
                 userProfileArea.innerHTML = '';
-                if (currentUser) {
+                if (currentUser && !currentUser.isAnonymous) {
                     userProfileArea.innerHTML = `
                         <div class="text-right">
                             <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
@@ -425,7 +452,36 @@
                         <img class="w-10 h-10 rounded-full" src="${currentUser.photoURL || 'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile">
                         <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">로그아웃</button>
                     `;
+                } else {
+                    const linkButton = document.createElement('button');
+                    linkButton.id = 'link-account-btn';
+                    linkButton.className = 'accent-bg accent-hover text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors';
+                    linkButton.textContent = 'Google 계정에 연결';
+                    userProfileArea.appendChild(linkButton);
                 }
+
+                projectGrid.innerHTML = '';
+                const sortedProjects = [...projects].sort(function(a, b) { return (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0) });
+                sortedProjects.forEach(function(project) {
+                    const card = document.createElement('div');
+                    card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48';
+                    card.dataset.projectId = project.id;
+                    const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-bold"></h3>
+                                <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            <span>${lastModified} 수정됨</span>
+                        </div>`;
+                    card.querySelector('h3').textContent = project.name; // XSS Protection
+                    projectGrid.appendChild(card);
+                });
             }
 
             // --- Editor View Logic ---
@@ -503,7 +559,6 @@
 
             function renderEditorPanel() {
                 const editorPanel = document.getElementById('editor-panel');
-                if (!editorPanel) return; // Guard clause
                 const item = getItem(activeProjectId, activeItemId);
                 if (!item) {
                     editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">항목을 선택해주세요.</div>`;
@@ -621,6 +676,7 @@
                 // --- Login View ---
                 if (activeView === 'login') {
                     if (target.closest('#google-login-btn')) handleGoogleLogin();
+                    else if (target.closest('#anonymous-login-btn')) handleAnonymousLogin();
                     return;
                 }
 
@@ -649,6 +705,7 @@
 
                     if (target.closest('#new-project-btn')) handleNewProject();
                     else if (target.closest('#logout-btn')) handleLogout();
+                    else if (target.closest('#link-account-btn')) handleLinkAccount();
                     return;
                 }
 
@@ -801,7 +858,6 @@
                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', 
                             onClick: function() {
                                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(itemId).delete().then(function() {
-                                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                                     if (activeItemId === itemId) {
                                         activeItemId = null;
                                         renderEditorPanel();
@@ -860,8 +916,8 @@
                     return;
                 }
 
-                if (!currentUser || currentUser.isAnonymous) {
-                    showModal({title: "계정 필요", text: "Google Drive에 백업하려면 먼저 Google 계정으로 로그인해야 합니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                if (currentUser.isAnonymous) {
+                    showModal({title: "계정 필요", text: "Google Drive에 백업하려면 먼저 Google 계정을 연결해야 합니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
                     return;
                 }
 
@@ -986,15 +1042,13 @@
                 const q = projectsRef.orderBy('lastModified', 'desc');
                 unsubscribes.projects = q.onSnapshot(function(snapshot) {
                     projects = snapshot.docs.map(function(doc) { return ({ id: doc.id, ...doc.data() }) });
-                    // FIX: Only render home view if we are on it or during initial load.
-                    if (activeView === 'home' || activeView === null) {
+                    if (activeView === 'home' || !activeProjectId) {
                         renderView('home');
                     }
-                    loadingOverlay.style.display = 'none';
+                    document.getElementById('loading-overlay').style.display = 'none';
                 }, function(error) {
                     console.error("프로젝트 로딩 오류:", error);
-                    loadingOverlay.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">데이터 로딩 오류</p><p class="text-sm">데이터를 불러오는 데 실패했습니다. 권한을 확인해주세요.</p></div>`;
-                    loadingOverlay.style.display = 'flex'; // Show error in overlay
+                    document.getElementById('loading-overlay').innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">데이터 로딩 오류</p><p class="text-sm">데이터를 불러오는 데 실패했습니다. 권한을 확인해주세요.</p></div>`;
                 });
             }
 
