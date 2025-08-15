@@ -11,7 +11,6 @@
     
     <script>
         /* --- Google Drive API 설정 --- */
-        // ⚠️ 중요: 아래 값들을 Google Cloud Console에서 발급받은 본인의 값으로 변경하세요.
         const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
@@ -332,12 +331,13 @@
             // --- Firebase Initialization ---
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
-                apiKey: "YOUR_API_KEY",
-                authDomain: "YOUR_AUTH_DOMAIN",
-                projectId: "YOUR_PROJECT_ID",
-                storageBucket: "YOUR_STORAGE_BUCKET",
-                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                appId: "YOUR_APP_ID"
+                apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4",
+                authDomain: "novel-8d4ec.firebaseapp.com",
+                projectId: "novel-8d4ec",
+                storageBucket: "novel-8d4ec.appspot.com",
+                messagingSenderId: "836560106988",
+                appId: "1:836560106988:web:cf90872d7b09b9498ffcc9",
+                measurementId: "G-83BZ35QVLC"
             });
 
             function initialize() {
