@@ -40,7 +40,10 @@
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #1e1e1e; } ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
         .project-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; } .project-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15); }
         .list-item.active { background-color: #37373d; } .list-item:not(.active):hover { background-color: #2a2a2a; } .list-item .delete-btn { visibility: hidden; opacity: 0; transition: opacity 0.2s; } .list-item:hover .delete-btn { visibility: visible; opacity: 1; }
-        .dragging { opacity: 0.5; } .drag-over { border-top: 2px solid #bb86fc; } .tab-btn.active { background-color: #37373d; }
+        .dragging { opacity: 0.5; background-color: #37373d; }
+        .drag-over-item { border-top: 2px solid #bb86fc; }
+        .drag-over-folder { background-color: #3a3a4a !important; box-shadow: 0 0 0 2px #bb86fc; }
+        .tab-btn.active { background-color: #37373d; }
         .list-item-folder { background-color: #252525; font-weight: 500; } .list-item-chapter.in-folder { padding-left: 2rem !important; } .folder-children { max-height: 1000px; transition: max-height 0.3s ease-in-out; overflow: hidden; } .folder-children.collapsed { max-height: 0; }
         .folder-toggle { transition: transform 0.2s; } .folder-toggle.collapsed { transform: rotate(-90deg); }
         #editor-container { position: relative; overflow-x: hidden; } #editor-sidebar { width: 224px; position: absolute; top: 0; left: 0; height: 100%; z-index: 40; transform: translateX(-100%); transition: transform 0.3s ease-in-out; will-change: transform; } #editor-main-content { flex: 1; transition: padding-left 0.3s ease-in-out; padding-left: 0; }
@@ -221,7 +224,6 @@
         let autoSaveInterval = null;
         let collapsedFolders = new Set();
 
-        // FIXED: Replaced with the user-provided config
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
             apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4",
@@ -258,7 +260,9 @@
                 } else {
                     currentUserId = null;
                     projects = [];
-                    Object.values(unsubscribes).forEach(unsub => unsub());
+                    Object.values(unsubscribes).forEach(unsub => {
+                        if (typeof unsub === 'function') unsub();
+                    });
                     unsubscribes = {};
                     renderView('login');
                     loadingOverlay.style.display = 'none';
@@ -266,11 +270,17 @@
             });
         }
 
-        // --- Data Loading ---
+        // --- Data Loading & State ---
+        function getProject(projectId) { return projects.find(p => p.id === projectId); }
+        function getItem(itemId) {
+            const items = sidebarMode === 'chapters' ? chapters : characters;
+            return items.find(i => i.id === itemId);
+        }
+
         function loadProjects() {
             if (!currentUserId) return;
-            // FIXED: Changed collection path to be more standard
-            const projectsRef = db.collection(`users/${currentUserId}/projects`).orderBy('lastModified', 'desc');
+            // FIXED: Reverted collection path to match original structure
+            const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).orderBy('lastModified', 'desc');
             
             unsubscribes.projects = projectsRef.onSnapshot(snapshot => {
                 projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -287,7 +297,7 @@
 
         function loadItems() {
             if (unsubscribes.items) unsubscribes.items();
-            const itemsRef = db.collection(`users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+            const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
             const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'asc');
             
             unsubscribes.items = q.onSnapshot(snapshot => {
@@ -302,7 +312,7 @@
         }
 
         // --- View Rendering & Listeners ---
-        function renderView(viewName, data = {}) {
+        function renderView(viewName) {
             const template = document.getElementById(`${viewName}-view-template`);
             if (!template) return;
             appContainer.innerHTML = '';
@@ -389,7 +399,7 @@
         }
         
         function renderEditor() {
-            const project = projects.find(p => p.id === activeProjectId);
+            const project = getProject(activeProjectId);
             if (!project) {
                 renderView('home');
                 return;
@@ -538,7 +548,7 @@
         function renderEditorPanel() {
             const editorPanel = appContainer.querySelector('#editor-panel');
             if (!editorPanel) return;
-            const item = getItem(activeProjectId, activeItemId);
+            const item = getItem(activeItemId);
 
             if (!item || item.type === 'folder') {
                 editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">${item ? '폴더가 선택되었습니다.' : '항목을 선택해주세요.'}</div>`;
@@ -554,13 +564,9 @@
             if (sidebarMode === 'chapters') {
                 titleEl.value = item.title || '';
                 contentEl.value = item.content || '';
-                titleEl.placeholder = "회차 제목을 입력하세요";
-                contentEl.placeholder = "이곳에 이야기를 펼쳐보세요...";
             } else {
                 titleEl.value = item.name || '';
                 contentEl.value = item.description || '';
-                titleEl.placeholder = "등장인물 이름을 입력하세요";
-                contentEl.placeholder = "등장인물에 대한 설명을 입력하세요...";
             }
             updateCharCount();
             
@@ -644,7 +650,7 @@
             icon.innerHTML = isOpen ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
         }
         
-        // --- Handlers (Logic is mostly the same, just collection paths are updated) ---
+        // --- Handlers ---
         
         function handleGoogleLogin() {
             loadingOverlay.style.display = 'flex';
@@ -669,7 +675,7 @@
                     { text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', 
                         onClick: function(name) {
                             if (!name) return;
-                            db.collection(`users/${currentUserId}/projects`).add({
+                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({
                                 name: name,
                                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                                 lastModified: firebase.firestore.FieldValue.serverTimestamp(),
@@ -681,7 +687,7 @@
         }
 
         function handleProjectOptions(projectId) {
-            const project = projects.find(p => p.id === projectId);
+            const project = getProject(projectId);
             showModal({
                 title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.',
                 buttons: [
@@ -693,7 +699,7 @@
         };
         
         function handleRenameProject(projectId) {
-            const project = projects.find(p => p.id === projectId);
+            const project = getProject(projectId);
             showModal({
                 title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name,
                 buttons: [
@@ -701,7 +707,7 @@
                     { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', 
                         onClick: function(newName) {
                             if (!newName) return;
-                            db.collection(`users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                         }
                     }
                 ]
@@ -709,14 +715,14 @@
         };
         
         function handleDeleteProject(projectId) {
-            const project = projects.find(p => p.id === projectId);
+            const project = getProject(projectId);
             showModal({
                 title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
                 buttons: [
                     { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
                     { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', 
                         onClick: function() {
-                            const projectRef = db.collection(`users/${currentUserId}/projects`).doc(projectId);
+                            const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
                             const batch = db.batch();
                             projectRef.collection("chapters").get().then(snapshot => {
                                 snapshot.forEach(doc => batch.delete(doc.ref));
@@ -733,28 +739,41 @@
         };
 
         function handleNewItem(type, parentId = null) {
-            let newItem;
-            const collectionRef = db.collection(`users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+            let newItemData;
+            const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+            
             if (sidebarMode === 'chapters') {
-                 const siblings = chapters.filter(c => c.parentId === parentId);
-                 if (type === 'folder') {
-                    newItem = { title: '새 폴더', type: 'folder', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                 } else {
-                    newItem = { title: '새 회차', content: '', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                 }
+                const siblings = chapters.filter(c => c.parentId === parentId);
+                if (type === 'folder') {
+                    newItemData = { title: '새 폴더', type: 'folder', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                } else {
+                    newItemData = { title: '새 회차', content: '', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                }
             } else {
-                newItem = { name: '새 등장인물', description: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                newItemData = { name: '새 등장인물', description: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
             }
 
-            collectionRef.add(newItem).then(newDocRef => {
+            collectionRef.add(newItemData).then(newDocRef => {
+                const newItemObject = { id: newDocRef.id, ...newItemData };
+                if (sidebarMode === 'chapters') {
+                    chapters.push(newItemObject);
+                } else {
+                    characters.push(newItemObject);
+                }
+                
                 activeItemId = newDocRef.id;
-                db.collection(`users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                
+                renderItemList();
                 renderEditorPanel();
+            }).catch(error => {
+                console.error("Error adding new item:", error);
+                showModal({title: "오류", text: "항목을 추가하는 데 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
             });
-        };
+        }
         
         function handleDeleteItem(itemId) {
-            const item = getItem(activeProjectId, itemId);
+            const item = getItem(itemId);
             const isFolder = item?.type === 'folder';
             const itemType = isFolder ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
 
@@ -767,7 +786,7 @@
                     { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
                     { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', 
                         onClick: async function() {
-                            const collectionRef = db.collection(`users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                            const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
                             const batch = db.batch();
                             
                             if (isFolder) {
@@ -778,7 +797,7 @@
                             batch.delete(collectionRef.doc(itemId));
                             await batch.commit();
 
-                            db.collection(`users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                             if (activeItemId === itemId) {
                                 activeItemId = null;
                                 renderEditorPanel();
@@ -799,7 +818,7 @@
 
         function saveCurrentWork() {
             if (!activeProjectId || !activeItemId) return;
-            const item = getItem(activeProjectId, activeItemId);
+            const item = getItem(activeItemId);
             if (!item || item.type === 'folder') return;
 
             const titleEl = appContainer.querySelector('#editor-title');
@@ -814,20 +833,20 @@
                 data.name = titleEl.value;
                 data.description = contentEl.value;
             }
-            const itemRef = db.collection(`users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
+            const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
             itemRef.update(data);
-            db.collection(`users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
         }
 
         function handleAutoSave() {
             if (!activeProjectId || !activeItemId || sidebarMode !== 'chapters') return;
-            const item = getItem(activeProjectId, activeItemId);
+            const item = getItem(activeItemId);
             if (!item || item.type === 'folder') return;
 
             const contentEl = appContainer.querySelector('#editor-content');
             if (!contentEl || !contentEl.value.trim()) return;
             
-            const autoSavesRef = db.collection(`users/${currentUserId}/projects/${activeProjectId}/chapters/${activeItemId}/autosaves`);
+            const autoSavesRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters/${activeItemId}/autosaves`);
             autoSavesRef.add({
                 content: contentEl.value,
                 savedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -862,14 +881,14 @@
                 showModal({ title: "알림", text: "버전 기록을 보려면 회차를 선택해야 합니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold' }] });
                 return;
             }
-            const item = getItem(activeProjectId, activeItemId);
+            const item = getItem(activeItemId);
             if (!item || item.type === 'folder') {
                 showModal({ title: "알림", text: "폴더는 버전 기록을 지원하지 않습니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold' }] });
                 return;
             }
 
             loadingOverlay.style.display = 'flex';
-            const autoSavesRef = db.collection(`users/${currentUserId}/projects/${activeProjectId}/chapters/${activeItemId}/autosaves`).orderBy('savedAt', 'desc');
+            const autoSavesRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters/${activeItemId}/autosaves`).orderBy('savedAt', 'desc');
             
             try {
                 const snapshot = await autoSavesRef.get();
@@ -939,9 +958,9 @@
         }
 
         function handleSaveTxt() {
-            const item = getItem(activeProjectId, activeItemId);
+            const item = getItem(activeItemId);
             if (sidebarMode === 'chapters' && activeItemId && item && item.type !== 'folder') {
-                const project = projects.find(p => p.id === activeProjectId);
+                const project = getProject(activeProjectId);
                 const content = `# ${item.title}\n\n${item.content}`;
                 const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
                 const a = document.createElement('a');
@@ -957,7 +976,106 @@
         
         async function handleSaveToDrive() { /* ... unchanged ... */ }
         
-        function addDragAndDropListeners(element) { /* ... unchanged, but ensure it's called with the correct element ... */ }
+        function addDragAndDropListeners(listEl) {
+            if (!listEl) return;
+            let draggedItemId = null;
+
+            listEl.addEventListener('dragstart', e => {
+                if (sidebarMode !== 'chapters') return;
+                const target = e.target.closest('.list-item');
+                if (target) {
+                    draggedItemId = target.dataset.id;
+                    setTimeout(() => target.classList.add('dragging'), 0);
+                }
+            });
+
+            listEl.addEventListener('dragover', e => {
+                if (!draggedItemId) return;
+                e.preventDefault();
+                const targetEl = e.target.closest('.list-item');
+                
+                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                    el.classList.remove('drag-over-item', 'drag-over-folder');
+                });
+
+                if (targetEl && targetEl.dataset.id !== draggedItemId) {
+                    if (targetEl.dataset.type === 'folder') {
+                        targetEl.classList.add('drag-over-folder');
+                    } else {
+                        targetEl.classList.add('drag-over-item');
+                    }
+                }
+            });
+
+            listEl.addEventListener('dragleave', e => {
+                e.target.closest('.list-item')?.classList.remove('drag-over-item', 'drag-over-folder');
+            });
+
+            listEl.addEventListener('dragend', e => {
+                draggedItemId = null;
+                listEl.querySelector('.dragging')?.classList.remove('dragging');
+                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                    el.classList.remove('drag-over-item', 'drag-over-folder');
+                });
+            });
+
+            listEl.addEventListener('drop', e => {
+                e.preventDefault();
+                if (!draggedItemId) return;
+
+                const targetEl = e.target.closest('.list-item');
+                const draggedItem = getItem(draggedItemId);
+                
+                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => el.classList.remove('drag-over-item', 'drag-over-folder'));
+
+                if (!targetEl || !draggedItem || targetEl.dataset.id === draggedItemId) return;
+
+                const targetItem = getItem(targetEl.dataset.id);
+                
+                let newParentId = null;
+                let insertionIndex = 0;
+
+                if (targetItem.type === 'folder') {
+                    newParentId = targetItem.id;
+                    const children = chapters.filter(c => c.parentId === newParentId);
+                    insertionIndex = children.length;
+                } else {
+                    newParentId = targetItem.parentId || null;
+                    const siblings = chapters.filter(c => c.parentId === newParentId).sort((a, b) => a.order - b.order);
+                    insertionIndex = siblings.findIndex(c => c.id === targetItem.id);
+                }
+
+                const batch = db.batch();
+                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
+                const hasParentChanged = draggedItem.parentId !== newParentId;
+
+                if (hasParentChanged) {
+                    const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a, b) => a.order - b.order);
+                    oldSiblings.forEach((item, index) => {
+                        if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
+                    });
+                }
+
+                const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItemId).sort((a, b) => a.order - b.order);
+                newSiblings.splice(insertionIndex, 0, { id: draggedItemId, parentId: newParentId });
+
+                newSiblings.forEach((item, index) => {
+                    const docRef = collectionRef.doc(item.id);
+                    if (item.id === draggedItemId) {
+                        batch.update(docRef, { order: index, parentId: newParentId });
+                    } else {
+                        if(item.order !== index) batch.update(docRef, { order: index });
+                    }
+                });
+
+                batch.commit().then(() => {
+                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                }).catch(err => {
+                    console.error("Failed to reorder items:", err);
+                    showModal({title: "오류", text: "순서 변경에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                });
+            });
+        }
 
         initialize();
     });
