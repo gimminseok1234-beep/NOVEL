@@ -143,7 +143,8 @@
             </div>
         </header>
         <div class="flex-1 p-6 sm:p-8 overflow-y-auto">
-            <div class="max-w-3xl mx-auto h-full flex flex-col">
+            <!-- MODIFIED: Changed max-width for mobile writing feel -->
+            <div class="max-w-[360px] mx-auto h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition">
                 <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
             </div>
@@ -178,7 +179,8 @@
                         </div>
                         <div>
                             <label for="character-characteristics" class="block text-sm font-medium text-gray-400 mb-2">특징 및 기타</label>
-                            <textarea id="character-characteristics" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
+                            <!-- MODIFIED: Increased rows for more space -->
+                            <textarea id="character-characteristics" rows="8" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -577,14 +579,14 @@
         }
 
         function updateCharCount() {
-            const contentEl = appContainer.querySelector('#editor-content') || appContainer.querySelector('#character-characteristics');
             const countEl = appContainer.querySelector('#char-count');
             const labelEl = appContainer.querySelector('#char-count-label');
             if (!countEl || !labelEl) return;
             
             let content = '';
-            if (sidebarMode === 'chapters' && contentEl) {
-                content = contentEl.value;
+            if (sidebarMode === 'chapters') {
+                const contentEl = appContainer.querySelector('#editor-content');
+                if(contentEl) content = contentEl.value;
             }
             
             let count = 0;
@@ -674,7 +676,7 @@
         function handleRenameProject(projectId) {
             const project = getProject(projectId);
             showModal({
-                title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name,
+                title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name, initialValue: project.name,
                 buttons: [
                     { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
                     { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', 
@@ -696,7 +698,6 @@
                     { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', 
                         onClick: function() {
                             const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
-                            // This is a simplified deletion. For production, you'd use a Cloud Function to delete subcollections recursively.
                             projectRef.delete();
                         }
                     }
@@ -853,7 +854,53 @@
         
         async function handleSaveToDrive() { /* ... unchanged ... */ }
         function addDragAndDropListeners(listEl) { /* ... unchanged ... */ }
-        function handleImageUpload(e) { /* ... unchanged ... */ }
+        
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file || !activeItemId) return;
+
+            const storageRef = storage.ref();
+            const imagePath = `users/${currentUserId}/projects/${activeProjectId}/characters/${activeItemId}`;
+            const imageRef = storageRef.child(imagePath);
+
+            const uploadTask = imageRef.put(file);
+
+            const progressBar = appContainer.querySelector('#image-upload-progress');
+            const progressBarFill = progressBar.querySelector('div');
+            progressBar.classList.remove('hidden');
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    progressBarFill.style.width = progress + '%';
+                }, 
+                (error) => {
+                    console.error("Upload failed:", error);
+                    showModal({title: "업로드 실패", text: "이미지 업로드에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    progressBar.classList.add('hidden');
+                }, 
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/characters`);
+                        collectionRef.doc(activeItemId).update({ imageUrl: downloadURL })
+                        .then(() => {
+                            // FIXED: Manually update local state for immediate UI consistency
+                            const character = getItem(activeItemId);
+                            if (character) {
+                                character.imageUrl = downloadURL;
+                            }
+                            const imageContainer = appContainer.querySelector('#character-image-container');
+                            const imagePlaceholder = appContainer.querySelector('#character-image-placeholder');
+                            if (imageContainer && imagePlaceholder) {
+                                imageContainer.style.backgroundImage = `url(${downloadURL})`;
+                                imagePlaceholder.classList.add('hidden');
+                            }
+                            progressBar.classList.add('hidden');
+                        });
+                    });
+                }
+            );
+        }
 
         // --- Central Event Handler ---
         appContainer.addEventListener('click', (e) => {
