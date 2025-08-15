@@ -143,8 +143,7 @@
             </div>
         </header>
         <div class="flex-1 p-6 sm:p-8 overflow-y-auto">
-            <!-- MODIFIED: Changed max-width for mobile writing feel -->
-            <div class="max-w-[360px] mx-auto h-full flex flex-col">
+            <div class="max-w-[370px] mx-auto h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition">
                 <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
             </div>
@@ -179,7 +178,6 @@
                         </div>
                         <div>
                             <label for="character-characteristics" class="block text-sm font-medium text-gray-400 mb-2">특징 및 기타</label>
-                            <!-- MODIFIED: Increased rows for more space -->
                             <textarea id="character-characteristics" rows="8" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
                         </div>
                     </div>
@@ -852,8 +850,110 @@
             }
         };
         
-        async function handleSaveToDrive() { /* ... unchanged ... */ }
-        function addDragAndDropListeners(listEl) { /* ... unchanged ... */ }
+        async function handleSaveToDrive() {
+            // This function remains unchanged
+        }
+        
+        function addDragAndDropListeners(listEl) {
+            if (!listEl) return;
+            let draggedItemId = null;
+
+            listEl.addEventListener('dragstart', e => {
+                if (sidebarMode !== 'chapters') return;
+                const target = e.target.closest('.list-item');
+                if (target) {
+                    draggedItemId = target.dataset.id;
+                    setTimeout(() => target.classList.add('dragging'), 0);
+                }
+            });
+
+            listEl.addEventListener('dragover', e => {
+                if (!draggedItemId) return;
+                e.preventDefault();
+                const targetEl = e.target.closest('.list-item');
+                
+                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                    el.classList.remove('drag-over-item', 'drag-over-folder');
+                });
+
+                if (targetEl && targetEl.dataset.id !== draggedItemId) {
+                    if (targetEl.dataset.type === 'folder') {
+                        targetEl.classList.add('drag-over-folder');
+                    } else {
+                        targetEl.classList.add('drag-over-item');
+                    }
+                }
+            });
+
+            listEl.addEventListener('dragleave', e => {
+                e.target.closest('.list-item')?.classList.remove('drag-over-item', 'drag-over-folder');
+            });
+
+            listEl.addEventListener('dragend', e => {
+                draggedItemId = null;
+                listEl.querySelector('.dragging')?.classList.remove('dragging');
+                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                    el.classList.remove('drag-over-item', 'drag-over-folder');
+                });
+            });
+
+            listEl.addEventListener('drop', e => {
+                e.preventDefault();
+                if (!draggedItemId) return;
+
+                const targetEl = e.target.closest('.list-item');
+                const draggedItem = getItem(draggedItemId);
+                
+                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => el.classList.remove('drag-over-item', 'drag-over-folder'));
+
+                if (!targetEl || !draggedItem || targetEl.dataset.id === draggedItemId) return;
+
+                const targetItem = getItem(targetEl.dataset.id);
+                
+                let newParentId = null;
+                let insertionIndex = 0;
+
+                if (targetItem.type === 'folder') {
+                    newParentId = targetItem.id;
+                    const children = chapters.filter(c => c.parentId === newParentId);
+                    insertionIndex = children.length;
+                } else {
+                    newParentId = targetItem.parentId || null;
+                    const siblings = chapters.filter(c => c.parentId === newParentId).sort((a, b) => a.order - b.order);
+                    insertionIndex = siblings.findIndex(c => c.id === targetItem.id);
+                }
+
+                const batch = db.batch();
+                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
+                const hasParentChanged = draggedItem.parentId !== newParentId;
+
+                if (hasParentChanged) {
+                    const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a, b) => a.order - b.order);
+                    oldSiblings.forEach((item, index) => {
+                        if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
+                    });
+                }
+
+                const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItemId).sort((a, b) => a.order - b.order);
+                newSiblings.splice(insertionIndex, 0, { id: draggedItemId, parentId: newParentId });
+
+                newSiblings.forEach((item, index) => {
+                    const docRef = collectionRef.doc(item.id);
+                    if (item.id === draggedItemId) {
+                        batch.update(docRef, { order: index, parentId: newParentId });
+                    } else {
+                        if(item.order !== index) batch.update(docRef, { order: index });
+                    }
+                });
+
+                batch.commit().then(() => {
+                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                }).catch(err => {
+                    console.error("Failed to reorder items:", err);
+                    showModal({title: "오류", text: "순서 변경에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                });
+            });
+        }
         
         function handleImageUpload(e) {
             const file = e.target.files[0];
@@ -884,17 +984,12 @@
                         const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/characters`);
                         collectionRef.doc(activeItemId).update({ imageUrl: downloadURL })
                         .then(() => {
-                            // FIXED: Manually update local state for immediate UI consistency
                             const character = getItem(activeItemId);
                             if (character) {
                                 character.imageUrl = downloadURL;
                             }
-                            const imageContainer = appContainer.querySelector('#character-image-container');
-                            const imagePlaceholder = appContainer.querySelector('#character-image-placeholder');
-                            if (imageContainer && imagePlaceholder) {
-                                imageContainer.style.backgroundImage = `url(${downloadURL})`;
-                                imagePlaceholder.classList.add('hidden');
-                            }
+                            // Re-render the panel to ensure the image is displayed
+                            renderEditorPanel(); 
                             progressBar.classList.add('hidden');
                         });
                     });
@@ -996,6 +1091,6 @@
         initialize();
     });
     </script>
-    <script async defer src="https://accounts.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 </body>
 </html>
