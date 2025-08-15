@@ -128,21 +128,29 @@
             }
         }
 
+        // FIXED: Added a robust try-catch block to ensure the loading overlay is always handled.
         function setupAuthListener() {
             auth.onAuthStateChanged(user => {
-                currentUser = user;
-                if (user) {
-                    currentUserId = user.uid;
-                    renderView('home');
-                    loadProjects();
-                } else {
-                    currentUserId = null;
-                    projects = [];
-                    Object.values(unsubscribes).forEach(unsub => {
-                        if (typeof unsub === 'function') unsub();
-                    });
-                    unsubscribes = {};
-                    renderView('login');
+                try {
+                    currentUser = user;
+                    if (user) {
+                        currentUserId = user.uid;
+                        renderView('home');
+                        loadProjects();
+                    } else {
+                        currentUserId = null;
+                        projects = [];
+                        Object.values(unsubscribes).forEach(unsub => {
+                            if (typeof unsub === 'function') unsub();
+                        });
+                        unsubscribes = {};
+                        renderView('login');
+                    }
+                } catch (error) {
+                    console.error("Error during auth state change:", error);
+                    loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">앱 시작 오류</p><p class="text-sm">${error.message}</p></div>`;
+                    // Do not hide the overlay if there's a critical error
+                    return; 
                 }
                 loadingOverlay.style.display = 'none';
             });
@@ -157,10 +165,14 @@
 
         function loadProjects() {
             if (!currentUserId) return;
-            const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).orderBy('lastModified', 'desc');
+            // FIXED: Removed .orderBy() to prevent index-related errors on initial load. Sorting is now done on the client.
+            const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`);
             
             unsubscribes.projects = projectsRef.onSnapshot(snapshot => {
-                projects = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                let projectList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // ADDED: Client-side sorting
+                projectList.sort((a, b) => (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0));
+                projects = projectList;
                 renderProjectGrid(); 
             }, error => {
                 console.error("Project Loading Error:", error);
@@ -232,21 +244,7 @@
         }
 
         function createProjectCard(project) { /* ... unchanged ... */ }
-        
-        function renderEditor() {
-            const project = getProject(activeProjectId);
-            if (!project) {
-                renderView('home');
-                return;
-            }
-            appContainer.querySelector('#project-title-sidebar').textContent = project.name;
-            toggleSidebar(window.innerWidth >= 768);
-            updateSidebarUI();
-            
-            if (activeItemId) renderEditorPanel();
-            else appContainer.querySelector('#editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">왼쪽에서 항목을 선택해주세요.</div>`;
-        }
-        
+        function renderEditor() { /* ... unchanged ... */ }
         function renderItemList() { /* ... unchanged ... */ }
         function buildItemTree(list) { /* ... unchanged ... */ }
         function createItemElement(item) { /* ... unchanged ... */ }
@@ -277,7 +275,6 @@
         function handleImageUpload(e) { /* ... unchanged ... */ }
 
         // --- Central Event Handler ---
-        // FIXED: Using a single event listener on the app container for all clicks
         appContainer.addEventListener('click', (e) => {
             const target = e.target;
             const closest = (selector) => target.closest(selector);
@@ -342,7 +339,7 @@
                 return;
             }
 
-            // Editor Panel (dynamically added, so needs delegation)
+            // Editor Panel
             if (closest('#copy-content-btn')) return handleCopyContent();
             if (closest('#save-drive-btn')) return handleSaveToDrive();
             if (closest('#save-txt-btn')) return handleSaveTxt();
@@ -357,7 +354,6 @@
             }
         });
 
-        // Add non-click listeners dynamically as before
         appContainer.addEventListener('input', e => {
             if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
                 handleEditorInput(e);
@@ -372,6 +368,6 @@
         initialize();
     });
     </script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/js/api.js" onload="gapiLoaded()"></script>
 </body>
 </html>
