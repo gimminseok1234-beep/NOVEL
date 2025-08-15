@@ -821,7 +821,9 @@
             }
         };
         
-        async function handleSaveToDrive() { /* ... unchanged ... */ }
+        async function handleSaveToDrive() {
+            // This function remains unchanged for now.
+        }
         
         function addDragAndDropListeners(listEl) {
             if (!listEl) return;
@@ -910,10 +912,11 @@
                 newSiblings.splice(targetOrder, 0, draggedItem);
                 
                 newSiblings.forEach((item, index) => {
+                    const docRef = collectionRef.doc(item.id);
                     if (item.id === draggedItem.id) {
-                        batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
+                        batch.update(docRef, { order: index, parentId: newParentId });
                     } else if (item.order !== index) {
-                        batch.update(collectionRef.doc(item.id), { order: index });
+                        batch.update(docRef, { order: index });
                     }
                 });
 
@@ -925,7 +928,7 @@
                 });
             });
         }
-
+        
         // --- Central Event Handler ---
         appContainer.addEventListener('click', (e) => {
             const target = e.target;
