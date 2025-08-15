@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소설 집필 프로그램</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        /* --- Google Drive API 설정 --- */
+        // ⚠️ 중요: 아래 값들을 Google Cloud Console에서 발급받은 본인의 값으로 변경하세요.
+        const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키
+        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
+        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        let gapiInited = false;
+        let tokenClient;
+
+        // 이 함수들은 외부 스크립트에서 호출되므로 반드시 전역 스코프에 있어야 합니다.
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: GOOGLE_API_KEY,
+                discoveryDocs: DISCOVERY_DOCS,
+            });
+            gapiInited = true;
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // The callback is handled by the Promise from requestAccessToken
+            });
+        }
+    </script>
+    <!-- Google API Client Library -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+        .bg-main { background-color: #121212; }
+        .bg-surface { background-color: #1e1e1e; }
+        .bg-card { background-color: #2a2a2a; }
+        .border-main { border-color: #3f3f46; }
+        .accent { color: #bb86fc; }
+        .accent-bg { background-color: #bb86fc; }
+        .accent-hover:hover { background-color: #a763ff; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        
+        .project-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
+        }
+        .list-item.active { background-color: #37373d; }
+        .list-item:not(.active):hover { background-color: #2a2a2a; }
+        .list-item .delete-btn { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
+        .list-item:hover .delete-btn { visibility: visible; opacity: 1; }
+        .dragging { opacity: 0.5; }
+        .drag-over { border-top: 2px solid #bb86fc; }
+        .tab-btn.active { background-color: #37373d; }
+
+        /* --- Sidebar Styles --- */
+        #editor-container {
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        #editor-sidebar {
+            width: 224px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 40;
+            transform: translateX(-100%); /* Start closed */
+            transition: transform 0.3s ease-in-out;
+            will-change: transform;
+        }
+
+        #editor-main-content {
+            flex: 1;
+            transition: padding-left 0.3s ease-in-out;
+            padding-left: 0; 
+        }
+
+        /* State when sidebar is open */
+        #editor-container.sidebar-open #editor-sidebar {
+            transform: translateX(0);
+        }
+        
+        #mobile-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 30;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        #editor-sidebar-toggle {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            z-index: 50;
+            width: 24px;  /* Slimmer button */
+            height: 48px; /* Good vertical touch height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease-in-out;
+            border-radius: 0 8px 8px 0; /* Slightly less rounded */
+        }
+
+        #editor-container.sidebar-open #editor-sidebar-toggle {
+             transform: translate(224px, -50%); /* Match reduced width */
+        }
+
+        /* On mobile, sidebar overlays content */
+        @media (max-width: 767px) {
+            #editor-container.sidebar-open #editor-main-content {
+                padding-left: 0 !important;
+            }
+        }
+
+        /* On desktop, sidebar pushes content */
+        @media (min-width: 768px) {
+            #editor-container.sidebar-open #editor-main-content {
+                padding-left: 224px; /* Match reduced width */
+            }
+        }
+    </style>
+</head>
+<body class="bg-main antialiased">
+
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="text-center text-white"><svg class="animate-spin h-10 w-10 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="text-lg">데이터를 불러오는 중입니다...</p></div>
+    </div>
+
+    <div id="app-container" class="h-screen w-screen">
+        <!-- Views will be rendered here -->
+    </div>
+
+    <!-- Login View Template -->
+    <template id="login-view-template">
+        <div class="flex flex-col items-center justify-center h-full text-center p-4">
+            <h1 class="text-4xl font-bold mb-2">나만의 작업실</h1>
+            <p class="text-gray-400 mb-8">당신의 이야기를 펼쳐보세요.</p>
+            <button id="google-login-btn" class="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-3 transition-transform hover:scale-105">
+                <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.61-3.317-11.28-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.596 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                <span>Google 계정으로 시작하기</span>
+            </button>
+             <button id="anonymous-login-btn" class="mt-4 text-gray-400 hover:text-white text-sm">또는, 먼저 둘러보기 (익명 로그인)</button>
+        </div>
+    </template>
+
+    <!-- Home View Template -->
+    <template id="home-view-template">
+        <div class="p-4 sm:p-6 md:p-8 flex flex-col h-full">
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold">내 작업실</h1>
+                    <p id="user-id-display" class="text-xs text-gray-500 mt-1 truncate" title="사용자 ID"></p>
+                </div>
+                <div id="user-profile-area" class="flex items-center gap-4">
+                    <!-- User info or link button will be inserted here -->
+                </div>
+            </header>
+            <main class="flex-grow">
+                 <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">최근 편집</h2>
+                    <button id="new-project-btn" class="accent-bg accent-hover text-black font-bold py-2 px-5 rounded-lg transition-colors">+ 새 프로젝트</button>
+                </div>
+                <div id="project-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    <!-- Project cards will be inserted here -->
+                </div>
+            </main>
+        </div>
+    </template>
+
+    <!-- Editor View Template -->
+    <template id="editor-view-template">
+        <div id="editor-container" class="h-screen">
+            <div id="mobile-overlay" class="hidden md:hidden"></div>
+            <!-- Left Sidebar -->
+            <aside id="editor-sidebar" class="bg-surface flex flex-col border-r border-main flex-shrink-0">
+                <div class="p-4 border-b border-main flex items-center gap-3">
+                    <button id="home-btn" class="p-2 rounded-md hover:bg-card">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    </button>
+                    <h2 id="project-title-sidebar" class="text-lg font-bold truncate"></h2>
+                </div>
+                <div class="flex-grow flex flex-col min-h-0">
+                    <div class="p-2 border-b border-main">
+                        <div class="flex bg-card rounded-md">
+                            <button data-tab="chapters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">회차</button>
+                            <button data-tab="characters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">등장인물</button>
+                        </div>
+                    </div>
+                    <div class="p-3 flex justify-between items-center">
+                        <h3 id="list-title" class="font-semibold"></h3>
+                        <button id="new-item-btn" class="text-sm accent-bg accent-hover text-black font-bold py-1 px-3 rounded-md transition-colors"></button>
+                    </div>
+                    <nav id="item-list" class="flex-grow overflow-y-auto px-2 pb-2"></nav>
+                </div>
+            </aside>
+            
+            <!-- Main Content Area -->
+            <div id="editor-main-content" class="flex flex-col w-full h-full">
+                <main id="editor-panel" class="flex-1 flex flex-col min-h-0">
+                    <!-- Editor will be rendered here -->
+                </main>
+            </div>
+            
+            <!-- Toggle button is now a direct child of the container for simpler positioning -->
+            <button id="editor-sidebar-toggle" class="bg-card hover:bg-purple-800">
+                <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+        </div>
+    </template>
+
+    <!-- Editor Panel Template -->
+    <template id="editor-panel-template">
+        <header class="p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
+            <span id="autosave-status" class="text-sm text-gray-500 transition-opacity duration-500 opacity-0 mr-auto"></span>
+            <div id="char-count-container" class="text-sm cursor-pointer" title="클릭하여 모드 변경">
+                <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
+            </div>
+             <div class="flex gap-2">
+                <button id="save-drive-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Google Drive에 백업</button>
+                <button id="save-txt-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">TXT 저장</button>
+            </div>
+        </header>
+        <div class="flex-1 p-6 sm:p-8 overflow-y-auto">
+            <div class="max-w-[370px] mx-auto h-full flex flex-col">
+                <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition">
+                <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal Templates -->
+    <template id="modal-template">
+         <div class="bg-card rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 id="modal-title" class="text-xl font-bold mb-4"></h3>
+            <p id="modal-text" class="text-gray-400 mb-6"></p>
+            <input id="modal-input" type="text" class="hidden w-full p-2 bg-surface rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent mb-4">
+            <div id="modal-buttons" class="flex justify-end space-x-4"></div>
+         </div>
+    </template>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // Make modal functions global
+        function showModal(options) {
+            closeModal();
+            const modalBackdrop = document.createElement('div');
+            modalBackdrop.id = 'modal-backdrop';
+            modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
+            const template = document.getElementById('modal-template').content.cloneNode(true);
+            modalBackdrop.appendChild(template);
+            
+            const titleEl = modalBackdrop.querySelector('#modal-title');
+            const textEl = modalBackdrop.querySelector('#modal-text');
+            const inputEl = modalBackdrop.querySelector('#modal-input');
+            const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
+
+            titleEl.textContent = options.title;
+            if(options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
+            if (options.inputPlaceholder) {
+                inputEl.classList.remove('hidden');
+                inputEl.placeholder = options.inputPlaceholder;
+            }
+            options.buttons.forEach(function(btnInfo) {
+                const button = document.createElement('button');
+                button.textContent = btnInfo.text;
+                button.className = btnInfo.class;
+                button.onclick = function() {
+                    if (typeof btnInfo.onClick === 'function') btnInfo.onClick(inputEl.value);
+                    if (btnInfo.closeOnClick !== false) closeModal();
+                };
+                buttonsEl.appendChild(button);
+            });
+            document.body.appendChild(modalBackdrop);
+            if(options.inputPlaceholder) inputEl.focus();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal-backdrop');
+            if (modal) modal.remove();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const appContainer = document.getElementById('app-container');
+            let db, auth;
+            let currentUserId = null;
+            let currentUser = null;
+            let unsubscribes = {};
+            
+            let activeView = null;
+            let projects = [];
+            let chapters = [];
+            let characters = [];
+
+            let activeProjectId = null;
+            let activeItemId = null;
+            let sidebarMode = 'chapters';
+            let charCountMode = 'noSpecialChars';
+            let saveTimeouts = {};
+            let autoSaveInterval = null; // 자동 저장 타이머
+
+            // --- Firebase Initialization ---
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_AUTH_DOMAIN",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_STORAGE_BUCKET",
+                messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            });
+
+            function initialize() {
+                try {
+                    const firebaseConfig = JSON.parse(firebaseConfigStr);
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    auth = firebase.auth();
+                    setupAuthListener();
+                } catch (error) {
+                    console.error("Firebase 초기화 오류:", error);
+                    document.getElementById('loading-overlay').innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">초기화 오류</p><p class="text-sm">${error.message}</p></div>`;
+                }
+            }
+
+            function setupAuthListener() {
+                auth.onAuthStateChanged(function(user) {
+                    currentUser = user;
+                    if (user) {
+                        currentUserId = user.uid;
+                        loadProjects();
+                        renderView('home');
+                    } else {
+                        currentUserId = null;
+                        projects = [];
+                        Object.values(unsubscribes).forEach(function(unsub) { unsub() });
+                        unsubscribes = {};
+                        renderView('login');
+                        document.getElementById('loading-overlay').style.display = 'none';
+                    }
+                });
+            }
+
+            // --- State Management ---
+            function getProject(projectId) { return projects.find(function(p) { return p.id === projectId }) };
+            function getItem(projectId, itemId) {
+                if (!getProject(projectId)) return null;
+                const items = sidebarMode === 'chapters' ? chapters : characters;
+                return items.find(function(i) { return i.id === itemId });
+            };
+
+            // --- View Rendering ---
+            function renderView(viewName) {
+                activeView = viewName;
+                appContainer.innerHTML = '';
+                const template = document.getElementById(`${viewName}-view-template`).content.cloneNode(true);
+                appContainer.appendChild(template);
+                
+                if (autoSaveInterval) clearInterval(autoSaveInterval);
+                
+                if (viewName === 'home') renderHome();
+                else if (viewName === 'editor') renderEditor();
+            }
+            
+            // --- Login View Logic ---
+            function handleGoogleLogin() {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(function(error) {
+                    console.error("Google 로그인 오류:", error);
+                    showModal({title: "로그인 오류", text: error.message, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                });
+            };
+            function handleAnonymousLogin() { auth.signInAnonymously().catch(console.error) };
+            function handleLogout() {
+                if (autoSaveInterval) clearInterval(autoSaveInterval);
+                auth.signOut();
+            };
+            
+            function handleLinkAccount() {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.currentUser.linkWithPopup(provider).then(function() {
+                    showModal({title: "계정 연결 성공", text: "이제 Google 계정으로 로그인하여 데이터를 관리할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    renderHome();
+                }).catch(function(error) {
+                    if (error.code === 'auth/credential-already-in-use') {
+                        const credential = firebase.auth.GoogleAuthProvider.credentialFromError(error);
+                        showModal({
+                            title: "계정 통합",
+                            text: "이 Google 계정은 이미 다른 작업실에 사용 중입니다. 익명으로 작업한 내용을 버리고 기존 Google 계정의 작업실로 로그인하시겠습니까?",
+                            buttons: [
+                                { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                                { text: '로그인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: function() {
+                                    auth.signInWithCredential(credential).catch(function(signInError) {
+                                        console.error("재로그인 오류:", signInError);
+                                        showModal({title: "오류", text: "로그인에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                                    });
+                                }}
+                            ]
+                        });
+                    } else {
+                        console.error("계정 연결 오류:", error);
+                        showModal({title: "계정 연결 오류", text: `오류가 발생했습니다: ${error.message}`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    }
+                });
+            };
+
+            // --- Home View Logic ---
+            function renderHome() {
+                const projectGrid = document.getElementById('project-grid');
+                const userIdDisplay = document.getElementById('user-id-display');
+                const userProfileArea = document.getElementById('user-profile-area');
+
+                if(userIdDisplay && currentUserId) userIdDisplay.textContent = `ID: ${currentUserId}`;
+                
+                userProfileArea.innerHTML = '';
+                if (currentUser && !currentUser.isAnonymous) {
+                    userProfileArea.innerHTML = `
+                        <div class="text-right">
+                            <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
+                            <p class="text-xs text-gray-400 hidden sm:block truncate">${currentUser.email || '이메일 정보 없음'}</p>
+                        </div>
+                        <img class="w-10 h-10 rounded-full" src="${currentUser.photoURL || 'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile">
+                        <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">로그아웃</button>
+                    `;
+                } else {
+                    const linkButton = document.createElement('button');
+                    linkButton.id = 'link-account-btn';
+                    linkButton.className = 'accent-bg accent-hover text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors';
+                    linkButton.textContent = 'Google 계정에 연결';
+                    userProfileArea.appendChild(linkButton);
+                }
+
+                projectGrid.innerHTML = '';
+                const sortedProjects = [...projects].sort(function(a, b) { return (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0) });
+                sortedProjects.forEach(function(project) {
+                    const card = document.createElement('div');
+                    card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48';
+                    card.dataset.projectId = project.id;
+                    const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-bold"></h3>
+                                <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            <span>${lastModified} 수정됨</span>
+                        </div>`;
+                    card.querySelector('h3').textContent = project.name; // XSS Protection
+                    projectGrid.appendChild(card);
+                });
+            }
+
+            // --- Editor View Logic ---
+            function renderEditor() {
+                const project = getProject(activeProjectId);
+                if (!project) {
+                    renderView('home');
+                    return;
+                }
+                document.getElementById('project-title-sidebar').textContent = project.name;
+                toggleSidebar(window.innerWidth >= 768);
+                updateSidebarUI();
+                renderItemList();
+                addDragAndDropListeners();
+                if (activeItemId) {
+                    renderEditorPanel();
+                } else {
+                    document.getElementById('editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">왼쪽에서 항목을 선택해주세요.</div>`;
+                }
+
+                autoSaveInterval = setInterval(handleAutoSave, 300000); // 5 minutes
+            }
+            
+            function toggleSidebar(forceOpen) {
+                const container = document.getElementById('editor-container');
+                if (!container) return;
+                const shouldBeOpen = typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open');
+                container.classList.toggle('sidebar-open', shouldBeOpen);
+                updateSidebarVisuals();
+            };
+
+            function updateSidebarVisuals() {
+                const container = document.getElementById('editor-container');
+                const overlay = document.getElementById('mobile-overlay');
+                const icon = document.getElementById('toggle-icon');
+                if (!container || !overlay || !icon) return;
+                const isOpen = container.classList.contains('sidebar-open');
+                if (window.innerWidth < 768) {
+                    overlay.classList.toggle('hidden', !isOpen);
+                } else {
+                    overlay.classList.add('hidden');
+                }
+                icon.innerHTML = isOpen ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
+            }
+
+            function updateSidebarUI() {
+                document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.tab === sidebarMode) });
+                const listTitle = document.getElementById('list-title');
+                const newItemBtn = document.getElementById('new-item-btn');
+                if (sidebarMode === 'chapters') {
+                    listTitle.textContent = '회차 목록';
+                    newItemBtn.textContent = '+ 새 회차';
+                } else {
+                    listTitle.textContent = '등장인물';
+                    newItemBtn.textContent = '+ 추가';
+                }
+            }
+
+            function renderItemList() {
+                const listEl = document.getElementById('item-list');
+                if (!listEl) return;
+                listEl.innerHTML = '';
+                const items = sidebarMode === 'chapters' ? chapters : characters;
+                items.forEach(function(item) {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
+                    itemEl.dataset.id = item.id;
+                    itemEl.draggable = sidebarMode === 'chapters';
+                    itemEl.innerHTML = `<span class="truncate pointer-events-none"></span><button class="delete-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
+                    itemEl.querySelector('span').textContent = item.title || item.name;
+                    if (item.id === activeItemId) itemEl.classList.add('active');
+                    listEl.appendChild(itemEl);
+                });
+            }
+
+            function renderEditorPanel() {
+                const editorPanel = document.getElementById('editor-panel');
+                const item = getItem(activeProjectId, activeItemId);
+                if (!item) {
+                    editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">항목을 선택해주세요.</div>`;
+                    return;
+                }
+                editorPanel.innerHTML = '';
+                const template = document.getElementById('editor-panel-template').content.cloneNode(true);
+                editorPanel.appendChild(template);
+                const titleEl = document.getElementById('editor-title');
+                const contentEl = document.getElementById('editor-content');
+                if (sidebarMode === 'chapters') {
+                    titleEl.value = item.title || '';
+                    contentEl.value = item.content || '';
+                    titleEl.placeholder = "회차 제목을 입력하세요";
+                    contentEl.placeholder = "이곳에 이야기를 펼쳐보세요...";
+                } else {
+                    titleEl.value = item.name || '';
+                    contentEl.value = item.description || '';
+                    titleEl.placeholder = "등장인물 이름을 입력하세요";
+                    contentEl.placeholder = "등장인물에 대한 설명을 입력하세요...";
+                }
+                updateCharCount();
+            }
+            
+            function updateCharCount() {
+                const contentEl = document.getElementById('editor-content');
+                const countEl = document.getElementById('char-count');
+                const labelEl = document.getElementById('char-count-label');
+                if (!contentEl || !countEl || !labelEl) return;
+                const content = contentEl.value || '';
+                let count = 0;
+                let label = '';
+                switch (charCountMode) {
+                    case 'noSpaces':
+                        count = content.replace(/\s/g, '').length;
+                        label = '공백 제외';
+                        break;
+                    default:
+                        count = content.replace(/[.",'\s]/g, '').length;
+                        label = '공백/특문 제외';
+                        break;
+                }
+                countEl.textContent = count.toLocaleString();
+                labelEl.textContent = label;
+            }
+            
+            function saveCurrentWork() {
+                if (activeView !== 'editor' || !activeProjectId || !activeItemId) return;
+                const titleEl = document.getElementById('editor-title');
+                const contentEl = document.getElementById('editor-content');
+                if (!titleEl || !contentEl) return;
+                
+                const key = `${activeProjectId}-${activeItemId}`;
+                clearTimeout(saveTimeouts[key]);
+                const data = {};
+                if (sidebarMode === 'chapters') {
+                    data.title = titleEl.value;
+                    data.content = contentEl.value;
+                } else {
+                    data.name = titleEl.value;
+                    data.description = contentEl.value;
+                }
+                const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
+                itemRef.update(data);
+                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+
+            // --- Auto-Save Logic ---
+            function showAutoSaveFeedback(message, isError) {
+                const statusEl = document.getElementById('autosave-status');
+                if (!statusEl) return;
+                statusEl.textContent = message;
+                statusEl.className = `text-sm transition-opacity duration-500 opacity-100 ${isError ? 'text-red-400' : 'text-gray-500'} mr-auto`;
+                setTimeout(function() {
+                    statusEl.classList.remove('opacity-100');
+                    statusEl.classList.add('opacity-0');
+                }, 3000);
+            }
+
+            function handleAutoSave() {
+                if (activeView !== 'editor' || !activeProjectId || !activeItemId || sidebarMode !== 'chapters') {
+                    return;
+                }
+                const contentEl = document.getElementById('editor-content');
+                if (!contentEl || !contentEl.value.trim()) {
+                    return;
+                }
+                
+                const autoSavesRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters/${activeItemId}/autosaves`);
+                autoSavesRef.add({
+                    content: contentEl.value,
+                    savedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).then(function() {
+                    return autoSavesRef.orderBy('savedAt', 'desc').get();
+                }).then(function(snapshot) {
+                    if (snapshot.docs.length > 3) {
+                        const batch = db.batch();
+                        const savesToDelete = snapshot.docs.slice(3);
+                        savesToDelete.forEach(function(doc) { batch.delete(doc.ref) });
+                        return batch.commit();
+                    }
+                }).then(function() {
+                     showAutoSaveFeedback('자동 저장 완료');
+                }).catch(function(error) {
+                    console.error("Auto-save failed:", error);
+                    showAutoSaveFeedback('자동 저장 실패', true);
+                });
+            }
+
+
+            // --- Event Handlers ---
+            function handleAppClick(e) {
+                const target = e.target;
+
+                // --- Login View ---
+                if (activeView === 'login') {
+                    if (target.closest('#google-login-btn')) handleGoogleLogin();
+                    else if (target.closest('#anonymous-login-btn')) handleAnonymousLogin();
+                    return;
+                }
+
+                // --- Home View ---
+                if (activeView === 'home') {
+                    const optionsBtn = target.closest('[data-action="options"]');
+                    if (optionsBtn) {
+                        e.stopPropagation(); // Prevent card click
+                        const projectCard = optionsBtn.closest('.project-card');
+                        if (projectCard) {
+                            handleProjectOptions(projectCard.dataset.projectId);
+                        }
+                        return;
+                    }
+                    
+                    const projectCard = target.closest('.project-card');
+                    if (projectCard) {
+                        activeProjectId = projectCard.dataset.projectId;
+                        sidebarMode = 'chapters';
+                        activeItemId = null;
+                        if (unsubscribes.items) unsubscribes.items();
+                        loadItems();
+                        renderView('editor');
+                        return;
+                    }
+
+                    if (target.closest('#new-project-btn')) handleNewProject();
+                    else if (target.closest('#logout-btn')) handleLogout();
+                    else if (target.closest('#link-account-btn')) handleLinkAccount();
+                    return;
+                }
+
+                // --- Editor View ---
+                if (activeView === 'editor') {
+                    const homeBtn = target.closest('#home-btn');
+                    const newItemBtn = target.closest('#new-item-btn');
+                    const tabBtn = target.closest('.tab-btn');
+                    const listItem = target.closest('.list-item');
+                    const deleteItemBtn = target.closest('[data-action="delete-item"]');
+                    const saveTxtBtn = target.closest('#save-txt-btn');
+                    const saveDriveBtn = target.closest('#save-drive-btn');
+                    const charCountContainer = target.closest('#char-count-container');
+                    const sidebarToggle = target.closest('#editor-sidebar-toggle');
+                    const mobileOverlay = target.closest('#mobile-overlay');
+
+                    if (homeBtn) {
+                        if (unsubscribes.items) unsubscribes.items();
+                        renderView('home');
+                    } else if (newItemBtn) {
+                        handleNewItem();
+                    } else if (tabBtn) {
+                        sidebarMode = tabBtn.dataset.tab;
+                        activeItemId = null;
+                        updateSidebarUI();
+                        loadItems();
+                        renderEditorPanel();
+                    } else if (listItem) {
+                        if (deleteItemBtn) {
+                            handleDeleteItem(listItem.dataset.id);
+                        } else {
+                            activeItemId = listItem.dataset.id;
+                            if (window.innerWidth < 768) toggleSidebar(false);
+                            renderItemList();
+                            renderEditorPanel();
+                        }
+                    } else if (saveTxtBtn) {
+                        handleSaveTxt();
+                    } else if (saveDriveBtn) {
+                        handleSaveToDrive();
+                    } else if (charCountContainer) {
+                        charCountMode = charCountMode === 'noSpecialChars' ? 'noSpaces' : 'noSpecialChars';
+                        updateCharCount();
+                    } else if (sidebarToggle || mobileOverlay) {
+                        toggleSidebar();
+                    }
+                }
+            }
+
+            function handleEditorInput() {
+                if (activeView !== 'editor' || !activeProjectId || !activeItemId) return;
+                updateCharCount();
+                const key = `${activeProjectId}-${activeItemId}`;
+                clearTimeout(saveTimeouts[key]);
+                saveTimeouts[key] = setTimeout(saveCurrentWork, 500);
+            }
+
+            function handleNewProject() {
+                showModal({
+                    title: '새 프로젝트 생성', text: '새로운 프로젝트의 이름을 입력해주세요.', inputPlaceholder: '나의 멋진 소설',
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                        { text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', 
+                            onClick: function(name) {
+                                if (!name) return;
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({
+                                    name: name,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                    lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+                                });
+                            }
+                        }
+                    ]
+                });
+            }
+
+            function handleProjectOptions(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.',
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                        { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold', onClick: function() { setTimeout(function() { handleRenameProject(projectId) }, 10)} },
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', onClick: function() { setTimeout(function() { handleDeleteProject(projectId) }, 10)} }
+                    ]
+                });
+            };
+            
+            function handleRenameProject(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                        { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', 
+                            onClick: function(newName) {
+                                if (!newName) return;
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                            }
+                        }
+                    ]
+                });
+            };
+            
+            function handleDeleteProject(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', 
+                            onClick: function() {
+                                const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
+                                const batch = db.batch();
+                                projectRef.collection("chapters").get().then(function(snapshot) {
+                                    snapshot.forEach(function(doc) { batch.delete(doc.ref) });
+                                    return projectRef.collection("characters").get();
+                                }).then(function(snapshot) {
+                                    snapshot.forEach(function(doc) { batch.delete(doc.ref) });
+                                    batch.delete(projectRef);
+                                    return batch.commit();
+                                });
+                            }
+                        }
+                    ]
+                });
+            };
+
+            function handleNewItem() {
+                let newItem;
+                if (sidebarMode === 'chapters') {
+                    newItem = { title: '새 회차', content: '', order: chapters.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                } else {
+                    newItem = { name: '새 등장인물', description: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                }
+                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                collectionRef.add(newItem).then(function(newDocRef) {
+                    activeItemId = newDocRef.id;
+                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                    renderEditorPanel();
+                });
+            };
+            
+            function handleDeleteItem(itemId) {
+                const itemType = sidebarMode === 'chapters' ? '회차' : '등장인물';
+                showModal({
+                    title: `${itemType} 삭제`, text: `정말로 이 ${itemType}를 삭제하시겠습니까?`,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', 
+                            onClick: function() {
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(itemId).delete().then(function() {
+                                    if (activeItemId === itemId) {
+                                        activeItemId = null;
+                                        renderEditorPanel();
+                                    }
+                                });
+                            }
+                        }
+                    ]
+                });
+            };
+            
+            function handleSaveTxt() {
+                if (sidebarMode === 'chapters' && activeItemId) {
+                    const chapter = getItem(activeProjectId, activeItemId);
+                    const project = getProject(activeProjectId);
+                    const content = `# ${chapter.title}\n\n${chapter.content}`;
+                    const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    const sanitizedTitle = (chapter.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
+                    a.download = `[${project.name}] ${sanitizedTitle}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                } else {
+                    showModal({title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                }
+            };
+            
+            // --- Google Drive Backup Logic ---
+            async function getOrCreateFolderId() {
+                const folderName = '소설 백업';
+                const searchResponse = await gapi.client.drive.files.list({
+                    q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+                    fields: 'files(id, name)',
+                    spaces: 'drive'
+                });
+
+                if (searchResponse.result.files.length > 0) {
+                    return searchResponse.result.files[0].id;
+                } else {
+                    const fileMetadata = {
+                        'name': folderName,
+                        'mimeType': 'application/vnd.google-apps.folder'
+                    };
+                    const createResponse = await gapi.client.drive.files.create({
+                        resource: fileMetadata,
+                        fields: 'id'
+                    });
+                    return createResponse.result.id;
+                }
+            }
+
+            async function handleSaveToDrive() {
+                if (GOOGLE_API_KEY === 'YOUR_API_KEY' || GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID') {
+                    showModal({title: "설정 필요", text: "Google Drive API 키와 클라이언트 ID가 코드에 설정되지 않았습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    return;
+                }
+
+                if (currentUser.isAnonymous) {
+                    showModal({title: "계정 필요", text: "Google Drive에 백업하려면 먼저 Google 계정을 연결해야 합니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    return;
+                }
+
+                if (sidebarMode !== 'chapters' || !activeItemId) {
+                    showModal({title: "알림", text: "Google Drive에 백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    return;
+                }
+
+                if (!gapiInited) {
+                    showModal({title: "오류", text: "Google API가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                    return;
+                }
+                
+                try {
+                    const tokenResponse = await new Promise(function(resolve, reject) {
+                        try {
+                            tokenClient.callback = function(resp) {
+                                if (resp.error !== undefined) reject(resp);
+                                resolve(resp);
+                            };
+                            tokenClient.requestAccessToken({ prompt: 'consent' });
+                        } catch (err) {
+                            reject(err);
+                        }
+                    });
+                    gapi.client.setToken({ access_token: tokenResponse.access_token });
+
+                    const folderId = await getOrCreateFolderId();
+
+                    const chapter = getItem(activeProjectId, activeItemId);
+                    const project = getProject(activeProjectId);
+                    const fileName = `[${project.name}] ${chapter.title || '제목 없음'}.txt`;
+                    const fileContent = `# ${chapter.title}\n\n${chapter.content}`;
+                    
+                    const metadata = {
+                        'name': fileName,
+                        'mimeType': 'text/plain',
+                        'parents': [folderId]
+                    };
+
+                    const multipartRequestBody =
+                        `--BOUNDARY\r\n` +
+                        `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+                        `${JSON.stringify(metadata)}\r\n` +
+                        `--BOUNDARY\r\n` +
+                        `Content-Type: text/plain; charset=UTF-8\r\n\r\n` +
+                        `${fileContent}\r\n` +
+                        `--BOUNDARY--`;
+                    
+                    const request = gapi.client.request({
+                        'path': 'https://www.googleapis.com/upload/drive/v3/files',
+                        'method': 'POST',
+                        'params': {'uploadType': 'multipart'},
+                        'headers': {'Content-Type': 'multipart/related; boundary=BOUNDARY'},
+                        'body': multipartRequestBody
+                    });
+                    
+                    await request;
+                    showModal({title: "백업 성공", text: `'${fileName}' 파일이 '소설 백업' 폴더에 성공적으로 저장되었습니다.`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+
+                } catch (error) {
+                    console.error("드라이브 처리 오류:", error);
+                    const errorMessage = error.result?.error?.message || error.details || '알 수 없는 오류가 발생했습니다.';
+                    showModal({title: "백업 실패", text: `파일을 업로드하는 중 오류가 발생했습니다: ${errorMessage}`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                }
+            }
+
+            // --- Drag & Drop Logic ---
+            let draggedItemId = null;
+            function addDragAndDropListeners() {
+                const listEl = document.getElementById('item-list');
+                if (!listEl) return;
+                listEl.addEventListener('dragstart', function(e) {
+                    if (sidebarMode !== 'chapters') return;
+                    const target = e.target.closest('.list-item');
+                    if (target) {
+                        draggedItemId = target.dataset.id;
+                        setTimeout(function() { target.classList.add('dragging') }, 0);
+                    }
+                });
+                listEl.addEventListener('dragend', function(e) {
+                    if (!draggedItemId) return;
+                    const target = e.target.closest('.list-item');
+                    if(target) target.classList.remove('dragging');
+                    draggedItemId = null;
+                });
+                listEl.addEventListener('dragover', function(e) {
+                    if (!draggedItemId) return;
+                    e.preventDefault();
+                    const target = e.target.closest('.list-item');
+                    document.querySelectorAll('.drag-over').forEach(function(el) { el.classList.remove('drag-over') });
+                    if (target && target.dataset.id !== draggedItemId) {
+                        target.classList.add('drag-over');
+                    }
+                });
+                listEl.addEventListener('drop', function(e) {
+                    if (!draggedItemId) return;
+                    e.preventDefault();
+                    document.querySelectorAll('.drag-over').forEach(function(el) { el.classList.remove('drag-over') });
+                    const target = e.target.closest('.list-item');
+                    if (target && target.dataset.id !== draggedItemId) {
+                        const draggedItem = chapters.find(function(c) { return c.id === draggedItemId });
+                        const reorderedChapters = chapters.filter(function(c) { return c.id !== draggedItemId });
+                        const targetIndex = reorderedChapters.findIndex(function(c) { return c.id === target.dataset.id });
+                        reorderedChapters.splice(targetIndex, 0, draggedItem);
+                        const batch = db.batch();
+                        reorderedChapters.forEach(function(chap, index) {
+                            const chapRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`).doc(chap.id);
+                            batch.update(chapRef, { order: index });
+                        });
+                        batch.commit().then(function() {
+                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                        });
+                    }
+                });
+            }
+
+            // --- Data Loading ---
+            function loadProjects() {
+                if (!currentUserId) return;
+                const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`);
+                const q = projectsRef.orderBy('lastModified', 'desc');
+                unsubscribes.projects = q.onSnapshot(function(snapshot) {
+                    projects = snapshot.docs.map(function(doc) { return ({ id: doc.id, ...doc.data() }) });
+                    if (activeView === 'home' || !activeProjectId) {
+                        renderView('home');
+                    }
+                    document.getElementById('loading-overlay').style.display = 'none';
+                }, function(error) {
+                    console.error("프로젝트 로딩 오류:", error);
+                    document.getElementById('loading-overlay').innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">데이터 로딩 오류</p><p class="text-sm">데이터를 불러오는 데 실패했습니다. 권한을 확인해주세요.</p></div>`;
+                });
+            }
+
+            function loadItems() {
+                if (unsubscribes.items) unsubscribes.items();
+                const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'desc');
+                
+                unsubscribes.items = q.onSnapshot(function(snapshot) {
+                    if (sidebarMode === 'chapters') {
+                        chapters = snapshot.docs.map(function(doc) { return ({ id: doc.id, ...doc.data() }) });
+                        chapters.sort(function(a,b) { return (a.order ?? 0) - (b.order ?? 0) });
+                    } else {
+                        characters = snapshot.docs.map(function(doc) { return ({ id: doc.id, ...doc.data() }) });
+                    }
+                    renderItemList();
+                });
+            }
+
+            // --- Initial Load ---
+            initialize();
+
+            // --- Global Event Listeners ---
+            appContainer.addEventListener('click', handleAppClick);
+            appContainer.addEventListener('input', handleEditorInput);
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'hidden') saveCurrentWork();
+            });
+        });
+    </script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
