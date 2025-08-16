@@ -277,7 +277,7 @@
             const appContainer = document.getElementById('app-container');
             const loadingOverlay = document.getElementById('loading-overlay');
             let db, auth, currentUserId = null, currentUser = null, unsubscribes = {};
-            let activeView = null, projects = [], chapters = [], characters = [];
+            let activeView = null, projects = [], chapters = [], characters = [], openFolderIds = [];
             let activeProjectId = null, activeItemId = null, sidebarMode = 'chapters', charCountMode = 'noSpecialChars', saveTimeouts = {};
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -397,19 +397,23 @@
             
             function createItemElement(item) {
                 const isFolder = item.type === 'folder';
-                const wrapper = document.createElement('div'); wrapper.className = isFolder ? 'folder-item' : '';
-                const itemEl = document.createElement('div');
-                itemEl.dataset.id = item.id; itemEl.dataset.type = item.type || 'chapter'; itemEl.draggable = sidebarMode === 'chapters';
+                const wrapper = document.createElement('div');
+                
+                if (isFolder) {
+                    wrapper.className = openFolderIds.includes(item.id) ? 'folder-item open' : 'folder-item';
+                }
 
-                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
+                const itemEl = document.createElement('div');
+                itemEl.dataset.id = item.id;
+                itemEl.dataset.type = item.type || 'chapter';
+                itemEl.draggable = sidebarMode === 'chapters';
                 itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
+
                 if (isFolder) {
                     itemEl.innerHTML = `
-                        <div class="flex items-center flex-1 min-w-0">
-                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                            <span class="truncate pointer-events-none"></span>
-                        </div>
+                        <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                        <svg class="h-5 w-5 mr-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
                     `;
                 } else {
                      itemEl.innerHTML = `
@@ -455,7 +459,7 @@
                         <div class="mt-8 pt-8 border-t border-main">
                             <h4 class="text-lg font-semibold text-red-400 mb-2">위험 구역</h4>
                             <p class="text-sm text-gray-400 mb-4">이 폴더와 폴더에 포함된 모든 회차들이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
-                            <button id="delete-folder-btn" data-id="${item.id}" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">이 폴더 삭제하기</button>
+                            <button id="delete-folder-btn" data-id="${item.id}" data-type="folder" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">이 폴더 삭제하기</button>
                         </div>
                     </div>`;
             }
@@ -517,7 +521,7 @@
                     if (optionsBtn) { e.stopPropagation(); handleProjectOptions(optionsBtn.closest('.project-card').dataset.projectId); return; }
                     const projectCard = target.closest('.project-card');
                     if (projectCard) {
-                        activeProjectId = projectCard.dataset.projectId; sidebarMode = 'chapters'; activeItemId = null;
+                        activeProjectId = projectCard.dataset.projectId; sidebarMode = 'chapters'; activeItemId = null; openFolderIds = [];
                         if (unsubscribes.items) unsubscribes.items(); loadItems(); renderView('editor'); return;
                     }
                     if (target.closest('#new-project-btn')) handleNewProject(); else if (target.closest('#logout-btn')) handleLogout();
@@ -529,21 +533,28 @@
                     else if (target.closest('#new-item-btn')) handleNewItem();
                     else if (target.closest('#new-folder-btn')) handleNewFolder();
                     else if (target.closest('.tab-btn')) {
-                        sidebarMode = target.closest('.tab-btn').dataset.tab; activeItemId = null;
+                        sidebarMode = target.closest('.tab-btn').dataset.tab; activeItemId = null; openFolderIds = [];
                         updateSidebarUI(); loadItems(); renderEditorPanel();
                     } 
                     else if (target.closest('#delete-folder-btn')) {
-                        const folderId = target.closest('#delete-folder-btn').dataset.id;
-                        handleDeleteItem(folderId, 'folder');
+                        const button = target.closest('#delete-folder-btn');
+                        handleDeleteItem(button.dataset.id, button.dataset.type);
                     }
                     else if (listItem) {
-                        // FIXED: Click logic for folder expansion
-                        if (target.closest('.folder-toggle-icon')) {
-                            listItem.parentElement.classList.toggle('open');
+                        const itemId = listItem.dataset.id;
+                        const itemType = listItem.dataset.type;
+                        if (target.closest('[data-action="delete-item"]')) {
+                            handleDeleteItem(itemId, itemType);
                         } else {
-                            activeItemId = listItem.dataset.id;
-                            if (window.innerWidth < 768 && listItem.dataset.type !== 'folder') toggleSidebar(false);
-                            renderItemList(); renderEditorPanel();
+                            activeItemId = itemId;
+                            if (itemType === 'folder') {
+                                const index = openFolderIds.indexOf(itemId);
+                                if (index > -1) openFolderIds.splice(index, 1);
+                                else openFolderIds.push(itemId);
+                            }
+                            if (window.innerWidth < 768 && itemType !== 'folder') toggleSidebar(false);
+                            renderItemList();
+                            renderEditorPanel();
                         }
                     } else if (target.closest('#save-txt-btn')) handleSaveTxt();
                     else if (target.closest('#save-drive-btn')) handleSaveToDrive();
