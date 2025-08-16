@@ -134,7 +134,7 @@
             opacity: 0.5;
         }
 
-        .drag-over {
+        .drag-over-top {
             border-top: 2px solid #bb86fc;
         }
         .drag-over-bottom {
@@ -687,7 +687,6 @@
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
 
-                // FIXED: Simplified layout to fix vertical height issues
                 if (isFolder) {
                     itemEl.innerHTML = `
                         <div class="flex items-center truncate flex-1 min-w-0">
@@ -700,7 +699,7 @@
                         </button>
                     `;
                 } else {
-                    itemEl.innerHTML = `
+                     itemEl.innerHTML = `
                         <span class="truncate pointer-events-none flex-1 min-w-0"></span>
                         <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
                             <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
@@ -872,8 +871,10 @@
                         renderEditorPanel();
                     } else if (folderOptionsBtn) {
                         e.stopPropagation();
-                        const folderId = folderOptionsBtn.closest('.list-item').dataset.id;
-                        handleFolderOptions(folderId);
+                        const listItemEl = folderOptionsBtn.closest('.list-item');
+                        const folderId = listItemEl.dataset.id;
+                        const folderName = listItemEl.querySelector('span').textContent;
+                        handleFolderOptions(folderId, folderName);
                     } else if (listItem) {
                         if (deleteItemBtn) {
                              handleDeleteItem(listItem.dataset.id, listItem.dataset.type);
@@ -1026,17 +1027,14 @@
                 });
             }
 
-            function handleFolderOptions(folderId) {
-                const folder = chapters.find(f => f.id === folderId);
-                if (!folder) return;
+            function handleFolderOptions(folderId, folderName) {
                 showModal({
-                    title: `'${folder.name}' 폴더`,
+                    title: `'${folderName}' 폴더`,
                     buttons: [
                         { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold',
                             onClick: () => {
-                                // FIXED: Chaining modals with a slight delay to prevent clash
                                 closeModal();
-                                setTimeout(() => handleRenameFolder(folderId, folder.name), 50);
+                                setTimeout(() => handleRenameFolder(folderId, folderName), 50);
                             }
                         },
                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
@@ -1219,25 +1217,24 @@
                     if (!draggedItemId) return;
                     const target = document.querySelector(`[data-id="${draggedItemId}"]`);
                     if(target) target.classList.remove('dragging');
-                    document.querySelectorAll('.drag-over, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over', 'drag-over-bottom', 'drag-over-folder'));
+                    document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
                     draggedItemId = null;
                 });
                 listEl.addEventListener('dragover', function(e) {
                     if (!draggedItemId) return;
                     e.preventDefault();
                     const target = e.target.closest('.list-item');
-                    document.querySelectorAll('.drag-over, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over', 'drag-over-bottom', 'drag-over-folder'));
+                    document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
                     
                     if (target && target.dataset.id !== draggedItemId) {
                          if (target.dataset.type === 'folder') {
                              target.classList.add('drag-over-folder');
                          } else {
-                            // FIXED: More precise drop indicator
                             const rect = target.getBoundingClientRect();
                             if (e.clientY > rect.top + rect.height / 2) {
                                 target.classList.add('drag-over-bottom');
                             } else {
-                                target.classList.add('drag-over');
+                                target.classList.add('drag-over-top');
                             }
                          }
                     }
@@ -1245,14 +1242,14 @@
                 listEl.addEventListener('drop', async function(e) {
                     if (!draggedItemId) return;
                     e.preventDefault();
-                    document.querySelectorAll('.drag-over, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over', 'drag-over-bottom', 'drag-over-folder'));
+                    document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
                     
                     const dropTargetEl = e.target.closest('.list-item');
                     if (!dropTargetEl || dropTargetEl.dataset.id === draggedItemId) return;
 
-                    // FIXED: Rewritten drag-drop logic for accuracy
                     const draggedItem = chapters.find(c => c.id === draggedItemId);
                     const targetItem = chapters.find(c => c.id === dropTargetEl.dataset.id);
+                    if (!draggedItem || !targetItem) return;
                     
                     let newParentId = null;
                     let targetOrder = 0;
@@ -1260,7 +1257,7 @@
                     if (targetItem.type === 'folder') {
                         newParentId = targetItem.id;
                         const children = chapters.filter(c => c.parentId === newParentId);
-                        targetOrder = children.length; // Place at the end of the folder
+                        targetOrder = children.length;
                     } else {
                         newParentId = targetItem.parentId;
                         const rect = dropTargetEl.getBoundingClientRect();
@@ -1271,22 +1268,26 @@
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
 
+                    // Logic for moving items between different or same lists
                     const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => a.order - b.order);
-                    const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItemId).sort((a,b) => a.order - b.order);
-
-                    // Re-order old list
-                    oldSiblings.forEach((item, index) => {
-                        if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
-                    });
                     
-                    // Place dragged item in new list and update it
-                    newSiblings.splice(targetOrder, 0, draggedItem);
-                    batch.update(collectionRef.doc(draggedItem.id), { parentId: newParentId });
-                    
-                    // Re-order new list
-                    newSiblings.forEach((item, index) => {
-                        batch.update(collectionRef.doc(item.id), { order: index });
-                    });
+                    if (draggedItem.parentId === newParentId) {
+                        const newSiblings = oldSiblings;
+                        newSiblings.splice(draggedItem.order, 1);
+                        newSiblings.splice(targetOrder > draggedItem.order ? targetOrder - 1 : targetOrder, 0, draggedItem);
+                        newSiblings.forEach((item, index) => {
+                             if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
+                        });
+                    } else {
+                        oldSiblings.forEach((item, index) => {
+                            if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
+                        });
+                        const newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => a.order - b.order);
+                        newSiblings.splice(targetOrder, 0, draggedItem);
+                        newSiblings.forEach((item, index) => {
+                            batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
+                        });
+                    }
 
                     await batch.commit();
                     db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
@@ -1310,7 +1311,7 @@
             function loadItems() {
                 if (unsubscribes.items) unsubscribes.items();
                 const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'createdAt' : 'createdAt', 'desc'); // Sort by creation time to maintain stability
+                const q = itemsRef.orderBy('createdAt', 'asc');
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     if (sidebarMode === 'chapters') {
