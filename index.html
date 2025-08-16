@@ -646,7 +646,6 @@
                 }
             }
 
-
             let draggedItemId = null;
             function addDragAndDropListeners() {
                 const listEl = document.getElementById('item-list');
@@ -658,7 +657,10 @@
                     const target = e.target.closest('.list-item');
                     document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
                     if (target && target.dataset.id !== draggedItemId) {
-                        if (target.dataset.type === 'folder') {
+                        const draggedItem = chapters.find(c => c.id === draggedItemId);
+                        if(draggedItem && draggedItem.type === 'folder' && target.dataset.type ==='folder') {
+                            // Prevent dropping a folder onto another folder for now to simplify logic
+                        } else if (target.dataset.type === 'folder') {
                              target.classList.add('drag-over-folder'); 
                         } else { 
                             const rect = target.getBoundingClientRect(); 
@@ -670,7 +672,8 @@
                         }
                     }
                 });
-                // --- [MODIFIED] 드롭 로직 수정 ---
+
+                // --- [MODIFIED] 드롭 로직 전체를 재작성하여 안정성 대폭 향상 ---
                 listEl.addEventListener('drop', function(e) {
                     if (!draggedItemId) return;
                     e.preventDefault();
@@ -683,55 +686,49 @@
                     const targetItem = chapters.find(c => c.id === dropTargetEl.dataset.id);
                     if (!draggedItem || !targetItem) return;
 
+                    const originalParentId = draggedItem.parentId;
                     let newParentId;
-                    let newOrder;
+                    let insertionIndex;
 
-                    // CASE 1: 폴더 위로 드롭하는 경우
+                    // 새 부모(폴더)와 새 위치(순서) 결정
                     if (targetItem.type === 'folder') {
                         newParentId = targetItem.id;
-                        newOrder = chapters.filter(c => c.parentId === newParentId).length;
-                    } 
-                    // CASE 2: 다른 회차 아이템 주변으로 드롭하는 경우
-                    else {
+                    } else {
+                        newParentId = targetItem.parentId;
                         const rect = dropTargetEl.getBoundingClientRect();
                         const isAfter = e.clientY > rect.top + rect.height / 2;
-                        newParentId = targetItem.parentId;
-                        newOrder = isAfter ? targetItem.order + 1 : targetItem.order;
+                        insertionIndex = isAfter ? targetItem.order + 1 : targetItem.order;
                     }
-
-                    const originalParentId = draggedItem.parentId;
-
-                    // Firestore에 업데이트할 내용을 일괄 처리(batch)
+                    
+                    // --- 로컬 데이터로 최종 상태를 미리 계산 ---
+                    let allItems = [...chapters];
+                    const itemToMove = allItems.splice(allItems.findIndex(item => item.id === draggedItemId), 1)[0];
+                    
+                    let newSiblings = allItems.filter(item => item.parentId === newParentId).sort((a, b) => a.order - b.order);
+                    
+                    if (targetItem.type === 'folder') {
+                        insertionIndex = newSiblings.length;
+                    }
+                    
+                    newSiblings.splice(insertionIndex, 0, itemToMove);
+                    
+                    // --- Firestore 일괄 업데이트 ---
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
                     
-                    // 같은 부모 내에서 이동하는 아이템 목록
-                    const sameParentItems = chapters.filter(c => c.parentId === originalParentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                    
-                    // 아이템이 원래 있던 위치의 순서 재정렬
-                    let orderCounter = 0;
-                    for(const item of sameParentItems) {
-                        if(item.order !== orderCounter) {
-                           batch.update(collectionRef.doc(item.id), { order: orderCounter });
-                        }
-                        orderCounter++;
+                    // 1. 새 위치의 형제 아이템들 순서 업데이트
+                    newSiblings.forEach((item, index) => {
+                        batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
+                    });
+
+                    // 2. 부모가 변경되었다면, 이전 위치의 형제 아이템들 순서도 업데이트
+                    if (originalParentId !== newParentId) {
+                        const oldSiblings = allItems.filter(item => item.parentId === originalParentId).sort((a, b) => a.order - b.order);
+                        oldSiblings.forEach((item, index) => {
+                            batch.update(collectionRef.doc(item.id), { order: index });
+                        });
                     }
 
-                    // 아이템이 새로 들어갈 위치의 아이템 목록
-                    const newParentItems = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                    
-                    // 새 위치에 아이템 삽입 후 순서 재정렬
-                    newParentItems.splice(newOrder, 0, draggedItem);
-                    orderCounter = 0;
-                     for(const item of newParentItems) {
-                        if(item.id === draggedItemId) {
-                           batch.update(collectionRef.doc(item.id), { order: orderCounter, parentId: newParentId });
-                        } else if(item.order !== orderCounter) {
-                           batch.update(collectionRef.doc(item.id), { order: orderCounter });
-                        }
-                        orderCounter++;
-                    }
-                    
                     batch.commit().catch(err => {
                         console.error("Drag-drop failed:", err);
                     });
