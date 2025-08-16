@@ -47,108 +47,37 @@
             background-color: #121212;
             color: #e0e0e0;
             overflow-x: hidden;
-            /* Prevent horizontal scroll */
         }
 
-        .bg-main {
-            background-color: #121212;
-        }
+        .bg-main { background-color: #121212; }
+        .bg-surface { background-color: #1e1e1e; }
+        .bg-card { background-color: #2a2a2a; }
+        .border-main { border-color: #3f3f46; }
+        .accent { color: #bb86fc; }
+        .accent-bg { background-color: #bb86fc; }
+        .accent-hover:hover { background-color: #a763ff; }
 
-        .bg-surface {
-            background-color: #1e1e1e;
-        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
 
-        .bg-card {
-            background-color: #2a2a2a;
-        }
-
-        .border-main {
-            border-color: #3f3f46;
-        }
-
-        .accent {
-            color: #bb86fc;
-        }
-
-        .accent-bg {
-            background-color: #bb86fc;
-        }
-
-        .accent-hover:hover {
-            background-color: #a763ff;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1e1e1e;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #424242;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #5a5a5a;
-        }
-
-        .project-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-
+        .project-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
         .project-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
         }
 
-        .list-item.active {
-            background-color: #37373d;
-        }
-
-        .list-item:not(.active):hover {
-            background-color: #2a2a2a;
-        }
-        
-        .list-item {
-            padding-top: 0.375rem; /* 6px */
-            padding-bottom: 0.375rem; /* 6px */
-        }
-
-        .list-item .options-btn,
-        .list-item .delete-btn {
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .list-item:hover .options-btn,
-        .list-item:hover .delete-btn {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .dragging {
-            opacity: 0.5;
-        }
-
-        .drag-over-top {
-            border-top: 2px solid #bb86fc;
-        }
-        .drag-over-bottom {
-             border-bottom: 2px solid #bb86fc;
-        }
-
-        .drag-over-folder {
-            background-color: #37373d;
-            box-shadow: 0 0 0 2px #bb86fc;
-        }
-
-        .tab-btn.active {
-            background-color: #37373d;
-        }
+        .list-item.active { background-color: #37373d; }
+        .list-item:not(.active):hover { background-color: #2a2a2a; }
+        .list-item { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+        .list-item .delete-btn { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
+        .list-item:hover .delete-btn { visibility: visible; opacity: 1; }
+        .dragging { opacity: 0.5; }
+        .drag-over-top { border-top: 2px solid #bb86fc; }
+        .drag-over-bottom { border-bottom: 2px solid #bb86fc; }
+        .drag-over-folder { background-color: #37373d; box-shadow: 0 0 0 2px #bb86fc; }
+        .tab-btn.active { background-color: #37373d; }
         
         .folder-content {
             padding-left: 1.5rem;
@@ -156,21 +85,10 @@
             margin-left: 0.5rem;
             display: none;
         }
+        .folder-item.open > .folder-content { display: block; }
+        .folder-item.open > .list-item .folder-toggle-icon { transform: rotate(90deg); }
 
-        .folder-item.open>.folder-content {
-            display: block;
-        }
-
-        .folder-item.open>.list-item .folder-toggle-icon {
-            transform: rotate(90deg);
-        }
-
-        /* --- Sidebar Styles --- */
-        #editor-container {
-            position: relative;
-            overflow-x: hidden;
-        }
-
+        #editor-container { position: relative; overflow-x: hidden; }
         #editor-sidebar {
             width: 224px;
             position: absolute;
@@ -182,17 +100,12 @@
             transition: transform 0.3s ease-in-out;
             will-change: transform;
         }
-
         #editor-main-content {
             flex: 1;
             transition: padding-left 0.3s ease-in-out;
             padding-left: 0;
         }
-
-        #editor-container.sidebar-open #editor-sidebar {
-            transform: translateX(0);
-        }
-
+        #editor-container.sidebar-open #editor-sidebar { transform: translateX(0); }
         #mobile-overlay {
             position: fixed;
             inset: 0;
@@ -200,7 +113,6 @@
             z-index: 30;
             transition: opacity 0.3s ease-in-out;
         }
-
         #editor-sidebar-toggle {
             position: fixed;
             top: 50%;
@@ -215,22 +127,9 @@
             transition: transform 0.3s ease-in-out;
             border-radius: 0 8px 8px 0;
         }
-
-        #editor-container.sidebar-open #editor-sidebar-toggle {
-            transform: translate(224px, -50%);
-        }
-
-        @media (max-width: 767px) {
-            #editor-container.sidebar-open #editor-main-content {
-                padding-left: 0 !important;
-            }
-        }
-
-        @media (min-width: 768px) {
-            #editor-container.sidebar-open #editor-main-content {
-                padding-left: 224px;
-            }
-        }
+        #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%); }
+        @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
+        @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
 </head>
 
@@ -245,20 +144,14 @@
         </div>
     </div>
 
-    <div id="app-container" class="h-screen w-screen">
-        </div>
+    <div id="app-container" class="h-screen w-screen"></div>
 
     <template id="login-view-template">
         <div class="flex flex-col items-center justify-center h-full text-center p-4">
             <h1 class="text-4xl font-bold mb-2">나만의 작업실</h1>
             <p class="text-gray-400 mb-8">당신의 이야기를 펼쳐보세요.</p>
             <button id="google-login-btn" class="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-3 transition-transform hover:scale-105">
-                <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
-                    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z" />
-                    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.61-3.317-11.28-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
-                    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.596 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z" />
-                </svg>
+                <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.61-3.317-11.28-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.596 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
                 <span>Google 계정으로 시작하기</span>
             </button>
         </div>
@@ -267,20 +160,12 @@
     <template id="home-view-template">
         <div class="p-4 sm:p-6 md:p-8 flex flex-col h-full">
             <header class="flex justify-between items-center mb-8">
-                <div>
-                    <h1 class="text-3xl font-bold">내 작업실</h1>
-                    <p id="user-id-display" class="text-xs text-gray-500 mt-1 truncate" title="사용자 ID"></p>
-                </div>
-                <div id="user-profile-area" class="flex items-center gap-4">
-                    </div>
+                <div><h1 class="text-3xl font-bold">내 작업실</h1><p id="user-id-display" class="text-xs text-gray-500 mt-1 truncate" title="사용자 ID"></p></div>
+                <div id="user-profile-area" class="flex items-center gap-4"></div>
             </header>
             <main class="flex-grow">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold">최근 편집</h2>
-                    <button id="new-project-btn" class="accent-bg accent-hover text-black font-bold py-2 px-5 rounded-lg transition-colors">+ 새 프로젝트</button>
-                </div>
-                <div id="project-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    </div>
+                <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold">최근 편집</h2><button id="new-project-btn" class="accent-bg accent-hover text-black font-bold py-2 px-5 rounded-lg transition-colors">+ 새 프로젝트</button></div>
+                <div id="project-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
             </main>
         </div>
     </template>
@@ -290,20 +175,11 @@
             <div id="mobile-overlay" class="hidden md:hidden"></div>
             <aside id="editor-sidebar" class="bg-surface flex flex-col border-r border-main flex-shrink-0">
                 <div class="p-4 border-b border-main flex items-center gap-3">
-                    <button id="home-btn" class="p-2 rounded-md hover:bg-card">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                    </button>
+                    <button id="home-btn" class="p-2 rounded-md hover:bg-card"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg></button>
                     <h2 id="project-title-sidebar" class="text-lg font-bold truncate"></h2>
                 </div>
                 <div class="flex-grow flex flex-col min-h-0">
-                    <div class="p-2 border-b border-main">
-                        <div class="flex bg-card rounded-md">
-                            <button data-tab="chapters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">회차</button>
-                            <button data-tab="characters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">등장인물</button>
-                        </div>
-                    </div>
+                    <div class="p-2 border-b border-main"><div class="flex bg-card rounded-md"><button data-tab="chapters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">회차</button><button data-tab="characters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">등장인물</button></div></div>
                     <div class="p-3 flex justify-between items-center">
                         <h3 id="list-title" class="font-semibold"></h3>
                         <div class="flex items-center gap-2">
@@ -314,17 +190,10 @@
                     <nav id="item-list" class="flex-grow overflow-y-auto px-2 pb-2"></nav>
                 </div>
             </aside>
-
             <div id="editor-main-content" class="flex flex-col w-full h-full">
-                <main id="editor-panel" class="flex-1 flex flex-col min-h-0">
-                    </main>
+                <main id="editor-panel" class="flex-1 flex flex-col min-h-0"></main>
             </div>
-
-            <button id="editor-sidebar-toggle" class="bg-card hover:bg-purple-800">
-                <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </button>
+            <button id="editor-sidebar-toggle" class="bg-card hover:bg-purple-800"><svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
         </div>
     </template>
 
@@ -343,28 +212,16 @@
         <div class="flex-1 p-6 sm:p-8 overflow-y-auto">
             <div class="max-w-[370px] mx-auto h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition flex-shrink-0">
-                
                 <div id="chapter-editor-fields" class="flex-grow flex flex-col">
                     <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
                 </div>
-                
                 <div id="character-editor-fields" class="hidden">
                      <div class="space-y-4">
-                        <div>
-                            <label for="character-personality" class="block text-sm font-medium text-gray-400 mb-1">성격</label>
-                            <textarea id="character-personality" placeholder="캐릭터의 성격을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea>
-                        </div>
-                         <div>
-                            <label for="character-appearance" class="block text-sm font-medium text-gray-400 mb-1">외모</label>
-                            <textarea id="character-appearance" placeholder="캐릭터의 외모를 묘사하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea>
-                        </div>
-                         <div>
-                            <label for="character-traits" class="block text-sm font-medium text-gray-400 mb-1">특징</label>
-                            <textarea id="character-traits" placeholder="기타 특징, 배경, 설정을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea>
-                        </div>
+                        <div><label for="character-personality" class="block text-sm font-medium text-gray-400 mb-1">성격</label><textarea id="character-personality" placeholder="캐릭터의 성격을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
+                        <div><label for="character-appearance" class="block text-sm font-medium text-gray-400 mb-1">외모</label><textarea id="character-appearance" placeholder="캐릭터의 외모를 묘사하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
+                        <div><label for="character-traits" class="block text-sm font-medium text-gray-400 mb-1">특징</label><textarea id="character-traits" placeholder="기타 특징, 배경, 설정을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
                     </div>
                 </div>
-
             </div>
         </div>
     </template>
@@ -377,13 +234,12 @@
             <div id="modal-buttons" class="flex justify-end space-x-4"></div>
         </div>
     </template>
-
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
     <script>
-        // Make modal functions global 
+        // Modal functions
         function showModal(options) {
             closeModal();
             const modalBackdrop = document.createElement('div');
@@ -391,15 +247,9 @@
             modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
             const template = document.getElementById('modal-template').content.cloneNode(true);
             modalBackdrop.appendChild(template);
-
-            const titleEl = modalBackdrop.querySelector('#modal-title');
-            const textEl = modalBackdrop.querySelector('#modal-text');
-            const inputEl = modalBackdrop.querySelector('#modal-input');
-            const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
-
+            const titleEl = modalBackdrop.querySelector('#modal-title'), textEl = modalBackdrop.querySelector('#modal-text'), inputEl = modalBackdrop.querySelector('#modal-input'), buttonsEl = modalBackdrop.querySelector('#modal-buttons');
             titleEl.textContent = options.title;
-            if (options.text) textEl.textContent = options.text;
-            else textEl.style.display = 'none';
+            if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
             if (options.inputPlaceholder) {
                 inputEl.classList.remove('hidden');
                 inputEl.placeholder = options.inputPlaceholder;
@@ -418,7 +268,6 @@
             document.body.appendChild(modalBackdrop);
             if (options.inputPlaceholder) inputEl.focus();
         }
-
         function closeModal() {
             const modal = document.getElementById('modal-backdrop');
             if (modal) modal.remove();
@@ -427,41 +276,19 @@
         document.addEventListener('DOMContentLoaded', function() {
             const appContainer = document.getElementById('app-container');
             const loadingOverlay = document.getElementById('loading-overlay');
-            let db, auth;
-            let currentUserId = null;
-            let currentUser = null;
-            let unsubscribes = {};
+            let db, auth, currentUserId = null, currentUser = null, unsubscribes = {};
+            let activeView = null, projects = [], chapters = [], characters = [];
+            let activeProjectId = null, activeItemId = null, sidebarMode = 'chapters', charCountMode = 'noSpecialChars', saveTimeouts = {};
 
-            let activeView = null;
-            let projects = [];
-            let chapters = [];
-            let characters = [];
-
-            let activeProjectId = null;
-            let activeItemId = null;
-            let sidebarMode = 'chapters';
-            let charCountMode = 'noSpecialChars';
-            let saveTimeouts = {};
-
-            // --- Firebase Initialization --- 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
-                apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4",
-                authDomain: "novel-8d4ec.firebaseapp.com",
-                projectId: "novel-8d4ec",
-                storageBucket: "novel-8d4ec.appspot.com",
-                messagingSenderId: "836560106988",
-                appId: "1:836560106988:web:cf90872d7b09b9498ffcc9",
-                measurementId: "G-83BZ35QVLC"
+                apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4", authDomain: "novel-8d4ec.firebaseapp.com", projectId: "novel-8d4ec", storageBucket: "novel-8d4ec.appspot.com", messagingSenderId: "836560106988", appId: "1:836560106988:web:cf90872d7b09b9498ffcc9", measurementId: "G-83BZ35QVLC"
             });
 
             function initialize() {
                 try {
-                    const firebaseConfig = JSON.parse(firebaseConfigStr);
-                    firebase.initializeApp(firebaseConfig);
-                    db = firebase.firestore();
-                    auth = firebase.auth();
-                    setupAuthListener();
+                    firebase.initializeApp(JSON.parse(firebaseConfigStr));
+                    db = firebase.firestore(); auth = firebase.auth(); setupAuthListener();
                 } catch (error) {
                     console.error("Firebase 초기화 오류:", error);
                     loadingOverlay.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">초기화 오류</p><p class="text-sm">${error.message}</p></div>`;
@@ -472,434 +299,259 @@
                 auth.onAuthStateChanged(function(user) {
                     currentUser = user;
                     if (user) {
-                        currentUserId = user.uid;
-                        loadProjects();
+                        currentUserId = user.uid; loadProjects();
                     } else {
-                        currentUserId = null;
-                        projects = [];
-                        Object.values(unsubscribes).forEach(function(unsub) {
-                            unsub()
-                        });
-                        unsubscribes = {};
-                        renderView('login');
-                        loadingOverlay.style.display = 'none';
+                        currentUserId = null; projects = []; Object.values(unsubscribes).forEach(unsub => unsub());
+                        unsubscribes = {}; renderView('login'); loadingOverlay.style.display = 'none';
                     }
                 });
             }
 
-            // --- State Management --- 
-            function getProject(projectId) {
-                return projects.find(function(p) {
-                    return p.id === projectId
-                })
-            };
-
+            function getProject(projectId) { return projects.find(p => p.id === projectId) };
             function getItem(projectId, itemId) {
                 if (!getProject(projectId)) return null;
                 const items = sidebarMode === 'chapters' ? chapters : characters;
-                return items.find(function(i) {
-                    return i.id === itemId
-                });
+                return items.find(i => i.id === itemId);
             };
 
-            // --- View Rendering --- 
             function renderView(viewName) {
                 activeView = viewName;
                 appContainer.innerHTML = '';
-                const template = document.getElementById(`${viewName}-view-template`).content.cloneNode(true);
-                appContainer.appendChild(template);
-
-                if (viewName === 'home') renderHome();
-                else if (viewName === 'editor') renderEditor();
+                appContainer.appendChild(document.getElementById(`${viewName}-view-template`).content.cloneNode(true));
+                if (viewName === 'home') renderHome(); else if (viewName === 'editor') renderEditor();
             }
 
-            // --- Login View Logic --- 
             function handleGoogleLogin() {
                 loadingOverlay.style.display = 'flex';
-                const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).catch(function(error) {
-                    loadingOverlay.style.display = 'none';
-                    console.error("Google 로그인 오류:", error);
-                    showModal({
-                        title: "로그인 오류",
-                        text: error.message,
-                        buttons: [{
-                            text: '확인',
-                            class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'
-                        }]
-                    });
+                auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function(error) {
+                    loadingOverlay.style.display = 'none'; console.error("Google 로그인 오류:", error);
+                    showModal({ title: "로그인 오류", text: error.message, buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold' }] });
                 });
             };
+            function handleLogout() { auth.signOut(); };
 
-            function handleLogout() {
-                auth.signOut();
-            };
-
-            // --- Home View Logic --- 
             function renderHome() {
-                const projectGrid = document.getElementById('project-grid');
-                const userIdDisplay = document.getElementById('user-id-display');
-                const userProfileArea = document.getElementById('user-profile-area');
-
+                const projectGrid = document.getElementById('project-grid'), userIdDisplay = document.getElementById('user-id-display'), userProfileArea = document.getElementById('user-profile-area');
                 if (userIdDisplay && currentUserId) userIdDisplay.textContent = `ID: ${currentUserId}`;
-
                 userProfileArea.innerHTML = '';
-                if (currentUser) {
-                    userProfileArea.innerHTML = ` 
-                        <div class="text-right"> 
-                            <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span> 
-                            <p class="text-xs text-gray-400 hidden sm:block truncate">${currentUser.email || '이메일 정보 없음'}</p> 
-                        </div> 
-                        <img class="w-10 h-10 rounded-full" src="${currentUser.photoURL || 'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile"> 
-                        <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">로그아웃</button> 
-                    `;
-                }
-
+                if (currentUser) userProfileArea.innerHTML = `<div class="text-right"><span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName||'사용자'}</span><p class="text-xs text-gray-400 hidden sm:block truncate">${currentUser.email||'이메일 정보 없음'}</p></div><img class="w-10 h-10 rounded-full" src="${currentUser.photoURL||'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile"><button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">로그아웃</button>`;
                 projectGrid.innerHTML = '';
-                const sortedProjects = [...projects].sort(function(a, b) {
-                    return (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0)
-                });
-                sortedProjects.forEach(function(project) {
+                [...projects].sort((a, b) => (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0)).forEach(function(project) {
                     const card = document.createElement('div');
                     card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48';
                     card.dataset.projectId = project.id;
-                    const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
-                    card.innerHTML = ` 
-                        <div class="flex-grow"> 
-                            <div class="flex justify-between items-start"> 
-                                <h3 class="text-lg font-bold"></h3> 
-                                <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1"> 
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg> 
-                                </button> 
-                            </div> 
-                        </div> 
-                        <div class="text-xs text-gray-400"> 
-                            <span>${lastModified} 수정됨</span> 
-                        </div>`;
-                    card.querySelector('h3').textContent = project.name; // XSS Protection 
+                    card.innerHTML = `<div class="flex-grow"><div class="flex justify-between items-start"><h3 class="text-lg font-bold"></h3><button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg></button></div></div><div class="text-xs text-gray-400"><span>${project.lastModified?new Date(project.lastModified.toMillis()).toLocaleString('ko-KR'):'날짜 정보 없음'} 수정됨</span></div>`;
+                    card.querySelector('h3').textContent = project.name;
                     projectGrid.appendChild(card);
                 });
             }
 
-            // --- Editor View Logic --- 
             function renderEditor() {
                 const project = getProject(activeProjectId);
-                if (!project) {
-                    renderView('home');
-                    return;
-                }
+                if (!project) { renderView('home'); return; }
                 document.getElementById('project-title-sidebar').textContent = project.name;
                 toggleSidebar(window.innerWidth >= 768);
-                updateSidebarUI();
-                renderItemList();
-                addDragAndDropListeners();
-                if (activeItemId) {
-                    renderEditorPanel();
-                } else {
-                    document.getElementById('editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">왼쪽에서 항목을 선택해주세요.</div>`;
-                }
+                updateSidebarUI(); renderItemList(); addDragAndDropListeners();
+                if (activeItemId) renderEditorPanel(); else document.getElementById('editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">왼쪽에서 항목을 선택해주세요.</div>`;
             }
 
             function toggleSidebar(forceOpen) {
-                const container = document.getElementById('editor-container');
-                if (!container) return;
-                const shouldBeOpen = typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open');
-                container.classList.toggle('sidebar-open', shouldBeOpen);
+                const container = document.getElementById('editor-container'); if (!container) return;
+                container.classList.toggle('sidebar-open', typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open'));
                 updateSidebarVisuals();
             };
 
             function updateSidebarVisuals() {
-                const container = document.getElementById('editor-container');
-                const overlay = document.getElementById('mobile-overlay');
-                const icon = document.getElementById('toggle-icon');
-                if (!container || !overlay || !icon) return;
+                const container = document.getElementById('editor-container'), overlay = document.getElementById('mobile-overlay'), icon = document.getElementById('toggle-icon'); if (!container || !overlay || !icon) return;
                 const isOpen = container.classList.contains('sidebar-open');
-                if (window.innerWidth < 768) {
-                    overlay.classList.toggle('hidden', !isOpen);
-                } else {
-                    overlay.classList.add('hidden');
-                }
+                overlay.classList.toggle('hidden', window.innerWidth >= 768 || !isOpen);
                 icon.innerHTML = isOpen ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
             }
 
             function updateSidebarUI() {
-                document.querySelectorAll('.tab-btn').forEach(function(btn) {
-                    btn.classList.toggle('active', btn.dataset.tab === sidebarMode)
-                });
-                const listTitle = document.getElementById('list-title');
-                const newItemBtn = document.getElementById('new-item-btn');
-                const newFolderBtn = document.getElementById('new-folder-btn');
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === sidebarMode));
+                const listTitle = document.getElementById('list-title'), newItemBtn = document.getElementById('new-item-btn'), newFolderBtn = document.getElementById('new-folder-btn');
                 if (sidebarMode === 'chapters') {
-                    listTitle.textContent = '회차 목록';
-                    newItemBtn.textContent = '+ 새 회차';
-                    newFolderBtn.style.display = 'block';
+                    listTitle.textContent = '회차 목록'; newItemBtn.textContent = '+ 새 회차'; newFolderBtn.style.display = 'block';
                 } else {
-                    listTitle.textContent = '등장인물';
-                    newItemBtn.textContent = '+ 추가';
-                    newFolderBtn.style.display = 'none';
+                    listTitle.textContent = '등장인물'; newItemBtn.textContent = '+ 추가'; newFolderBtn.style.display = 'none';
                 }
             }
 
             function renderItemList() {
-                const listEl = document.getElementById('item-list');
-                if (!listEl) return;
-                listEl.innerHTML = '';
+                const listEl = document.getElementById('item-list'); if (!listEl) return; listEl.innerHTML = '';
                 const items = sidebarMode === 'chapters' ? chapters : characters;
-
                 if (sidebarMode === 'chapters') {
-                    const itemMap = {};
-                    items.forEach(item => { itemMap[item.id] = { ...item, children: [] }; });
-                    const tree = [];
-                    items.forEach(item => {
-                        if (item.parentId && itemMap[item.parentId]) {
-                            itemMap[item.parentId].children.push(itemMap[item.id]);
-                        } else {
-                            tree.push(itemMap[item.id]);
-                        }
-                    });
+                    const itemMap = {}; items.forEach(item => itemMap[item.id] = { ...item, children: [] });
+                    const tree = []; items.forEach(item => { if (item.parentId && itemMap[item.parentId]) itemMap[item.parentId].children.push(itemMap[item.id]); else tree.push(itemMap[item.id]); });
                     const renderNode = (node, container) => {
-                        const itemEl = createItemElement(node);
-                        container.appendChild(itemEl);
+                        const itemEl = createItemElement(node); container.appendChild(itemEl);
                         if (node.type === 'folder' && node.children.length > 0) {
-                            const folderContent = document.createElement('div');
-                            folderContent.className = 'folder-content';
-                            itemEl.appendChild(folderContent);
+                            const folderContent = document.createElement('div'); folderContent.className = 'folder-content'; itemEl.appendChild(folderContent);
                             node.children.sort((a,b) => (a.order ?? 0) - (b.order ?? 0)).forEach(child => renderNode(child, folderContent));
                         }
                     };
                     tree.sort((a,b) => (a.order ?? 0) - (b.order ?? 0)).forEach(node => renderNode(node, listEl));
-                } else {
-                    items.forEach(function(item) {
-                        const itemEl = createItemElement(item);
-                        listEl.appendChild(itemEl);
-                    });
-                }
+                } else { items.forEach(item => listEl.appendChild(createItemElement(item))); }
             }
             
             function createItemElement(item) {
                 const isFolder = item.type === 'folder';
-                const wrapper = document.createElement('div');
-                wrapper.className = isFolder ? 'folder-item' : '';
-
+                const wrapper = document.createElement('div'); wrapper.className = isFolder ? 'folder-item' : '';
                 const itemEl = document.createElement('div');
-                itemEl.dataset.id = item.id;
-                itemEl.dataset.type = item.type || 'chapter';
-                itemEl.draggable = sidebarMode === 'chapters';
+                itemEl.dataset.id = item.id; itemEl.dataset.type = item.type || 'chapter'; itemEl.draggable = sidebarMode === 'chapters';
 
-                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
                 if (isFolder) {
                     itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
-                    itemEl.innerHTML = `
-                        <div class="flex items-center flex-1 min-w-0">
-                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                            <span class="truncate pointer-events-none"></span>
-                        </div>
-                        <button class="options-btn p-1 rounded-full hover:bg-surface flex-shrink-0" data-action="folder-options">
-                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
-                        </button>
-                    `;
+                    itemEl.innerHTML = `<div class="flex items-center flex-1 min-w-0"><svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg><span class="truncate pointer-events-none"></span></div><button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
                 } else {
-                     itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
-                     itemEl.innerHTML = `
-                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
-                        <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
-                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        </button>
-                    `;
+                    itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
+                    itemEl.innerHTML = `<span class="truncate pointer-events-none flex-grow min-w-0"></span><button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
                 }
                 
                 itemEl.querySelector('span').textContent = item.title || item.name;
                 if (item.id === activeItemId) itemEl.classList.add('active');
-                
                 wrapper.appendChild(itemEl);
                 return wrapper;
             }
-
+            
             function renderEditorPanel() {
-                const editorPanel = document.getElementById('editor-panel');
-                if (!editorPanel) return;
+                const editorPanel = document.getElementById('editor-panel'); if (!editorPanel) return;
                 const item = getItem(activeProjectId, activeItemId);
-                if (!item) {
-                    editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">항목을 선택해주세요.</div>`;
-                    return;
-                }
-                editorPanel.innerHTML = '';
-                const template = document.getElementById('editor-panel-template').content.cloneNode(true);
-                editorPanel.appendChild(template);
-                
-                const titleEl = document.getElementById('editor-title');
-                const chapterFields = document.getElementById('chapter-editor-fields');
-                const characterFields = document.getElementById('character-editor-fields');
+                if (!item) { editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">항목을 선택해주세요.</div>`; return; }
 
-                if (sidebarMode === 'chapters') {
-                    chapterFields.classList.remove('hidden');
-                    characterFields.classList.add('hidden');
-                    titleEl.value = item.title || '';
-                    document.getElementById('editor-content').value = item.content || '';
-                    titleEl.placeholder = "회차 제목을 입력하세요";
-                } else { // characters
-                    chapterFields.classList.add('hidden');
-                    characterFields.classList.remove('hidden');
-                    titleEl.value = item.name || '';
-                    document.getElementById('character-personality').value = item.personality || '';
-                    document.getElementById('character-appearance').value = item.appearance || '';
-                    document.getElementById('character-traits').value = item.traits || '';
-                    titleEl.placeholder = "등장인물 이름을 입력하세요";
+                if (sidebarMode === 'chapters' && item.type === 'folder') {
+                    renderFolderPanel(item);
+                } else if (sidebarMode === 'chapters' && item.type !== 'folder') {
+                    renderChapterPanel(item);
+                } else if (sidebarMode === 'characters') {
+                    renderCharacterPanel(item);
                 }
-                updateCharCount();
+            }
+            
+            function renderChapterPanel(item) {
+                 const editorPanel = document.getElementById('editor-panel');
+                 editorPanel.innerHTML = '';
+                 const template = document.getElementById('editor-panel-template').content.cloneNode(true);
+                 editorPanel.appendChild(template);
+                 document.getElementById('editor-title').value = item.title || '';
+                 document.getElementById('editor-content').value = item.content || '';
+                 document.getElementById('character-editor-fields').classList.add('hidden');
+                 updateCharCount();
+            }
+
+            function renderFolderPanel(item) {
+                const editorPanel = document.getElementById('editor-panel');
+                editorPanel.innerHTML = `<div class="p-6 sm:p-8 max-w-3xl mx-auto"><label for="folder-editor-title" class="block text-sm font-medium text-gray-400 mb-2">폴더 이름</label><input id="folder-editor-title" type="text" value="${item.name || ''}" class="bg-transparent text-3xl font-bold outline-none w-full pb-2 border-b-2 border-main focus:border-purple-500 transition"></div>`;
+            }
+            
+            function renderCharacterPanel(item) {
+                 const editorPanel = document.getElementById('editor-panel');
+                 editorPanel.innerHTML = '';
+                 const template = document.getElementById('editor-panel-template').content.cloneNode(true);
+                 editorPanel.appendChild(template);
+                 document.getElementById('editor-title').value = item.name || '';
+                 document.getElementById('chapter-editor-fields').classList.add('hidden');
+                 document.getElementById('character-editor-fields').classList.remove('hidden');
+                 document.getElementById('character-personality').value = item.personality || '';
+                 document.getElementById('character-appearance').value = item.appearance || '';
+                 document.getElementById('character-traits').value = item.traits || '';
+                 updateCharCount();
             }
 
             function updateCharCount() {
-                const contentEl = sidebarMode === 'chapters' ? document.getElementById('editor-content') : null;
+                const contentEl = document.getElementById('editor-content');
                 const countEl = document.getElementById('char-count');
                 const labelEl = document.getElementById('char-count-label');
                 if (!countEl || !labelEl) return;
-                
                 const container = document.getElementById('char-count-container');
                 if(container) container.style.display = sidebarMode === 'chapters' ? 'block' : 'none';
-                if (sidebarMode !== 'chapters' || !contentEl) {
-                    countEl.textContent = '0';
-                    return;
-                }
-
-                const content = contentEl.value || '';
-                let count = 0;
-                let label = '';
+                if (!contentEl) { countEl.textContent = '0'; return; }
+                const content = contentEl.value || ''; let count = 0; let label = '';
                 switch (charCountMode) {
-                    case 'noSpaces':
-                        count = content.replace(/\s/g, '').length;
-                        label = '공백 제외';
-                        break;
-                    default:
-                        count = content.replace(/[.",'\s]/g, '').length;
-                        label = '공백/특문 제외';
-                        break;
+                    case 'noSpaces': count = content.replace(/\s/g, '').length; label = '공백 제외'; break;
+                    default: count = content.replace(/[.",'\s]/g, '').length; label = '공백/특문 제외'; break;
                 }
-                countEl.textContent = count.toLocaleString();
-                labelEl.textContent = label;
+                countEl.textContent = count.toLocaleString(); labelEl.textContent = label;
             }
 
             function saveCurrentWork() {
                 if (activeView !== 'editor' || !activeProjectId || !activeItemId) return;
-                
+                const activeItem = getItem(activeProjectId, activeItemId);
+                if (!activeItem) return;
+
                 const data = {};
-                if (sidebarMode === 'chapters') {
+                let collectionName = sidebarMode;
+
+                if (sidebarMode === 'chapters' && activeItem.type === 'folder') {
+                    const titleEl = document.getElementById('folder-editor-title');
+                    if (!titleEl) return;
+                    data.name = titleEl.value;
+                } else if (sidebarMode === 'chapters') {
                     const titleEl = document.getElementById('editor-title');
                     const contentEl = document.getElementById('editor-content');
                     if (!titleEl || !contentEl) return;
-                    data.title = titleEl.value;
-                    data.content = contentEl.value;
+                    data.title = titleEl.value; data.content = contentEl.value;
                 } else {
-                     const titleEl = document.getElementById('editor-title');
-                     if (!titleEl) return;
+                    collectionName = 'characters';
+                    const titleEl = document.getElementById('editor-title');
+                    if (!titleEl) return;
                     data.name = titleEl.value;
                     data.personality = document.getElementById('character-personality').value;
                     data.appearance = document.getElementById('character-appearance').value;
                     data.traits = document.getElementById('character-traits').value;
                 }
                 
-                const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
+                const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${collectionName}`).doc(activeItemId);
                 itemRef.update(data).then(() => {
                     db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({
                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                }).catch((error) => {
-                     console.error("Save failed:", error);
-                });
+                }).catch((error) => console.error("Save failed:", error));
             }
 
-            // --- Event Handlers --- 
             function handleAppClick(e) {
                 const target = e.target;
-
-                if (activeView === 'login') {
-                    if (target.closest('#google-login-btn')) handleGoogleLogin();
-                    return;
-                }
-
+                if (activeView === 'login') { if (target.closest('#google-login-btn')) handleGoogleLogin(); return; }
                 if (activeView === 'home') {
                     const optionsBtn = target.closest('[data-action="options"]');
                     if (optionsBtn) {
                         e.stopPropagation();
-                        const projectCard = optionsBtn.closest('.project-card');
-                        if (projectCard) handleProjectOptions(projectCard.dataset.projectId);
-                        return;
+                        handleProjectOptions(optionsBtn.closest('.project-card').dataset.projectId); return;
                     }
-
                     const projectCard = target.closest('.project-card');
                     if (projectCard) {
-                        activeProjectId = projectCard.dataset.projectId;
-                        sidebarMode = 'chapters';
-                        activeItemId = null;
+                        activeProjectId = projectCard.dataset.projectId; sidebarMode = 'chapters'; activeItemId = null;
                         if (unsubscribes.items) unsubscribes.items();
-                        loadItems();
-                        renderView('editor');
-                        return;
+                        loadItems(); renderView('editor'); return;
                     }
-
-                    if (target.closest('#new-project-btn')) handleNewProject();
-                    else if (target.closest('#logout-btn')) handleLogout();
+                    if (target.closest('#new-project-btn')) handleNewProject(); else if (target.closest('#logout-btn')) handleLogout();
                     return;
                 }
-
                 if (activeView === 'editor') {
-                    const homeBtn = target.closest('#home-btn');
-                    const newItemBtn = target.closest('#new-item-btn');
-                    const newFolderBtn = target.closest('#new-folder-btn');
-                    const tabBtn = target.closest('.tab-btn');
                     const listItem = target.closest('.list-item');
-                    const deleteItemBtn = target.closest('[data-action="delete-item"]');
-                    const folderOptionsBtn = target.closest('[data-action="folder-options"]');
-                    const saveTxtBtn = target.closest('#save-txt-btn');
-                    const saveDriveBtn = target.closest('#save-drive-btn');
-                    const copyContentBtn = target.closest('#copy-content-btn');
-                    const charCountContainer = target.closest('#char-count-container');
-                    const sidebarToggle = target.closest('#editor-sidebar-toggle');
-                    const mobileOverlay = target.closest('#mobile-overlay');
-
-                    if (homeBtn) {
-                        if (unsubscribes.items) unsubscribes.items();
-                        renderView('home');
-                    } else if (newItemBtn) {
-                        handleNewItem();
-                    } else if (newFolderBtn) {
-                        handleNewFolder();
-                    } else if (tabBtn) {
-                        sidebarMode = tabBtn.dataset.tab;
-                        activeItemId = null;
-                        updateSidebarUI();
-                        loadItems();
-                        renderEditorPanel();
-                    } else if (folderOptionsBtn) {
-                        e.stopPropagation();
-                        const listItemEl = folderOptionsBtn.closest('.list-item');
-                        const folderId = listItemEl.dataset.id;
-                        const folderName = listItemEl.querySelector('span').textContent;
-                        handleFolderOptions(folderId, folderName);
+                    if (target.closest('#home-btn')) { if (unsubscribes.items) unsubscribes.items(); renderView('home'); }
+                    else if (target.closest('#new-item-btn')) handleNewItem();
+                    else if (target.closest('#new-folder-btn')) handleNewFolder();
+                    else if (target.closest('.tab-btn')) {
+                        sidebarMode = target.closest('.tab-btn').dataset.tab; activeItemId = null;
+                        updateSidebarUI(); loadItems(); renderEditorPanel();
                     } else if (listItem) {
-                        if (deleteItemBtn) {
-                             handleDeleteItem(listItem.dataset.id, listItem.dataset.type);
+                        if (target.closest('[data-action="delete-item"]')) {
+                            handleDeleteItem(listItem.dataset.id, listItem.dataset.type);
                         } else {
-                            if (listItem.dataset.type === 'folder') {
-                                listItem.parentElement.classList.toggle('open');
-                            } else {
-                                activeItemId = listItem.dataset.id;
-                                if (window.innerWidth < 768) toggleSidebar(false);
-                                renderItemList();
-                                renderEditorPanel();
-                            }
+                            activeItemId = listItem.dataset.id;
+                            if (listItem.dataset.type === 'folder') listItem.parentElement.classList.toggle('open');
+                            if (window.innerWidth < 768 && listItem.dataset.type !== 'folder') toggleSidebar(false);
+                            renderItemList(); renderEditorPanel();
                         }
-                    } else if (saveTxtBtn) {
-                        handleSaveTxt();
-                    } else if (saveDriveBtn) {
-                        handleSaveToDrive();
-                    } else if (copyContentBtn) {
-                        handleCopyContent();
-                    } else if (charCountContainer) {
+                    } else if (target.closest('#save-txt-btn')) handleSaveTxt();
+                    else if (target.closest('#save-drive-btn')) handleSaveToDrive();
+                    else if (target.closest('#copy-content-btn')) handleCopyContent();
+                    else if (target.closest('#char-count-container')) {
                         charCountMode = charCountMode === 'noSpecialChars' ? 'noSpaces' : 'noSpecialChars';
                         updateCharCount();
-                    } else if (sidebarToggle || mobileOverlay) {
+                    } else if (target.closest('#editor-sidebar-toggle') || target.closest('#mobile-overlay')) {
                         toggleSidebar();
                     }
                 }
@@ -914,211 +566,65 @@
             }
             
             function handleNewProject() {
-                showModal({
-                    title: '새 프로젝트 생성', text: '새로운 프로젝트의 이름을 입력해주세요.', inputPlaceholder: '나의 멋진 소설',
-                    buttons: [{ text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, {
-                        text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold',
-                        onClick: function(name) {
-                            if (!name) return;
-                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({
-                                name: name, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                lastModified: firebase.firestore.FieldValue.serverTimestamp(),
-                            });
-                        }
-                    }]
-                });
+                showModal({ title: '새 프로젝트 생성', text: '새로운 프로젝트의 이름을 입력해주세요.', inputPlaceholder: '나의 멋진 소설', buttons: [{ text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: (name) => { if (!name) return; db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({ name: name, createdAt: firebase.firestore.FieldValue.serverTimestamp(), lastModified: firebase.firestore.FieldValue.serverTimestamp() }); } }] });
             }
 
             function handleProjectOptions(projectId) {
                 const project = getProject(projectId);
-                showModal({
-                    title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.',
-                    buttons: [
-                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
-                        { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold',
-                            onClick: function() { setTimeout(function() { handleRenameProject(projectId) }, 10) }
-                        }, { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
-                            onClick: function() { setTimeout(function() { handleDeleteProject(projectId) }, 10) }
-                        }
-                    ]
-                });
+                showModal({ title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.', buttons: [{ text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold', onClick: () => setTimeout(() => handleRenameProject(projectId), 10) }, { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', onClick: () => setTimeout(() => handleDeleteProject(projectId), 10) }] });
             };
 
             function handleRenameProject(projectId) {
                 const project = getProject(projectId);
-                showModal({
-                    title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name, initialValue: project.name,
-                    buttons: [ { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
-                        { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold',
-                            onClick: function(newName) {
-                                if (!newName) return;
-                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
-                            }
-                        }
-                    ]
-                });
+                showModal({ title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name, initialValue: project.name, buttons: [ { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: (newName) => { if (newName) db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() }); } }] });
             };
 
             function handleDeleteProject(projectId) {
                 const project = getProject(projectId);
-                showModal({
-                    title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-                    buttons: [
-                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
-                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
-                            onClick: function() {
-                                const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
-                                const batch = db.batch();
-                                projectRef.collection("chapters").get().then(function(snapshot) {
-                                    snapshot.forEach(function(doc) { batch.delete(doc.ref) });
-                                    return projectRef.collection("characters").get();
-                                }).then(function(snapshot) {
-                                    snapshot.forEach(function(doc) { batch.delete(doc.ref) });
-                                    batch.delete(projectRef);
-                                    return batch.commit();
-                                });
-                            }
-                        }
-                    ]
-                });
+                showModal({ title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.', buttons: [ { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', onClick: () => { const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId); const batch = db.batch(); projectRef.collection("chapters").get().then(snap => { snap.forEach(doc => batch.delete(doc.ref)); return projectRef.collection("characters").get(); }).then(snap => { snap.forEach(doc => batch.delete(doc.ref)); batch.delete(projectRef); return batch.commit(); }); } }] });
             };
 
             function handleNewItem(parentId = null) {
                 let newItem;
                 if (sidebarMode === 'chapters') {
                     const siblingCount = chapters.filter(c => c.parentId === parentId).length;
-                    newItem = {
-                        title: '새 회차', content: '', order: siblingCount, parentId: parentId, type: 'chapter',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                } else {
-                    newItem = {
-                        name: '새 등장인물', personality: '', appearance: '', traits: '',
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                }
+                    newItem = { title: '새 회차', content: '', order: siblingCount, parentId: parentId, type: 'chapter', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                } else { newItem = { name: '새 등장인물', personality: '', appearance: '', traits: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() }; }
                 const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                collectionRef.add(newItem).then(function(newDocRef) {
+                collectionRef.add(newItem).then(newDocRef => {
                     activeItemId = newDocRef.id;
-                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({
-                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    if (sidebarMode !== 'chapters' || newItem.type !== 'folder') {
-                       renderEditorPanel();
-                    }
+                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                    if (newItem.type !== 'folder') renderEditorPanel();
                 });
             };
 
             function handleNewFolder() {
-                showModal({
-                    title: '새 폴더 생성', text: '새로운 폴더의 이름을 입력해주세요.', inputPlaceholder: '새 폴더',
-                    buttons: [
-                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
-                        { text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold',
-                            onClick: function(name) {
-                                if (!name) return;
-                                const newFolder = {
-                                    name: name, type: 'folder', order: chapters.filter(c => !c.parentId).length,
-                                    parentId: null, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                                };
-                                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-                                collectionRef.add(newFolder);
-                            }
-                        }
-                    ]
-                });
-            }
-
-            function handleFolderOptions(folderId, folderName) {
-                showModal({
-                    title: `'${folderName}' 폴더`,
-                    buttons: [
-                        { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold',
-                            onClick: () => {
-                                closeModal();
-                                setTimeout(() => handleRenameFolder(folderId, folderName), 50);
-                            }
-                        },
-                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
-                            onClick: () => {
-                                closeModal();
-                                setTimeout(() => handleDeleteItem(folderId, 'folder'), 50);
-                            }
-                        },
-                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }
-                    ]
-                });
-            }
-            
-            function handleRenameFolder(folderId, currentName) {
-                showModal({
-                    title: '폴더 이름 변경', inputPlaceholder: currentName, initialValue: currentName,
-                    buttons: [
-                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
-                        { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: (newName) => {
-                            if (newName && newName !== currentName) {
-                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`).doc(folderId).update({ name: newName })
-                                .catch(err => alert('이름 변경에 실패했습니다: ' + err.message));
-                            }
-                        }}
-                    ]
-                });
+                showModal({ title: '새 폴더 생성', text: '새로운 폴더의 이름을 입력해주세요.', inputPlaceholder: '새 폴더', buttons: [ { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: (name) => { if (!name) return; const newFolder = { name: name, type: 'folder', order: chapters.filter(c => !c.parentId).length, parentId: null, createdAt: firebase.firestore.FieldValue.serverTimestamp() }; db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`).add(newFolder); } } ] });
             }
 
             async function handleDeleteItem(itemId, itemType) {
                 const typeName = itemType === 'folder' ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
                 let text = `정말로 이 ${typeName}를 삭제하시겠습니까?`;
-                if(itemType === 'folder') {
-                    text += ' 폴더 안의 모든 회차도 함께 삭제됩니다.';
-                }
-                 
-                showModal({
-                    title: `${typeName} 삭제`, text: text,
-                    buttons: [{ text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, {
-                        text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
-                        onClick: async function() {
-                             const collectionPath = `artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`;
-                             const batch = db.batch();
-                             
-                             if (itemType === 'folder') {
-                                 const childrenToDelete = chapters.filter(c => c.parentId === itemId);
-                                 childrenToDelete.forEach(child => {
-                                     const docRef = db.collection(collectionPath).doc(child.id);
-                                     batch.delete(docRef);
-                                 });
-                             }
-                             
-                             batch.delete(db.collection(collectionPath).doc(itemId));
-                             await batch.commit();
-
-                             db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({
-                                 lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                             });
-                             if (activeItemId === itemId) {
-                                 activeItemId = null;
-                                 renderEditorPanel();
-                             }
-                        }
-                    }]
-                });
+                if(itemType === 'folder') text += ' 폴더 안의 모든 회차도 함께 삭제됩니다.';
+                
+                showModal({ title: `${typeName} 삭제`, text: text, buttons: [{ text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold', onClick: async () => {
+                    const collectionPath = `artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`;
+                    const batch = db.batch();
+                    if (itemType === 'folder') chapters.filter(c => c.parentId === itemId).forEach(child => batch.delete(db.collection(collectionPath).doc(child.id)));
+                    batch.delete(db.collection(collectionPath).doc(itemId));
+                    await batch.commit();
+                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                    if (activeItemId === itemId) { activeItemId = null; renderEditorPanel(); }
+                }}]});
             };
 
             function handleCopyContent() {
                 if (sidebarMode === 'chapters' && activeItemId) {
                     const contentEl = document.getElementById('editor-content');
                     if (contentEl && contentEl.value) {
-                        navigator.clipboard.writeText(contentEl.value).then(() => {
-                           const btn = document.getElementById('copy-content-btn');
-                           const originalText = btn.textContent;
-                           btn.textContent = '복사됨!';
-                           setTimeout(() => { btn.textContent = originalText; }, 2000);
-                        }).catch(err => {
-                             showModal({title: "오류", text: "내용을 복사하지 못했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                        });
+                        navigator.clipboard.writeText(contentEl.value).then(() => { const btn = document.getElementById('copy-content-btn'); const originalText = btn.textContent; btn.textContent = '복사됨!'; setTimeout(() => { btn.textContent = originalText; }, 2000); }).catch(err => { showModal({title: "오류", text: "내용을 복사하지 못했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); });
                     }
-                } else {
-                     showModal({title: "알림", text: "복사할 내용이 있는 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                }
+                } else { showModal({title: "알림", text: "복사할 내용이 있는 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); }
             }
 
             function handleSaveTxt() {
@@ -1128,168 +634,71 @@
                     if(!chapter || chapter.type === 'folder') return;
                     const content = `# ${chapter.title}\n\n${chapter.content}`;
                     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    const sanitizedTitle = (chapter.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
-                    a.download = `[${project.name}] ${sanitizedTitle}.txt`;
-                    a.click();
-                    URL.revokeObjectURL(a.href);
-                } else {
-                    showModal({
-                        title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold' }]
-                    });
-                }
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                    a.download = `[${project.name}] ${(chapter.title||'회차').replace(/[\/\\?%*:|"<>]/g, '-')}.txt`;
+                    a.click(); URL.revokeObjectURL(a.href);
+                } else { showModal({ title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold' }] }); }
             };
 
             async function handleSaveToDrive() {
-                if (GOOGLE_API_KEY === 'YOUR_API_KEY' || GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID') {
-                    showModal({ title: "설정 필요", text: "Google Drive API 키와 클라이언트 ID가 코드에 설정되지 않았습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                    return;
-                }
-                if (!currentUser) {
-                    showModal({ title: "계정 필요", text: "Google Drive에 백업하려면 먼저 Google 계정으로 로그인해야 합니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                    return;
-                }
-                if (sidebarMode !== 'chapters' || !activeItemId) {
-                    showModal({ title: "알림", text: "Google Drive에 백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                    return;
-                }
+                if (GOOGLE_API_KEY === 'YOUR_API_KEY' || GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID') { showModal({ title: "설정 필요", text: "Google Drive API 키와 클라이언트 ID가 코드에 설정되지 않았습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
+                if (!currentUser) { showModal({ title: "계정 필요", text: "Google Drive에 백업하려면 먼저 Google 계정으로 로그인해야 합니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
+                if (sidebarMode !== 'chapters' || !activeItemId) { showModal({ title: "알림", text: "Google Drive에 백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
                 const chapter = getItem(activeProjectId, activeItemId);
-                if (!chapter || chapter.type === 'folder') {
-                    showModal({ title: "알림", text: "폴더가 아닌 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                    return;
-                }
-                if (!gapiInited) {
-                    showModal({ title: "오류", text: "Google API가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                    return;
-                }
+                if (!chapter || chapter.type === 'folder') { showModal({ title: "알림", text: "폴더가 아닌 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
+                if (!gapiInited) { showModal({ title: "오류", text: "Google API가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
                 try {
-                    const tokenResponse = await new Promise(function(resolve, reject) {
-                        try {
-                            tokenClient.callback = function(resp) {
-                                if (resp.error !== undefined) reject(resp);
-                                resolve(resp);
-                            };
-                            tokenClient.requestAccessToken({ prompt: 'consent' });
-                        } catch (err) {
-                            reject(err);
-                        }
-                    });
+                    const tokenResponse = await new Promise((resolve, reject) => { try { tokenClient.callback = resp => { if (resp.error !== undefined) reject(resp); resolve(resp); }; tokenClient.requestAccessToken({ prompt: 'consent' }); } catch (err) { reject(err); } });
                     gapi.client.setToken({ access_token: tokenResponse.access_token });
                     const folderId = await getOrCreateFolderId();
                     const project = getProject(activeProjectId);
                     const fileName = `[${project.name}] ${chapter.title || '제목 없음'}.txt`;
                     const fileContent = `# ${chapter.title}\n\n${chapter.content}`;
                     const metadata = { 'name': fileName, 'mimeType': 'text/plain', 'parents': [folderId] };
-                    const multipartRequestBody =
-                        `--BOUNDARY\r\n` +
-                        `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-                        `${JSON.stringify(metadata)}\r\n` +
-                        `--BOUNDARY\r\n` +
-                        `Content-Type: text/plain; charset=UTF-8\r\n\r\n` +
-                        `${fileContent}\r\n` +
-                        `--BOUNDARY--`;
-                    const request = gapi.client.request({
-                        'path': 'https://www.googleapis.com/upload/drive/v3/files', 'method': 'POST',
-                        'params': {'uploadType': 'multipart'},
-                        'headers': {'Content-Type': 'multipart/related; boundary=BOUNDARY'},
-                        'body': multipartRequestBody
-                    });
-                    await request;
+                    const multipartRequestBody = `--BOUNDARY\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--BOUNDARY\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${fileContent}\r\n--BOUNDARY--`;
+                    await gapi.client.request({ 'path': 'https://www.googleapis.com/upload/drive/v3/files', 'method': 'POST', 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary=BOUNDARY'}, 'body': multipartRequestBody });
                     showModal({ title: "백업 성공", text: `'${fileName}' 파일이 '소설 백업' 폴더에 성공적으로 저장되었습니다.`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                } catch (error) {
-                    console.error("드라이브 처리 오류:", error);
-                    const errorMessage = error.result?.error?.message || error.details || '알 수 없는 오류가 발생했습니다.';
-                    showModal({ title: "백업 실패", text: `파일을 업로드하는 중 오류가 발생했습니다: ${errorMessage}`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-                }
+                } catch (error) { console.error("드라이브 처리 오류:", error); const errorMessage = error.result?.error?.message || error.details || '알 수 없는 오류가 발생했습니다.'; showModal({ title: "백업 실패", text: `파일을 업로드하는 중 오류가 발생했습니다: ${errorMessage}`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); }
             }
 
             let draggedItemId = null;
             function addDragAndDropListeners() {
                 const listEl = document.getElementById('item-list');
                 if (!listEl) return;
-                listEl.addEventListener('dragstart', function(e) {
-                    if (sidebarMode !== 'chapters') return;
-                    const target = e.target.closest('.list-item');
-                    if (target) {
-                        draggedItemId = target.dataset.id;
-                        setTimeout(function() { target.classList.add('dragging') }, 0);
-                    }
-                });
-                listEl.addEventListener('dragend', function(e) {
-                    if (!draggedItemId) return;
-                    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-                    document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
-                    draggedItemId = null;
-                });
+                listEl.addEventListener('dragstart', function(e) { if (sidebarMode !== 'chapters') return; const target = e.target.closest('.list-item'); if (target) { draggedItemId = target.dataset.id; setTimeout(() => target.classList.add('dragging'), 0); } });
+                listEl.addEventListener('dragend', function(e) { if (!draggedItemId) return; document.querySelectorAll('.dragging, .drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom', 'drag-over-folder')); draggedItemId = null; });
                 listEl.addEventListener('dragover', function(e) {
-                    if (!draggedItemId) return;
-                    e.preventDefault();
+                    if (!draggedItemId) return; e.preventDefault();
                     const target = e.target.closest('.list-item');
                     document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
-                    
                     if (target && target.dataset.id !== draggedItemId) {
-                         if (target.dataset.type === 'folder') {
-                             target.classList.add('drag-over-folder');
-                         } else {
-                            const rect = target.getBoundingClientRect();
-                            if (e.clientY > rect.top + rect.height / 2) {
-                                target.classList.add('drag-over-bottom');
-                            } else {
-                                target.classList.add('drag-over-top');
-                            }
-                         }
+                        if (target.dataset.type === 'folder') { target.classList.add('drag-over-folder'); }
+                        else { const rect = target.getBoundingClientRect(); if (e.clientY > rect.top + rect.height / 2) target.classList.add('drag-over-bottom'); else target.classList.add('drag-over-top'); }
                     }
                 });
                 listEl.addEventListener('drop', async function(e) {
-                    if (!draggedItemId) return;
-                    e.preventDefault();
+                    if (!draggedItemId) return; e.preventDefault();
                     document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
-                    
                     const dropTargetEl = e.target.closest('.list-item');
                     if (!dropTargetEl || dropTargetEl.dataset.id === draggedItemId) return;
-
-                    const draggedItem = chapters.find(c => c.id === draggedItemId);
-                    const targetItem = chapters.find(c => c.id === dropTargetEl.dataset.id);
+                    const draggedItem = chapters.find(c => c.id === draggedItemId), targetItem = chapters.find(c => c.id === dropTargetEl.dataset.id);
                     if (!draggedItem || !targetItem) return;
-                    
-                    let newParentId = null;
-                    let targetOrder = 0;
-                    
-                    if (targetItem.type === 'folder') {
-                        newParentId = targetItem.id;
-                        const children = chapters.filter(c => c.parentId === newParentId);
-                        targetOrder = children.length;
-                    } else {
-                        newParentId = targetItem.parentId;
-                        const rect = dropTargetEl.getBoundingClientRect();
-                        const isAfter = e.clientY > rect.top + rect.height / 2;
-                        targetOrder = isAfter ? targetItem.order + 1 : targetItem.order;
-                    }
-                    
-                    const batch = db.batch();
-                    const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-
+                    let newParentId = null, targetOrder = 0;
+                    if (targetItem.type === 'folder') { newParentId = targetItem.id; targetOrder = chapters.filter(c => c.parentId === newParentId).length; }
+                    else { newParentId = targetItem.parentId; const rect = dropTargetEl.getBoundingClientRect(); targetOrder = (e.clientY > rect.top + rect.height / 2) ? targetItem.order + 1 : targetItem.order; }
+                    const batch = db.batch(), collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
                     const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                    
                     if (draggedItem.parentId === newParentId) {
-                        const newSiblings = [...oldSiblings];
-                        const oldIndex = draggedItem.order;
+                        const newSiblings = [...oldSiblings]; const oldIndex = draggedItem.order;
                         newSiblings.splice(oldIndex, 1);
                         const newIndex = targetOrder > oldIndex ? targetOrder - 1 : targetOrder;
                         newSiblings.splice(newIndex, 0, draggedItem);
-                        newSiblings.forEach((item, index) => {
-                             if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
-                        });
+                        newSiblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
                     } else {
-                        oldSiblings.forEach((item, index) => {
-                            if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
-                        });
+                        oldSiblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
                         const newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                         newSiblings.splice(targetOrder, 0, draggedItem);
-                        newSiblings.forEach((item, index) => {
-                            batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
-                        });
+                        newSiblings.forEach((item, index) => batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId }));
                     }
                     await batch.commit();
                 });
@@ -1312,36 +721,23 @@
             function loadItems() {
                 if (unsubscribes.items) unsubscribes.items();
                 const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                
                 const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'asc');
-                
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (sidebarMode === 'chapters') {
-                        chapters = itemList;
-                    } else {
-                        characters = itemList;
-                    }
+                    if (sidebarMode === 'chapters') chapters = itemList; else characters = itemList;
                     renderItemList();
                 }, (error) => {
                     console.error("데이터 로딩 오류:", error);
-                    if (error.code === 'failed-precondition') {
-                        console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
-                    }
+                    if (error.code === 'failed-precondition') console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
                 });
             }
 
             initialize();
             appContainer.addEventListener('click', handleAppClick);
             appContainer.addEventListener('input', handleEditorInput);
-            document.addEventListener('visibilitychange', function() {
-                if (document.visibilityState === 'hidden' && activeView === 'editor' && activeItemId) {
-                    saveCurrentWork();
-                }
-            });
+            document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden' && activeView === 'editor' && activeItemId) saveCurrentWork(); });
         });
     </script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </body>
-
 </html>
