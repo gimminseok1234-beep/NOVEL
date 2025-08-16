@@ -1026,7 +1026,6 @@
                 });
             }
 
-            // FIXED: Renaming bug and 'undefined' issue
             function handleFolderOptions(folderId, folderName) {
                 showModal({
                     title: `'${folderName}' 폴더`,
@@ -1267,8 +1266,9 @@
                     
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-                    const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => a.order - b.order);
 
+                    const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                    
                     if (draggedItem.parentId === newParentId) {
                         const newSiblings = [...oldSiblings];
                         const oldIndex = draggedItem.order;
@@ -1282,7 +1282,7 @@
                         oldSiblings.forEach((item, index) => {
                             if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
                         });
-                        const newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => a.order - b.order);
+                        const newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                         newSiblings.splice(targetOrder, 0, draggedItem);
                         newSiblings.forEach((item, index) => {
                             batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
@@ -1309,7 +1309,10 @@
             function loadItems() {
                 if (unsubscribes.items) unsubscribes.items();
                 const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                const q = itemsRef.orderBy('createdAt', 'asc');
+                
+                // FIXED: Query now sorts by 'order' to match render logic, fixing update bugs
+                const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'asc');
+                
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     if (sidebarMode === 'chapters') {
