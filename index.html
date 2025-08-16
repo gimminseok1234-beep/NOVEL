@@ -12,6 +12,7 @@
 
     <script>
         /* --- Google Drive API 설정 --- */
+        // [RESTORED] 원래 제공해주신 키로 복원했습니다.
         const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키 
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID 
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
@@ -35,7 +36,7 @@
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: SCOPES,
-                callback: '', 
+                callback: '',
             });
         }
     </script>
@@ -161,9 +162,9 @@
                 </div>
                 <div id="character-editor-fields" class="hidden">
                      <div class="space-y-4">
-                        <div><label for="character-personality" class="block text-sm font-medium text-gray-400 mb-1">성격</label><textarea id="character-personality" placeholder="캐릭터의 성격을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
-                        <div><label for="character-appearance" class="block text-sm font-medium text-gray-400 mb-1">외모</label><textarea id="character-appearance" placeholder="캐릭터의 외모를 묘사하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
-                        <div><label for="character-traits" class="block text-sm font-medium text-gray-400 mb-1">특징</label><textarea id="character-traits" placeholder="기타 특징, 배경, 설정을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
+                         <div><label for="character-personality" class="block text-sm font-medium text-gray-400 mb-1">성격</label><textarea id="character-personality" placeholder="캐릭터의 성격을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
+                         <div><label for="character-appearance" class="block text-sm font-medium text-gray-400 mb-1">외모</label><textarea id="character-appearance" placeholder="캐릭터의 외모를 묘사하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
+                         <div><label for="character-traits" class="block text-sm font-medium text-gray-400 mb-1">특징</label><textarea id="character-traits" placeholder="기타 특징, 배경, 설정을 입력하세요..." rows="5" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-purple-500 border-2 border-transparent transition"></textarea></div>
                     </div>
                 </div>
             </div>
@@ -224,6 +225,7 @@
             let activeProjectId = null, activeItemId = null, sidebarMode = 'chapters', charCountMode = 'noSpecialChars', saveTimeouts = {};
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            // [UNCHANGED] Firebase 정보는 변경하지 않았습니다.
             const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
                 apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4", authDomain: "novel-8d4ec.firebaseapp.com", projectId: "novel-8d4ec", storageBucket: "novel-8d4ec.appspot.com", messagingSenderId: "836560106988", appId: "1:836560106988:web:cf90872d7b09b9498ffcc9", measurementId: "G-83BZ35QVLC"
             });
@@ -378,11 +380,11 @@
             }
             
             function renderChapterPanel(item) {
-                 const editorPanel = document.getElementById('editor-panel'); editorPanel.innerHTML = '';
-                 const template = document.getElementById('editor-panel-template').content.cloneNode(true); editorPanel.appendChild(template);
-                 document.getElementById('editor-title').value = item.title || ''; document.getElementById('editor-content').value = item.content || '';
-                 document.getElementById('character-editor-fields').classList.add('hidden');
-                 updateCharCount();
+               const editorPanel = document.getElementById('editor-panel'); editorPanel.innerHTML = '';
+               const template = document.getElementById('editor-panel-template').content.cloneNode(true); editorPanel.appendChild(template);
+               document.getElementById('editor-title').value = item.title || ''; document.getElementById('editor-content').value = item.content || '';
+               document.getElementById('character-editor-fields').classList.add('hidden');
+               updateCharCount();
             }
 
             function renderFolderPanel(item) {
@@ -391,15 +393,15 @@
             }
             
             function renderCharacterPanel(item) {
-                 const editorPanel = document.getElementById('editor-panel'); editorPanel.innerHTML = '';
-                 const template = document.getElementById('editor-panel-template').content.cloneNode(true); editorPanel.appendChild(template);
-                 document.getElementById('editor-title').value = item.name || '';
-                 document.getElementById('chapter-editor-fields').classList.add('hidden');
-                 document.getElementById('character-editor-fields').classList.remove('hidden');
-                 document.getElementById('character-personality').value = item.personality || '';
-                 document.getElementById('character-appearance').value = item.appearance || '';
-                 document.getElementById('character-traits').value = item.traits || '';
-                 updateCharCount();
+               const editorPanel = document.getElementById('editor-panel'); editorPanel.innerHTML = '';
+               const template = document.getElementById('editor-panel-template').content.cloneNode(true); editorPanel.appendChild(template);
+               document.getElementById('editor-title').value = item.name || '';
+               document.getElementById('chapter-editor-fields').classList.add('hidden');
+               document.getElementById('character-editor-fields').classList.remove('hidden');
+               document.getElementById('character-personality').value = item.personality || '';
+               document.getElementById('character-appearance').value = item.appearance || '';
+               document.getElementById('character-traits').value = item.traits || '';
+               updateCharCount();
             }
 
             function updateCharCount() {
@@ -447,8 +449,19 @@
                     if (optionsBtn) { e.stopPropagation(); handleProjectOptions(optionsBtn.closest('.project-card').dataset.projectId); return; }
                     const projectCard = target.closest('.project-card');
                     if (projectCard) {
-                        activeProjectId = projectCard.dataset.projectId; sidebarMode = 'chapters'; activeItemId = null; openFolderIds = [];
-                        if (unsubscribes.items) unsubscribes.items(); loadItems(); renderView('editor'); return;
+                        activeProjectId = projectCard.dataset.projectId;
+                        sidebarMode = 'chapters';
+                        activeItemId = null;
+                        openFolderIds = [];
+                        
+                        // --- [FIXED] 이전 프로젝트 데이터가 남는 버그 수정을 위해 상태 초기화 ---
+                        chapters = [];
+                        characters = [];
+
+                        if (unsubscribes.items) unsubscribes.items();
+                        loadItems();
+                        renderView('editor');
+                        return;
                     }
                     if (target.closest('#new-project-btn')) handleNewProject(); else if (target.closest('#logout-btn')) handleLogout();
                     return;
@@ -472,7 +485,6 @@
                         if (target.closest('[data-action="delete-item"]')) {
                             handleDeleteItem(itemId, itemType);
                         } else {
-                            // FIXED: More efficient click handling to prevent cursor bug
                             if(activeItemId !== itemId) {
                                 const currentlyActive = document.querySelector('#item-list .active');
                                 if (currentlyActive) currentlyActive.classList.remove('active');
@@ -583,7 +595,14 @@
             };
 
             async function handleSaveToDrive() {
-                if (GOOGLE_API_KEY === 'YOUR_API_KEY' || GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID') { showModal({ title: "설정 필요", text: "Google Drive API 키와 클라이언트 ID가 코드에 설정되지 않았습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
+                if (GOOGLE_API_KEY === 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M' && GOOGLE_CLIENT_ID === '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com') { 
+                    // This is just an example check. In a real app, you might not want to hardcode the check like this.
+                    // But for this case, it prevents the modal if the default keys are still there.
+                } else if (GOOGLE_API_KEY.startsWith('YOUR_') || GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
+                    showModal({ title: "설정 필요", text: "Google Drive API 키와 클라이언트 ID가 코드에 설정되지 않았습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); 
+                    return;
+                }
+
                 if (!currentUser) { showModal({ title: "계정 필요", text: "Google Drive에 백업하려면 먼저 Google 계정으로 로그인해야 합니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
                 if (sidebarMode !== 'chapters' || !activeItemId) { showModal({ title: "알림", text: "Google Drive에 백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); return; }
                 const chapter = getItem(activeProjectId, activeItemId);
@@ -600,6 +619,43 @@
                     showModal({ title: "백업 성공", text: `'${fileName}' 파일이 '소설 백업' 폴더에 성공적으로 저장되었습니다.`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
                 } catch (error) { console.error("드라이브 처리 오류:", error); const errorMessage = error.result?.error?.message || error.details || '알 수 없는 오류가 발생했습니다.'; showModal({ title: "백업 실패", text: `파일을 업로드하는 중 오류가 발생했습니다: ${errorMessage}`, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); }
             }
+
+            async function getOrCreateFolderId() {
+                // This is a helper function that might be needed for the Google Drive feature.
+                // It checks if a folder named "소설 백업" exists, and if not, creates it.
+                // It returns the ID of the folder.
+                let response;
+                try {
+                    response = await gapi.client.drive.files.list({
+                        q: "mimeType='application/vnd.google-apps.folder' and name='소설 백업' and trashed=false",
+                        fields: 'files(id, name)',
+                        spaces: 'drive'
+                    });
+                } catch (err) {
+                    console.error("Error listing folders", err);
+                    throw err;
+                }
+
+                if (response.result.files.length > 0) {
+                    return response.result.files[0].id;
+                } else {
+                    const fileMetadata = {
+                        'name': '소설 백업',
+                        'mimeType': 'application/vnd.google-apps.folder'
+                    };
+                    try {
+                        const file = await gapi.client.drive.files.create({
+                            resource: fileMetadata,
+                            fields: 'id'
+                        });
+                        return file.result.id;
+                    } catch (err) {
+                        console.error("Error creating folder", err);
+                        throw err;
+                    }
+                }
+            }
+
 
             let draggedItemId = null;
             function addDragAndDropListeners() {
@@ -626,32 +682,58 @@
                     const targetItem = chapters.find(c => c.id === dropTargetEl.dataset.id);
                     if (!draggedItem || !targetItem) return;
 
-                    let newParentId = null, targetOrder = 0;
-                    if (targetItem.type === 'folder') { newParentId = targetItem.id; targetOrder = chapters.filter(c => c.parentId === newParentId).length; }
-                    else { newParentId = targetItem.parentId; const rect = dropTargetEl.getBoundingClientRect(); targetOrder = (e.clientY > rect.top + rect.height / 2) ? targetItem.order + 1 : targetItem.order; }
+                    let newParentId = null;
+                    let targetOrder = 0;
+                    
+                    const isFolderDrop = targetItem.type === 'folder' && dropTargetEl.classList.contains('drag-over-folder');
+                    
+                    if (isFolderDrop) {
+                        newParentId = targetItem.id;
+                        targetOrder = chapters.filter(c => c.parentId === newParentId).length;
+                    } else {
+                        newParentId = targetItem.parentId;
+                        const rect = dropTargetEl.getBoundingClientRect();
+                        const isAfter = e.clientY > rect.top + rect.height / 2;
+                        targetOrder = isAfter ? targetItem.order + 1 : targetItem.order;
+                    }
 
                     const originalParentId = draggedItem.parentId;
                     
-                    // --- Optimistic UI Update ---
-                    const draggedIndex = chapters.findIndex(c => c.id === draggedItemId);
-                    const [itemToMove] = chapters.splice(draggedIndex, 1);
-                    itemToMove.parentId = newParentId;
-
-                    let newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b)=>(a.order??0)-(b.order??0));
-                    newSiblings.splice(targetOrder, 0, itemToMove);
-                    
-                    renderItemList();
-
                     // --- Firestore Update ---
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
                     
-                    newSiblings.forEach((item, index) => { batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId }); });
+                    // 1. 아이템을 새 위치로 옮기기 위한 준비
+                    draggedItem.parentId = newParentId;
+                    
+                    // 2. 기존 위치에서 아이템 제거
+                    const oldSiblings = chapters.filter(c => c.parentId === originalParentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                    
+                    // 3. 새 위치에 아이템 삽입
+                    const newSiblingsRaw = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItemId).sort((a,b)=>(a.order??0)-(b.order??0));
+                    newSiblingsRaw.splice(targetOrder, 0, draggedItem);
+                    
+                    // 4. 순서 업데이트
                     if (originalParentId !== newParentId) {
-                        let oldSiblings = chapters.filter(c => c.parentId === originalParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                        oldSiblings.forEach((item, index) => { batch.update(collectionRef.doc(item.id), { order: index }); });
+                        // 부모가 바뀐 경우: 기존 부모와 새 부모의 자식들 순서를 모두 업데이트
+                        oldSiblings.forEach((item, index) => {
+                            batch.update(collectionRef.doc(item.id), { order: index });
+                        });
+                        newSiblingsRaw.forEach((item, index) => {
+                           batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
+                        });
+                    } else {
+                        // 같은 부모 내에서 이동한 경우: 해당 부모의 자식들 순서만 업데이트
+                        newSiblingsRaw.forEach((item, index) => {
+                            batch.update(collectionRef.doc(item.id), { order: index });
+                        });
                     }
-                    batch.commit().catch(err => console.error("Drag-drop failed:", err));
+                    
+                    batch.commit().catch(err => {
+                        console.error("Drag-drop failed:", err);
+                        // 에러 발생 시 UI를 원래대로 되돌리기 위해 목록을 다시 로드할 수 있습니다.
+                        // 이 부분은 onSnapshot이 자동으로 처리해줍니다.
+                    });
                 });
             }
 
@@ -669,18 +751,6 @@
                 });
             }
             
-            function haveStructuralChanges(oldList, newList) {
-                if (oldList.length !== newList.length) return true;
-                const oldMap = new Map(oldList.map(i => [i.id, i]));
-                for (const newItem of newList) {
-                    const oldItem = oldMap.get(newItem.id);
-                    if (!oldItem || (newItem.title || newItem.name) !== (oldItem.title || oldItem.name) || newItem.order !== oldItem.order || newItem.parentId !== oldItem.parentId) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
             function loadItems() {
                 if (unsubscribes.items) unsubscribes.items();
                 const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
@@ -688,15 +758,15 @@
                 
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // --- [FIXED] 불필요한 조건문을 제거하여 데이터 변경 시 항상 렌더링하도록 수정 ---
                     if (sidebarMode === 'chapters') {
-                        if (chapters.length === 0 || haveStructuralChanges(chapters, itemList)) {
-                           renderItemList();
-                        }
-                        chapters = itemList; 
+                        chapters = itemList;
                     } else {
                         characters = itemList;
-                        renderItemList();
                     }
+                    renderItemList(); // 데이터 수신 시 항상 목록을 다시 그림
+
                 }, (error) => {
                     console.error("데이터 로딩 오류:", error);
                     if (error.code === 'failed-precondition') console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
