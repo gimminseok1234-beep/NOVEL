@@ -408,7 +408,7 @@
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
                 itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
-
+                
                 if (isFolder) {
                     itemEl.innerHTML = `
                         <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
@@ -546,12 +546,12 @@
                         if (target.closest('[data-action="delete-item"]')) {
                             handleDeleteItem(itemId, itemType);
                         } else {
-                            activeItemId = itemId;
                             if (itemType === 'folder') {
                                 const index = openFolderIds.indexOf(itemId);
                                 if (index > -1) openFolderIds.splice(index, 1);
                                 else openFolderIds.push(itemId);
                             }
+                            activeItemId = itemId;
                             if (window.innerWidth < 768 && itemType !== 'folder') toggleSidebar(false);
                             renderItemList();
                             renderEditorPanel();
@@ -689,16 +689,18 @@
                     if (targetItem.type === 'folder') { newParentId = targetItem.id; targetOrder = chapters.filter(c => c.parentId === newParentId).length; }
                     else { newParentId = targetItem.parentId; const rect = dropTargetEl.getBoundingClientRect(); targetOrder = (e.clientY > rect.top + rect.height / 2) ? targetItem.order + 1 : targetItem.order; }
                     const batch = db.batch(), collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-                    const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                    
                     if (draggedItem.parentId === newParentId) {
-                        const newSiblings = [...oldSiblings]; const oldIndex = draggedItem.order;
-                        newSiblings.splice(oldIndex, 1);
-                        const newIndex = targetOrder > oldIndex ? targetOrder - 1 : targetOrder;
-                        newSiblings.splice(newIndex, 0, draggedItem);
-                        newSiblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
+                        let siblings = chapters.filter(c => c.parentId === draggedItem.parentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                        const draggedIndex = siblings.findIndex(s => s.id === draggedItemId);
+                        const [itemToMove] = siblings.splice(draggedIndex, 1);
+                        const newIndex = targetOrder > draggedIndex ? targetOrder - 1 : targetOrder;
+                        siblings.splice(newIndex, 0, itemToMove);
+                        siblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
                     } else {
+                        let oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItem.id).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                         oldSiblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
-                        const newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                        let newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                         newSiblings.splice(targetOrder, 0, draggedItem);
                         newSiblings.forEach((item, index) => batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId }));
                     }
@@ -720,14 +722,35 @@
                 });
             }
 
+            function haveStructuralChanges(oldList, newList) {
+                if (oldList.length !== newList.length) return true;
+                const oldMap = new Map(oldList.map(i => [i.id, i]));
+                for (const newItem of newList) {
+                    const oldItem = oldMap.get(newItem.id);
+                    if (!oldItem || oldItem.title !== newItem.title || oldItem.name !== newItem.name || oldItem.order !== newItem.order || oldItem.parentId !== newItem.parentId) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             function loadItems() {
                 if (unsubscribes.items) unsubscribes.items();
                 const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
                 const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'asc');
+                
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if (sidebarMode === 'chapters') chapters = itemList; else characters = itemList;
-                    renderItemList();
+                    
+                    if (sidebarMode === 'chapters') {
+                        if (haveStructuralChanges(chapters, itemList)) {
+                           renderItemList();
+                        }
+                        chapters = itemList; 
+                    } else {
+                        characters = itemList;
+                        renderItemList();
+                    }
                 }, (error) => {
                     console.error("데이터 로딩 오류:", error);
                     if (error.code === 'failed-precondition') console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
