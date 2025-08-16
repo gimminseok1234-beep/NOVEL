@@ -401,12 +401,23 @@
                 const itemEl = document.createElement('div');
                 itemEl.dataset.id = item.id; itemEl.dataset.type = item.type || 'chapter'; itemEl.draggable = sidebarMode === 'chapters';
 
+                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
+                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
                 if (isFolder) {
-                    itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
-                    itemEl.innerHTML = `<div class="flex items-center flex-1 min-w-0"><svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg><span class="truncate pointer-events-none"></span></div><button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
+                    itemEl.innerHTML = `
+                        <div class="flex items-center flex-1 min-w-0">
+                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                            <span class="truncate pointer-events-none"></span>
+                        </div>
+                    `;
                 } else {
-                    itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
-                    itemEl.innerHTML = `<span class="truncate pointer-events-none flex-grow min-w-0"></span><button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
+                     itemEl.innerHTML = `
+                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
+                        <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
+                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </button>
+                    `;
                 }
                 
                 itemEl.querySelector('span').textContent = item.title || item.name;
@@ -420,36 +431,38 @@
                 const item = getItem(activeProjectId, activeItemId);
                 if (!item) { editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">항목을 선택해주세요.</div>`; return; }
 
-                if (sidebarMode === 'chapters' && item.type === 'folder') {
-                    renderFolderPanel(item);
-                } else if (sidebarMode === 'chapters' && item.type !== 'folder') {
-                    renderChapterPanel(item);
-                } else if (sidebarMode === 'characters') {
-                    renderCharacterPanel(item);
-                }
+                if (sidebarMode === 'chapters' && item.type === 'folder') { renderFolderPanel(item); } 
+                else if (sidebarMode === 'chapters' && item.type !== 'folder') { renderChapterPanel(item); } 
+                else if (sidebarMode === 'characters') { renderCharacterPanel(item); }
             }
             
             function renderChapterPanel(item) {
-                 const editorPanel = document.getElementById('editor-panel');
-                 editorPanel.innerHTML = '';
-                 const template = document.getElementById('editor-panel-template').content.cloneNode(true);
-                 editorPanel.appendChild(template);
-                 document.getElementById('editor-title').value = item.title || '';
-                 document.getElementById('editor-content').value = item.content || '';
+                 const editorPanel = document.getElementById('editor-panel'); editorPanel.innerHTML = '';
+                 const template = document.getElementById('editor-panel-template').content.cloneNode(true); editorPanel.appendChild(template);
+                 document.getElementById('editor-title').value = item.title || ''; document.getElementById('editor-content').value = item.content || '';
                  document.getElementById('character-editor-fields').classList.add('hidden');
                  updateCharCount();
             }
 
             function renderFolderPanel(item) {
                 const editorPanel = document.getElementById('editor-panel');
-                editorPanel.innerHTML = `<div class="p-6 sm:p-8 max-w-3xl mx-auto"><label for="folder-editor-title" class="block text-sm font-medium text-gray-400 mb-2">폴더 이름</label><input id="folder-editor-title" type="text" value="${item.name || ''}" class="bg-transparent text-3xl font-bold outline-none w-full pb-2 border-b-2 border-main focus:border-purple-500 transition"></div>`;
+                editorPanel.innerHTML = `
+                    <div class="p-6 sm:p-8 max-w-3xl mx-auto h-full flex flex-col">
+                        <div>
+                            <label for="folder-editor-title" class="block text-sm font-medium text-gray-400 mb-2">폴더 이름</label>
+                            <input id="folder-editor-title" type="text" value="${item.name || ''}" class="bg-transparent text-3xl font-bold outline-none w-full pb-2 border-b-2 border-main focus:border-purple-500 transition">
+                        </div>
+                        <div class="mt-8 pt-8 border-t border-main">
+                            <h4 class="text-lg font-semibold text-red-400 mb-2">위험 구역</h4>
+                            <p class="text-sm text-gray-400 mb-4">이 폴더와 폴더에 포함된 모든 회차들이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+                            <button id="delete-folder-btn" data-id="${item.id}" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">이 폴더 삭제하기</button>
+                        </div>
+                    </div>`;
             }
             
             function renderCharacterPanel(item) {
-                 const editorPanel = document.getElementById('editor-panel');
-                 editorPanel.innerHTML = '';
-                 const template = document.getElementById('editor-panel-template').content.cloneNode(true);
-                 editorPanel.appendChild(template);
+                 const editorPanel = document.getElementById('editor-panel'); editorPanel.innerHTML = '';
+                 const template = document.getElementById('editor-panel-template').content.cloneNode(true); editorPanel.appendChild(template);
                  document.getElementById('editor-title').value = item.name || '';
                  document.getElementById('chapter-editor-fields').classList.add('hidden');
                  document.getElementById('character-editor-fields').classList.remove('hidden');
@@ -460,12 +473,9 @@
             }
 
             function updateCharCount() {
-                const contentEl = document.getElementById('editor-content');
-                const countEl = document.getElementById('char-count');
-                const labelEl = document.getElementById('char-count-label');
-                if (!countEl || !labelEl) return;
+                const contentEl = document.getElementById('editor-content'); const countEl = document.getElementById('char-count'); const labelEl = document.getElementById('char-count-label'); if (!countEl || !labelEl) return;
                 const container = document.getElementById('char-count-container');
-                if(container) container.style.display = sidebarMode === 'chapters' ? 'block' : 'none';
+                if(container) container.style.display = (sidebarMode === 'chapters' && contentEl) ? 'block' : 'none';
                 if (!contentEl) { countEl.textContent = '0'; return; }
                 const content = contentEl.value || ''; let count = 0; let label = '';
                 switch (charCountMode) {
@@ -477,36 +487,25 @@
 
             function saveCurrentWork() {
                 if (activeView !== 'editor' || !activeProjectId || !activeItemId) return;
-                const activeItem = getItem(activeProjectId, activeItemId);
-                if (!activeItem) return;
+                const activeItem = getItem(activeProjectId, activeItemId); if (!activeItem) return;
 
-                const data = {};
-                let collectionName = sidebarMode;
+                const data = {}; let collectionName = sidebarMode;
 
                 if (sidebarMode === 'chapters' && activeItem.type === 'folder') {
-                    const titleEl = document.getElementById('folder-editor-title');
-                    if (!titleEl) return;
+                    const titleEl = document.getElementById('folder-editor-title'); if (!titleEl) return;
                     data.name = titleEl.value;
                 } else if (sidebarMode === 'chapters') {
-                    const titleEl = document.getElementById('editor-title');
-                    const contentEl = document.getElementById('editor-content');
-                    if (!titleEl || !contentEl) return;
+                    const titleEl = document.getElementById('editor-title'); const contentEl = document.getElementById('editor-content'); if (!titleEl || !contentEl) return;
                     data.title = titleEl.value; data.content = contentEl.value;
                 } else {
-                    collectionName = 'characters';
-                    const titleEl = document.getElementById('editor-title');
-                    if (!titleEl) return;
-                    data.name = titleEl.value;
-                    data.personality = document.getElementById('character-personality').value;
-                    data.appearance = document.getElementById('character-appearance').value;
-                    data.traits = document.getElementById('character-traits').value;
+                    collectionName = 'characters'; const titleEl = document.getElementById('editor-title'); if (!titleEl) return;
+                    data.name = titleEl.value; data.personality = document.getElementById('character-personality').value;
+                    data.appearance = document.getElementById('character-appearance').value; data.traits = document.getElementById('character-traits').value;
                 }
                 
                 const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${collectionName}`).doc(activeItemId);
                 itemRef.update(data).then(() => {
-                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({
-                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                 }).catch((error) => console.error("Save failed:", error));
             }
 
@@ -515,15 +514,11 @@
                 if (activeView === 'login') { if (target.closest('#google-login-btn')) handleGoogleLogin(); return; }
                 if (activeView === 'home') {
                     const optionsBtn = target.closest('[data-action="options"]');
-                    if (optionsBtn) {
-                        e.stopPropagation();
-                        handleProjectOptions(optionsBtn.closest('.project-card').dataset.projectId); return;
-                    }
+                    if (optionsBtn) { e.stopPropagation(); handleProjectOptions(optionsBtn.closest('.project-card').dataset.projectId); return; }
                     const projectCard = target.closest('.project-card');
                     if (projectCard) {
                         activeProjectId = projectCard.dataset.projectId; sidebarMode = 'chapters'; activeItemId = null;
-                        if (unsubscribes.items) unsubscribes.items();
-                        loadItems(); renderView('editor'); return;
+                        if (unsubscribes.items) unsubscribes.items(); loadItems(); renderView('editor'); return;
                     }
                     if (target.closest('#new-project-btn')) handleNewProject(); else if (target.closest('#logout-btn')) handleLogout();
                     return;
@@ -536,24 +531,25 @@
                     else if (target.closest('.tab-btn')) {
                         sidebarMode = target.closest('.tab-btn').dataset.tab; activeItemId = null;
                         updateSidebarUI(); loadItems(); renderEditorPanel();
-                    } else if (listItem) {
-                        if (target.closest('[data-action="delete-item"]')) {
-                            handleDeleteItem(listItem.dataset.id, listItem.dataset.type);
+                    } 
+                    else if (target.closest('#delete-folder-btn')) {
+                        const folderId = target.closest('#delete-folder-btn').dataset.id;
+                        handleDeleteItem(folderId, 'folder');
+                    }
+                    else if (listItem) {
+                        // FIXED: Click logic for folder expansion
+                        if (target.closest('.folder-toggle-icon')) {
+                            listItem.parentElement.classList.toggle('open');
                         } else {
                             activeItemId = listItem.dataset.id;
-                            if (listItem.dataset.type === 'folder') listItem.parentElement.classList.toggle('open');
                             if (window.innerWidth < 768 && listItem.dataset.type !== 'folder') toggleSidebar(false);
                             renderItemList(); renderEditorPanel();
                         }
                     } else if (target.closest('#save-txt-btn')) handleSaveTxt();
                     else if (target.closest('#save-drive-btn')) handleSaveToDrive();
                     else if (target.closest('#copy-content-btn')) handleCopyContent();
-                    else if (target.closest('#char-count-container')) {
-                        charCountMode = charCountMode === 'noSpecialChars' ? 'noSpaces' : 'noSpecialChars';
-                        updateCharCount();
-                    } else if (target.closest('#editor-sidebar-toggle') || target.closest('#mobile-overlay')) {
-                        toggleSidebar();
-                    }
+                    else if (target.closest('#char-count-container')) { charCountMode = charCountMode === 'noSpecialChars' ? 'noSpaces' : 'noSpecialChars'; updateCharCount(); } 
+                    else if (target.closest('#editor-sidebar-toggle') || target.closest('#mobile-overlay')) { toggleSidebar(); }
                 }
             }
 
@@ -601,7 +597,7 @@
             function handleNewFolder() {
                 showModal({ title: '새 폴더 생성', text: '새로운 폴더의 이름을 입력해주세요.', inputPlaceholder: '새 폴더', buttons: [ { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }, { text: '생성', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: (name) => { if (!name) return; const newFolder = { name: name, type: 'folder', order: chapters.filter(c => !c.parentId).length, parentId: null, createdAt: firebase.firestore.FieldValue.serverTimestamp() }; db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`).add(newFolder); } } ] });
             }
-
+            
             async function handleDeleteItem(itemId, itemType) {
                 const typeName = itemType === 'folder' ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
                 let text = `정말로 이 ${typeName}를 삭제하시겠습니까?`;
@@ -629,12 +625,9 @@
 
             function handleSaveTxt() {
                 if (sidebarMode === 'chapters' && activeItemId) {
-                    const chapter = getItem(activeProjectId, activeItemId);
-                    const project = getProject(activeProjectId);
-                    if(!chapter || chapter.type === 'folder') return;
+                    const chapter = getItem(activeProjectId, activeItemId); const project = getProject(activeProjectId); if(!chapter || chapter.type === 'folder') return;
                     const content = `# ${chapter.title}\n\n${chapter.content}`;
-                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
                     a.download = `[${project.name}] ${(chapter.title||'회차').replace(/[\/\\?%*:|"<>]/g, '-')}.txt`;
                     a.click(); URL.revokeObjectURL(a.href);
                 } else { showModal({ title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold' }] }); }
@@ -650,10 +643,8 @@
                 try {
                     const tokenResponse = await new Promise((resolve, reject) => { try { tokenClient.callback = resp => { if (resp.error !== undefined) reject(resp); resolve(resp); }; tokenClient.requestAccessToken({ prompt: 'consent' }); } catch (err) { reject(err); } });
                     gapi.client.setToken({ access_token: tokenResponse.access_token });
-                    const folderId = await getOrCreateFolderId();
-                    const project = getProject(activeProjectId);
-                    const fileName = `[${project.name}] ${chapter.title || '제목 없음'}.txt`;
-                    const fileContent = `# ${chapter.title}\n\n${chapter.content}`;
+                    const folderId = await getOrCreateFolderId(); const project = getProject(activeProjectId);
+                    const fileName = `[${project.name}] ${chapter.title || '제목 없음'}.txt`; const fileContent = `# ${chapter.title}\n\n${chapter.content}`;
                     const metadata = { 'name': fileName, 'mimeType': 'text/plain', 'parents': [folderId] };
                     const multipartRequestBody = `--BOUNDARY\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--BOUNDARY\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${fileContent}\r\n--BOUNDARY--`;
                     await gapi.client.request({ 'path': 'https://www.googleapis.com/upload/drive/v3/files', 'method': 'POST', 'params': {'uploadType': 'multipart'}, 'headers': {'Content-Type': 'multipart/related; boundary=BOUNDARY'}, 'body': multipartRequestBody });
