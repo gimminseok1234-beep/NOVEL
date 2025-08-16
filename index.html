@@ -682,15 +682,15 @@
                 wrapper.className = isFolder ? 'folder-item' : '';
 
                 const itemEl = document.createElement('div');
-                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
-                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
-                
+
+                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
                 if (isFolder) {
+                    itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
                     itemEl.innerHTML = `
-                        <div class="flex items-center min-w-0">
+                        <div class="flex items-center flex-1 min-w-0">
                             <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
                             <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                             <span class="truncate pointer-events-none"></span>
@@ -1269,6 +1269,7 @@
                     
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
+
                     const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                     
                     if (draggedItem.parentId === newParentId) {
@@ -1324,7 +1325,6 @@
                     renderItemList();
                 }, (error) => {
                     console.error("데이터 로딩 오류:", error);
-                    // Firestore 인덱스 생성 링크를 콘솔에 출력하는 등의 사용자 안내가 필요할 수 있습니다.
                     if (error.code === 'failed-precondition') {
                         console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
                     }
