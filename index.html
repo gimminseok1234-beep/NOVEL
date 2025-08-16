@@ -223,8 +223,7 @@
     
     <script>
         /* --- Google Drive API 설정 --- */
-        const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M';
-        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com';
+        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
@@ -240,39 +239,53 @@
             measurementId: "G-83BZ35QVLC"
         });
 
-        let gapiInited = false;
-        let gisInited = false;
-        
-        function gapiLoaded() {
-            gapi.load('client', initializeGapiClient);
-        }
-        async function initializeGapiClient() {
-            await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: DISCOVERY_DOCS });
-            gapiInited = true;
-            checkApisAndEnableLogin();
-        }
-        function gisLoaded() {
-            gisInited = true;
-            checkApisAndEnableLogin();
-        }
-        
-        function checkApisAndEnableLogin() {
-            if (gapiInited && gisInited) {
-                const loginButton = document.getElementById('google-login-btn');
-                const loginButtonText = document.getElementById('google-login-btn-text');
-                if (loginButton && loginButton.disabled) {
-                    loginButton.disabled = false;
-                    if (loginButtonText) loginButtonText.textContent = 'Google 계정으로 시작하기';
-                }
-            }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');
             const loadingOverlay = document.getElementById('loading-overlay');
             const loadingContent = document.getElementById('loading-content');
             
+            let gapiInited = false;
+            let gisInited = false;
             let gapiAccessToken = null;
+
+            // ★★★★★ 로직 수정 파트 1 ★★★★★
+            // Google API 스크립트 로드 완료 시 호출될 함수들
+            window.gapiLoaded = function() {
+                gapi.load('client', async () => {
+                    await gapi.client.init({ discoveryDocs: DISCOVERY_DOCS });
+                    gapiInited = true;
+                    updateLoginButtonStatus(); // 상태 변경 후 버튼 업데이트 시도
+                });
+            }
+            window.gisLoaded = function() {
+                gisInited = true;
+                updateLoginButtonStatus(); // 상태 변경 후 버튼 업데이트 시도
+            }
+            
+            // 안정성을 위해 개선된 로그인 버튼 활성화 함수
+            function updateLoginButtonStatus() {
+                const loginButton = document.getElementById('google-login-btn');
+                const loginButtonText = document.getElementById('google-login-btn-text');
+                
+                // 버튼이 화면에 실제로 존재하고, 모든 API가 준비되었을 때만 버튼을 활성화
+                if (loginButton && loginButton.disabled && gapiInited && gisInited) {
+                    loginButton.disabled = false;
+                    if (loginButtonText) loginButtonText.textContent = 'Google 계정으로 시작하기';
+                }
+            }
+            // ★★★★★ 로직 수정 파트 1 끝 ★★★★★
+
+            function handleTokenResponse(tokenResponse) {
+                if (tokenResponse && tokenResponse.access_token) {
+                    gapiAccessToken = tokenResponse;
+                    gapi.client.setToken(tokenResponse);
+                    if(appContainer.querySelector('#drive-status-area')) {
+                        renderSettings();
+                    }
+                } else {
+                    console.error("Google Drive access token not received.");
+                }
+            }
 
             let db, auth;
             let currentUserId = null;
@@ -379,6 +392,7 @@
                 if (modal) modal.remove();
             }
 
+            // --- Data Loading & State ---
             function getProject(projectId) { return projects.find(p => p.id === projectId); }
             function getItem(itemId) {
                 const items = sidebarMode === 'chapters' ? chapters : characters;
@@ -428,18 +442,21 @@
                 });
             }
 
+            // --- View Rendering ---
             function renderView(viewName) {
                 const template = document.getElementById(`${viewName}-view-template`);
                 if (!template) return;
                 appContainer.innerHTML = '';
                 appContainer.appendChild(template.content.cloneNode(true));
                 
+                // ★★★★★ 로직 수정 파트 2 ★★★★★
                 if (viewName === 'home') renderHome();
                 else if (viewName === 'editor') renderEditor();
                 else if (viewName === 'settings') renderSettings();
                 else if (viewName === 'login') {
-                    checkApisAndEnableLogin();
+                    updateLoginButtonStatus(); // 로그인 뷰 렌더링 직후, 버튼 업데이트 시도
                 }
+                 // ★★★★★ 로직 수정 파트 2 끝 ★★★★★
             }
 
             function renderHome() {
@@ -711,13 +728,6 @@
                             const accessToken = credential.accessToken;
                             gapi.client.setToken({ 'access_token': accessToken });
                             gapiAccessToken = { access_token: accessToken };
-                            // ▼▼▼ 수정된 부분 ▼▼▼
-                            // 로그인이 성공하고 토큰이 설정된 후,
-                            // 현재 페이지가 설정 페이지라면 UI를 다시 렌더링하여
-                            // Drive 연결 상태를 즉시 업데이트합니다.
-                            if (appContainer.querySelector('#drive-status-area')) {
-                                renderSettings();
-                            }
                         } else {
                              throw new Error("Google Drive Access Token not found in credential.");
                         }
@@ -1119,6 +1129,7 @@
                 });
             }
             
+            // --- Settings ---
             function saveSettings() {
                 localStorage.setItem('novelWriterSettings', JSON.stringify(settings));
             }
@@ -1150,11 +1161,8 @@
                 const driveStatusArea = appContainer.querySelector('#drive-status-area');
                 if (!driveStatusArea) return;
 
-                // ▼▼▼ 수정된 부분 ▼▼▼
-                // gapiAccessToken 유무를 먼저 확인하여 불필요한 API 호출을 막습니다.
                 if (gapiAccessToken) {
                     try {
-                        // 토큰이 있을 때만 사용자 정보를 요청합니다.
                         const response = await gapi.client.drive.about.get({ fields: 'user' });
                         const driveUser = response.result.user;
                         driveStatusArea.innerHTML = `
@@ -1168,11 +1176,10 @@
                             </div>
                         `;
                     } catch(e) {
-                         console.error("Failed to get Drive user info:", e);
-                         handleDriveDisconnect(); // 실패 시 연결 해제 처리
+                         handleDriveDisconnect();
+                         renderSettings();
                     }
                 } else {
-                    // 토큰이 없으면 API를 호출하지 않고 바로 "연결 안 됨" 상태를 표시합니다.
                     driveStatusArea.innerHTML = `
                         <div class="flex items-center justify-between">
                             <p class="text-secondary">Google Drive 계정이 연결되지 않았습니다.</p>
@@ -1188,19 +1195,11 @@
             
             function handleDriveDisconnect() {
                 if (gapiAccessToken && gapiAccessToken.access_token) {
-                    try {
-                        // google.accounts.oauth2.revoke 함수가 없을 수 있으므로 try-catch로 감쌉니다.
-                        google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {});
-                    } catch (e) {
-                        console.warn("Could not revoke token, it might have already expired.");
-                    }
+                     google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {});
                 }
                 gapiAccessToken = null;
                 gapi.client.setToken(null);
-                
-                // ▼▼▼ 수정된 부분 ▼▼▼
-                // 연결 해제 후, UI를 다시 렌더링하여 "연결 안 됨" 상태를 즉시 반영합니다.
-                if (appContainer.querySelector('#drive-status-area')) {
+                if(appContainer.querySelector('#drive-status-area')) {
                     renderSettings();
                 }
             }
