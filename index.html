@@ -43,6 +43,7 @@
         #editor-container.sidebar-open #editor-sidebar { transform: translateX(0); } #mobile-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 30; transition: opacity 0.3s ease-in-out; }
         #editor-sidebar-toggle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 50; width: 24px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out; border-radius: 0 8px 8px 0; }
         #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--border-main); border-radius: 5px; }
@@ -232,8 +233,8 @@
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         let gapiInited = false;
         let gisInited = false;
-        let tokenClient;
-        let gapiAccessToken = null; // Google API Access Token 저장 변수
+        let tokenClient; // gisLoaded에서 초기화되므로 제거하지 않음
+        let gapiAccessToken = null;
 
         window.gapiLoaded = function() {
             gapi.load('client', initializeGapiClient);
@@ -243,19 +244,16 @@
             gapiInited = true;
         }
         window.gisLoaded = function() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: SCOPES,
-                callback: handleTokenResponse, // 토큰 응답을 처리할 콜백 함수 지정
-            });
+            // 이 함수는 이제 직접적인 인증 흐름에 사용되지 않지만,
+            // 향후 다른 gis 기능 사용을 위해 남겨둘 수 있습니다.
             gisInited = true;
         }
         
+        // 이 함수는 이제 직접 호출되지 않지만, 호환성을 위해 남겨둡니다.
         function handleTokenResponse(tokenResponse) {
             if (tokenResponse && tokenResponse.access_token) {
                 gapiAccessToken = tokenResponse;
                 gapi.client.setToken(tokenResponse);
-                // 설정 화면이 열려있다면 UI를 업데이트
                 if(appContainer.querySelector('#drive-status-area')) {
                     renderSettings();
                 }
@@ -325,6 +323,7 @@
                     } else {
                         currentUserId = null;
                         projects = [];
+                        gapiAccessToken = null; // 로그아웃 시 토큰 정보 초기화
                         Object.values(unsubscribes).forEach(unsub => {
                             if (typeof unsub === 'function') unsub();
                         });
@@ -699,13 +698,36 @@
         }
         
         // --- Handlers ---
+        // ===================================
+        // ▼▼▼ 핵심 수정: handleGoogleLogin 함수 ▼▼▼
+        // ===================================
         function handleGoogleLogin() {
             loadingOverlay.style.display = 'flex';
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                loadingOverlay.style.display = 'none';
-                console.error("Google Login Error:", error);
-                showModal({title: "로그인 오류", text: error.message, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+            // 로그인 시 Google Drive 권한을 함께 요청합니다.
+            provider.addScope(SCOPES);
+
+            auth.signInWithPopup(provider)
+                .then(result => {
+                    // 로그인 성공 시 Google Drive API를 위한 액세스 토큰을 받아옵니다.
+                    const credential = result.credential;
+                    if (credential && credential.accessToken) {
+                        const accessToken = credential.accessToken;
+                        
+                        // GAPI 클라이언트에 토큰을 설정합니다.
+                        gapi.client.setToken({ 'access_token': accessToken });
+                        
+                        // gapiAccessToken 상태를 업데이트하여 앱 전체에서 사용 가능하도록 합니다.
+                        gapiAccessToken = { access_token: accessToken };
+                    } else {
+                         throw new Error("Google Drive Access Token not found in credential.");
+                    }
+                })
+                .catch(error => {
+                    loadingOverlay.style.display = 'none';
+                    console.error("Google Login Error:", error);
+                    gapiAccessToken = null; // 실패 시 토큰 정보 초기화
+                    showModal({title: "로그인 오류", text: error.message, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
             });
         };
 
@@ -927,11 +949,8 @@
             if (!gapiAccessToken) {
                 showModal({
                     title: "Google Drive 연결 필요",
-                    text: "파일을 백업하려면 먼저 '설정' 페이지에서 Google Drive 계정을 연결해주세요.",
-                    buttons: [
-                        { text: '확인', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                        { text: '설정으로 이동', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold', onClick: () => renderView('settings') }
-                    ]
+                    text: "Google Drive가 연결되지 않았습니다. 로그아웃 후 다시 로그인하여 권한을 허용해주세요.",
+                    buttons: [ { text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' } ]
                 });
                 return;
             }
@@ -960,7 +979,6 @@
                 const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
                 const fileContent = `# ${item.title}\n\n${item.content}`;
                 
-                // 1. 먼저 메타데이터로 빈 파일을 생성합니다.
                 const fileMetadata = {
                     'name': fileName,
                     'mimeType': 'text/plain'
@@ -976,8 +994,7 @@
                     throw new Error("파일 생성에 실패했습니다.");
                 }
 
-                // 2. 생성된 파일 ID를 이용해 내용을 업데이트(업로드)합니다.
-                const updateResponse = await gapi.client.request({
+                await gapi.client.request({
                     path: `/upload/drive/v3/files/${fileId}`,
                     method: 'PATCH',
                     params: { uploadType: 'media' },
@@ -1119,26 +1136,26 @@
         function applySettings() {
             document.body.dataset.theme = settings.theme;
         }
-
+        
+        // ===================================
+        // ▼▼▼ 핵심 수정: renderSettings 함수 ▼▼▼
+        // ===================================
         async function renderSettings() {
-            // 테마 및 너비 설정 렌더링
             const themeButtons = appContainer.querySelectorAll('[data-theme-btn]');
             const widthSlider = appContainer.querySelector('#editor-width-slider');
             const widthValue = appContainer.querySelector('#editor-width-value');
 
             themeButtons.forEach(btn => {
-                btn.classList.remove('border-accent-primary', 'ring-2', 'ring-accent-primary');
-                if (btn.dataset.themeBtn === settings.theme) {
-                    btn.classList.add('border-main', 'ring-2', 'ring-accent-primary');
-                }
+                btn.classList.toggle('ring-2', btn.dataset.themeBtn === settings.theme);
+                btn.classList.toggle('ring-accent-primary', btn.dataset.themeBtn === settings.theme);
             });
             widthSlider.value = settings.editorWidth;
             widthValue.textContent = `${settings.editorWidth}px`;
             
-            // Google Drive 연동 상태 렌더링
             const driveStatusArea = appContainer.querySelector('#drive-status-area');
             if (!driveStatusArea) return;
 
+            // 이제 gapiAccessToken 유무로만 상태를 표시합니다.
             if (gapiAccessToken) {
                 try {
                     const response = await gapi.client.drive.about.get({ fields: 'user' });
@@ -1154,36 +1171,34 @@
                         </div>
                     `;
                 } catch(e) {
-                    // 오류 발생 시 연결 해제 처리
-                    handleDriveDisconnect();
+                     handleDriveDisconnect();
+                     renderSettings(); // 에러 발생 시 UI 다시 그리기
                 }
             } else {
                 driveStatusArea.innerHTML = `
                     <div class="flex items-center justify-between">
                         <p class="text-secondary">Google Drive 계정이 연결되지 않았습니다.</p>
-                        <button id="drive-connect-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">계정 연결</button>
+                        <p class="text-xs text-secondary">로그아웃 후 다시 로그인하여 권한을 허용해주세요.</p>
                     </div>
                 `;
             }
         }
-
+        
+        // 이 함수는 이제 로그인 흐름에 포함되었으므로 직접 사용되지 않습니다.
         function handleDriveConnect() {
-            if (gapiInited && gisInited && tokenClient) {
-                tokenClient.requestAccessToken();
-            } else {
-                 showModal({title: "오류", text: "Google API가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
-            }
+            showModal({title: "알림", text: "Google Drive 연동은 로그인 시 함께 진행됩니다. 연동을 원하시면 로그아웃 후 다시 로그인해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
         }
-
+        
         function handleDriveDisconnect() {
             if (gapiAccessToken) {
                 google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {
-                    gapiAccessToken = null;
-                    gapi.client.setToken(null);
-                    if(appContainer.querySelector('#drive-status-area')) {
-                        renderSettings();
-                    }
+                    console.log('Token revoked.');
                 });
+            }
+            gapiAccessToken = null;
+            gapi.client.setToken(null);
+            if(appContainer.querySelector('#drive-status-area')) {
+                renderSettings();
             }
         }
 
@@ -1192,13 +1207,11 @@
             const target = e.target;
             const closest = (selector) => target.closest(selector);
 
-            // Login
             if (closest('#google-login-btn')) return handleGoogleLogin();
-
-            // Home
             if (closest('#new-project-btn')) return handleNewProject();
             if (closest('#logout-btn')) return handleLogout();
             if (closest('#settings-btn')) return renderView('settings');
+            
             const projectCard = closest('.project-card');
             if (projectCard) {
                 const optionsBtn = closest('[data-action="options"]');
@@ -1215,7 +1228,6 @@
                 return;
             }
 
-            // Settings
             if (closest('#back-to-home-btn')) return renderView('home');
             const themeBtn = closest('[data-theme-btn]');
             if(themeBtn) {
@@ -1235,7 +1247,6 @@
             if (closest('#drive-disconnect-btn')) return handleDriveDisconnect();
 
 
-            // Editor
             if (closest('#home-btn')) return renderView('home');
             if (closest('#editor-sidebar-toggle')) return toggleSidebar();
             if (closest('#mobile-overlay')) return toggleSidebar(false);
@@ -1273,7 +1284,6 @@
                 return;
             }
 
-            // Editor Panel
             if (closest('#copy-content-btn')) return handleCopyContent();
             if (closest('#save-drive-btn')) return handleSaveToDrive();
             if (closest('#save-txt-btn')) return handleSaveTxt();
