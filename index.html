@@ -9,31 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <script>
-        /* --- Google Drive API 설정 --- */
-        const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키
-        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
-        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-        let gapiInited = false;
-        let tokenClient;
-
-        function gapiLoaded() {
-            gapi.load('client', initializeGapiClient);
-        }
-        async function initializeGapiClient() {
-            await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: DISCOVERY_DOCS });
-            gapiInited = true;
-        }
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: SCOPES,
-                callback: '',
-            });
-        }
-    </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
     <style>
         :root {
             --bg-main: #121212; --bg-surface: #1e1e1e; --bg-card: #2a2a2a; --bg-hover: #37373d;
@@ -148,6 +126,11 @@
                         <button id="editor-width-reset-btn" class="text-sm bg-surface hover:bg-hover px-3 py-1 rounded-md border border-main">기본값</button>
                     </div>
                 </div>
+                <div class="bg-card p-6 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">Google Drive 연동</h2>
+                    <div id="drive-status-area">
+                        </div>
+                </div>
             </main>
         </div>
     </template>
@@ -237,50 +220,50 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-    function showModal(options) {
-        closeModal();
-        const modalBackdrop = document.createElement('div');
-        modalBackdrop.id = 'modal-backdrop';
-        modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
-        const template = document.getElementById('modal-template').content.cloneNode(true);
-        modalBackdrop.appendChild(template);
-        
-        const titleEl = modalBackdrop.querySelector('#modal-title');
-        const textEl = modalBackdrop.querySelector('#modal-text');
-        const customContentEl = modalBackdrop.querySelector('#modal-custom-content');
-        const inputEl = modalBackdrop.querySelector('#modal-input');
-        const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
-
-        titleEl.textContent = options.title;
-        if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
-        if (options.customHtml) customContentEl.innerHTML = options.customHtml;
-        if (options.inputPlaceholder) {
-            inputEl.classList.remove('hidden');
-            inputEl.placeholder = options.inputPlaceholder;
-            inputEl.value = options.initialValue || '';
-        }
-        options.buttons.forEach(function(btnInfo) {
-            const button = document.createElement('button');
-            button.textContent = btnInfo.text;
-            button.className = btnInfo.class;
-            button.onclick = function() {
-                if (typeof btnInfo.onClick === 'function') btnInfo.onClick(inputEl.value);
-                if (btnInfo.closeOnClick !== false) closeModal();
-            };
-            buttonsEl.appendChild(button);
-        });
-        document.body.appendChild(modalBackdrop);
-        if(options.inputPlaceholder) inputEl.focus();
-    }
-    function closeModal() {
-        const modal = document.getElementById('modal-backdrop');
-        if (modal) modal.remove();
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
         const appContainer = document.getElementById('app-container');
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingContent = document.getElementById('loading-content');
+        
+        /* --- Google Drive API 설정 --- */
+        const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키
+        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
+        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+        let gapiInited = false;
+        let gisInited = false;
+        let tokenClient;
+        let gapiAccessToken = null; // Google API Access Token 저장 변수
+
+        window.gapiLoaded = function() {
+            gapi.load('client', initializeGapiClient);
+        }
+        async function initializeGapiClient() {
+            await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: DISCOVERY_DOCS });
+            gapiInited = true;
+        }
+        window.gisLoaded = function() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: handleTokenResponse, // 토큰 응답을 처리할 콜백 함수 지정
+            });
+            gisInited = true;
+        }
+        
+        function handleTokenResponse(tokenResponse) {
+            if (tokenResponse && tokenResponse.access_token) {
+                gapiAccessToken = tokenResponse;
+                gapi.client.setToken(tokenResponse);
+                // 설정 화면이 열려있다면 UI를 업데이트
+                if(appContainer.querySelector('#drive-status-area')) {
+                    renderSettings();
+                }
+            } else {
+                console.error("Google Drive access token not received.");
+            }
+        }
+
 
         let db, auth;
         let currentUserId = null;
@@ -355,6 +338,46 @@
                 }
                 loadingOverlay.style.display = 'none';
             });
+        }
+        
+        function showModal(options) {
+            closeModal();
+            const modalBackdrop = document.createElement('div');
+            modalBackdrop.id = 'modal-backdrop';
+            modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
+            const template = document.getElementById('modal-template').content.cloneNode(true);
+            modalBackdrop.appendChild(template);
+            
+            const titleEl = modalBackdrop.querySelector('#modal-title');
+            const textEl = modalBackdrop.querySelector('#modal-text');
+            const customContentEl = modalBackdrop.querySelector('#modal-custom-content');
+            const inputEl = modalBackdrop.querySelector('#modal-input');
+            const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
+
+            titleEl.textContent = options.title;
+            if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
+            if (options.customHtml) customContentEl.innerHTML = options.customHtml;
+            if (options.inputPlaceholder) {
+                inputEl.classList.remove('hidden');
+                inputEl.placeholder = options.inputPlaceholder;
+                inputEl.value = options.initialValue || '';
+            }
+            options.buttons.forEach(function(btnInfo) {
+                const button = document.createElement('button');
+                button.textContent = btnInfo.text;
+                button.className = btnInfo.class;
+                button.onclick = function() {
+                    if (typeof btnInfo.onClick === 'function') btnInfo.onClick(inputEl.value);
+                    if (btnInfo.closeOnClick !== false) closeModal();
+                };
+                buttonsEl.appendChild(button);
+            });
+            document.body.appendChild(modalBackdrop);
+            if(options.inputPlaceholder) inputEl.focus();
+        }
+        function closeModal() {
+            const modal = document.getElementById('modal-backdrop');
+            if (modal) modal.remove();
         }
 
         // --- Data Loading & State ---
@@ -900,7 +923,87 @@
             }
         };
         
-        async function handleSaveToDrive() { /* ... unchanged ... */ }
+        async function handleSaveToDrive() {
+            if (!gapiAccessToken) {
+                showModal({
+                    title: "Google Drive 연결 필요",
+                    text: "파일을 백업하려면 먼저 '설정' 페이지에서 Google Drive 계정을 연결해주세요.",
+                    buttons: [
+                        { text: '확인', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '설정으로 이동', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold', onClick: () => renderView('settings') }
+                    ]
+                });
+                return;
+            }
+
+            const item = getItem(activeItemId);
+            if (!item || sidebarMode !== 'chapters' || item.type === 'folder') {
+                 showModal({title: "알림", text: "백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                return;
+            }
+
+            const statusEl = document.getElementById('save-status');
+            const showStatus = (msg) => {
+                if (statusEl) {
+                    statusEl.textContent = msg;
+                    statusEl.classList.remove('opacity-0');
+                    setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
+                }
+            };
+
+            showStatus('Google Drive에 백업하는 중...');
+            
+            try {
+                const project = getProject(activeProjectId);
+                const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
+                const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
+                const fileContent = `# ${item.title}\n\n${item.content}`;
+                
+                const boundary = '-------314159265358979323846';
+                const delimiter = "\r\n--" + boundary + "\r\n";
+                const close_delim = "\r\n--" + boundary + "--";
+
+                const metadata = {
+                    'name': fileName,
+                    'mimeType': 'text/plain'
+                };
+
+                const multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+                    JSON.stringify(metadata) +
+                    delimiter +
+                    'Content-Type: text/plain; charset=UTF-8\r\n\r\n' +
+                    fileContent +
+                    close_delim;
+                
+                const request = gapi.client.request({
+                    'path': '/upload/drive/v3/files',
+                    'method': 'POST',
+                    'params': {'uploadType': 'multipart'},
+                    'headers': {
+                        'Content-Type': 'multipart/related; boundary=' + boundary
+                    },
+                    'body': multipartRequestBody
+                });
+                
+                await request;
+                showStatus('✅ Google Drive 백업 완료!');
+
+            } catch(err) {
+                console.error("Google Drive Save Error:", err);
+                showStatus('❌ Google Drive 백업 실패');
+                // 토큰 만료 등의 이유일 수 있으므로, 토큰을 초기화하고 다시 연결하도록 유도
+                if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
+                     handleDriveDisconnect();
+                     showModal({
+                        title: "인증 오류",
+                        text: "Google Drive 인증이 만료되었습니다. 설정에서 다시 계정을 연결해주세요.",
+                        buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]
+                    });
+                }
+            }
+        }
         
         function addDragAndDropListeners(listEl) {
             if (!listEl) return;
@@ -978,7 +1081,6 @@
                 const batch = db.batch();
                 const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
                 
-                // 1. 기존 위치에서 아이템 제거 후 재정렬
                 const originalSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
                 originalSiblings.forEach((item, index) => {
                     if (item.order !== index) {
@@ -986,7 +1088,6 @@
                     }
                 });
 
-                // 2. 새 위치에 아이템 삽입 후 재정렬
                 const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
                 newSiblings.splice(targetOrder, 0, draggedItem); 
                 
@@ -1024,7 +1125,8 @@
             document.body.dataset.theme = settings.theme;
         }
 
-        function renderSettings() {
+        async function renderSettings() {
+            // 테마 및 너비 설정 렌더링
             const themeButtons = appContainer.querySelectorAll('[data-theme-btn]');
             const widthSlider = appContainer.querySelector('#editor-width-slider');
             const widthValue = appContainer.querySelector('#editor-width-value');
@@ -1037,6 +1139,57 @@
             });
             widthSlider.value = settings.editorWidth;
             widthValue.textContent = `${settings.editorWidth}px`;
+            
+            // Google Drive 연동 상태 렌더링
+            const driveStatusArea = appContainer.querySelector('#drive-status-area');
+            if (!driveStatusArea) return;
+
+            if (gapiAccessToken) {
+                try {
+                    const response = await gapi.client.drive.about.get({ fields: 'user' });
+                    const driveUser = response.result.user;
+                    driveStatusArea.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <img src="${driveUser.photoLink}" class="w-10 h-10 rounded-full" alt="Google User Photo">
+                            <div class="flex-grow">
+                                <p class="font-semibold">${driveUser.displayName}</p>
+                                <p class="text-sm text-secondary">${driveUser.emailAddress}</p>
+                            </div>
+                            <button id="drive-disconnect-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결 해제</button>
+                        </div>
+                    `;
+                } catch(e) {
+                    // 오류 발생 시 연결 해제 처리
+                    handleDriveDisconnect();
+                }
+            } else {
+                driveStatusArea.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <p class="text-secondary">Google Drive 계정이 연결되지 않았습니다.</p>
+                        <button id="drive-connect-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">계정 연결</button>
+                    </div>
+                `;
+            }
+        }
+
+        function handleDriveConnect() {
+            if (gapiInited && gisInited && tokenClient) {
+                tokenClient.requestAccessToken();
+            } else {
+                 showModal({title: "오류", text: "Google API가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+            }
+        }
+
+        function handleDriveDisconnect() {
+            if (gapiAccessToken) {
+                google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {
+                    gapiAccessToken = null;
+                    gapi.client.setToken(null);
+                    if(appContainer.querySelector('#drive-status-area')) {
+                       renderSettings();
+                    }
+                });
+            }
         }
 
         // --- Central Event Handler ---
@@ -1083,6 +1236,9 @@
                 renderSettings();
                 return;
             }
+            if (closest('#drive-connect-btn')) return handleDriveConnect();
+            if (closest('#drive-disconnect-btn')) return handleDriveDisconnect();
+
 
             // Editor
             if (closest('#home-btn')) return renderView('home');
@@ -1149,6 +1305,5 @@
         initialize();
     });
     </script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 </body>
 </html>
