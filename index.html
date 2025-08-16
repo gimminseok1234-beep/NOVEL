@@ -129,7 +129,7 @@
                 <div class="bg-card p-6 rounded-lg">
                     <h2 class="text-xl font-semibold mb-4">Google Drive 연동</h2>
                     <div id="drive-status-area">
-                        </div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -938,14 +938,15 @@
 
             const item = getItem(activeItemId);
             if (!item || sidebarMode !== 'chapters' || item.type === 'folder') {
-                 showModal({title: "알림", text: "백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                showModal({title: "알림", text: "백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
                 return;
             }
 
             const statusEl = document.getElementById('save-status');
-            const showStatus = (msg) => {
+            const showStatus = (msg, isError = false) => {
                 if (statusEl) {
                     statusEl.textContent = msg;
+                    statusEl.style.color = isError ? 'var(--accent-secondary)' : 'var(--text-secondary)';
                     statusEl.classList.remove('opacity-0');
                     setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
                 }
@@ -959,44 +960,38 @@
                 const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
                 const fileContent = `# ${item.title}\n\n${item.content}`;
                 
-                const boundary = '-------314159265358979323846';
-                const delimiter = "\r\n--" + boundary + "\r\n";
-                const close_delim = "\r\n--" + boundary + "--";
-
-                const metadata = {
+                // 1. 먼저 메타데이터로 빈 파일을 생성합니다.
+                const fileMetadata = {
                     'name': fileName,
                     'mimeType': 'text/plain'
                 };
-
-                const multipartRequestBody =
-                    delimiter +
-                    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-                    JSON.stringify(metadata) +
-                    delimiter +
-                    'Content-Type: text/plain; charset=UTF-8\r\n\r\n' +
-                    fileContent +
-                    close_delim;
                 
-                const request = gapi.client.request({
-                    'path': '/upload/drive/v3/files',
-                    'method': 'POST',
-                    'params': {'uploadType': 'multipart'},
-                    'headers': {
-                        'Content-Type': 'multipart/related; boundary=' + boundary
-                    },
-                    'body': multipartRequestBody
+                const createResponse = await gapi.client.drive.files.create({
+                    resource: fileMetadata,
+                    fields: 'id'
+                });
+
+                const fileId = createResponse.result.id;
+                if (!fileId) {
+                    throw new Error("파일 생성에 실패했습니다.");
+                }
+
+                // 2. 생성된 파일 ID를 이용해 내용을 업데이트(업로드)합니다.
+                const updateResponse = await gapi.client.request({
+                    path: `/upload/drive/v3/files/${fileId}`,
+                    method: 'PATCH',
+                    params: { uploadType: 'media' },
+                    body: fileContent
                 });
                 
-                await request;
                 showStatus('✅ Google Drive 백업 완료!');
 
             } catch(err) {
                 console.error("Google Drive Save Error:", err);
-                showStatus('❌ Google Drive 백업 실패');
-                // 토큰 만료 등의 이유일 수 있으므로, 토큰을 초기화하고 다시 연결하도록 유도
+                showStatus('❌ Google Drive 백업 실패', true);
                 if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
-                     handleDriveDisconnect();
-                     showModal({
+                    handleDriveDisconnect();
+                    showModal({
                         title: "인증 오류",
                         text: "Google Drive 인증이 만료되었습니다. 설정에서 다시 계정을 연결해주세요.",
                         buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]
@@ -1186,7 +1181,7 @@
                     gapiAccessToken = null;
                     gapi.client.setToken(null);
                     if(appContainer.querySelector('#drive-status-area')) {
-                       renderSettings();
+                        renderSettings();
                     }
                 });
             }
