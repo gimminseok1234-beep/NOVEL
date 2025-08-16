@@ -445,6 +445,217 @@
                 }
             }
             
+            function renderSettings() {
+                const backBtn = document.getElementById('back-to-home-btn');
+                backBtn.onclick = () => renderView('home');
+
+                const themeButtons = document.querySelectorAll('[data-theme-btn]');
+                const updateThemeButtons = () => {
+                    themeButtons.forEach(btn => {
+                        const theme = btn.dataset.themeBtn;
+                        if (theme === settings.theme) {
+                            btn.classList.add('border-accent-primary');
+                        } else {
+                            btn.classList.remove('border-accent-primary');
+                        }
+                    });
+                };
+                themeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const newTheme = btn.dataset.themeBtn;
+                        settings.theme = newTheme;
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        saveSettings();
+                        updateThemeButtons();
+                    });
+                });
+                updateThemeButtons();
+
+                const slider = document.getElementById('editor-width-slider');
+                const valueDisplay = document.getElementById('editor-width-value');
+                const resetBtn = document.getElementById('editor-width-reset-btn');
+                
+                const updateWidth = (width) => {
+                    slider.value = width;
+                    valueDisplay.textContent = `${width}px`;
+                    settings.editorWidth = width;
+                    const wrapper = document.getElementById('editor-content-wrapper');
+                    if (wrapper) wrapper.style.maxWidth = `${width}px`;
+                };
+
+                slider.value = settings.editorWidth;
+                valueDisplay.textContent = `${settings.editorWidth}px`;
+
+                slider.addEventListener('input', () => {
+                    updateWidth(parseInt(slider.value));
+                });
+                slider.addEventListener('change', () => {
+                    saveSettings();
+                });
+                resetBtn.addEventListener('click', () => {
+                    updateWidth(370);
+                    saveSettings();
+                });
+            }
+
+            function renderEditor() {
+                const project = getProject(activeProjectId);
+                if (!project) {
+                    console.error("Project not found!");
+                    renderView('home');
+                    return;
+                }
+
+                document.getElementById('project-title-sidebar').textContent = project.name;
+                renderEditorPlaceholder();
+
+                const tabButtons = document.querySelectorAll('[data-tab]');
+                tabButtons.forEach(btn => {
+                    btn.addEventListener('click', () => switchSidebarMode(btn.dataset.tab));
+                });
+
+                const sidebar = document.getElementById('editor-sidebar');
+                const container = document.getElementById('editor-container');
+                const toggleBtn = document.getElementById('editor-sidebar-toggle');
+                const mobileOverlay = document.getElementById('mobile-overlay');
+
+                const toggleSidebar = () => {
+                    const isOpen = container.classList.toggle('sidebar-open');
+                    if (window.innerWidth < 768) {
+                        mobileOverlay.classList.toggle('hidden', !isOpen);
+                    }
+                };
+
+                toggleBtn.onclick = toggleSidebar;
+                mobileOverlay.onclick = toggleSidebar;
+                
+                // Open sidebar by default on desktop
+                if (window.innerWidth >= 768) {
+                    container.classList.add('sidebar-open');
+                }
+
+                switchSidebarMode('chapters');
+            }
+
+            function switchSidebarMode(mode) {
+                sidebarMode = mode;
+                activeItemId = null; 
+                
+                document.querySelectorAll('[data-tab]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === mode);
+                });
+
+                document.getElementById('list-title').textContent = mode === 'chapters' ? '회차 목록' : '등장인물';
+                
+                const newButtonsContainer = document.getElementById('new-item-buttons-container');
+                if (mode === 'chapters') {
+                    newButtonsContainer.innerHTML = `
+                        <button data-action="new-folder" title="새 폴더" class="p-1.5 rounded-md hover:bg-hover"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg></button>
+                        <button data-action="new-chapter" title="새 회차" class="p-1.5 rounded-md hover:bg-hover"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></button>
+                    `;
+                } else {
+                     newButtonsContainer.innerHTML = `<button data-action="new-character" title="새 등장인물" class="p-1.5 rounded-md hover:bg-hover"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></button>`;
+                }
+
+                loadItems();
+                renderEditorPlaceholder();
+            }
+
+            function renderItemList() {
+                const itemListEl = document.getElementById('item-list');
+                if (!itemListEl) return;
+                itemListEl.innerHTML = '';
+                const items = sidebarMode === 'chapters' ? chapters : characters;
+
+                if (items.length === 0) {
+                    itemListEl.innerHTML = `<p class="text-center text-sm text-secondary p-4">항목이 없습니다.</p>`;
+                    return;
+                }
+                
+                if (sidebarMode === 'chapters') {
+                    const itemMap = new Map(items.map(item => [item.id, { ...item, children: [] }]));
+                    const rootItems = [];
+                    for (const item of items) {
+                        const currentItem = itemMap.get(item.id);
+                        if (item.parentId && itemMap.has(item.parentId)) {
+                            itemMap.get(item.parentId).children.push(currentItem);
+                        } else {
+                            rootItems.push(currentItem);
+                        }
+                    }
+
+                    const createItemElement = (item) => {
+                        const li = document.createElement('li');
+                        li.dataset.id = item.id;
+                        li.dataset.type = item.type;
+                        li.draggable = true;
+                        li.className = `list-item flex items-center justify-between p-2 rounded-md cursor-pointer text-sm mb-1 ${item.id === activeItemId ? 'active' : ''}`;
+                        if (item.type === 'folder') {
+                             li.classList.add('list-item-folder');
+                        }
+                        
+                        let content = `<div class="flex items-center gap-2 truncate pointer-events-none">`;
+                        if (item.type === 'folder') {
+                            content += `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 folder-toggle ${collapsedFolders.has(item.id) ? 'collapsed' : ''}" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`;
+                        }
+                        content += `<span class="truncate">${item.title || item.name || '제목 없음'}</span></div>`;
+                        content += `<div class="action-btn flex-shrink-0"><button data-action="delete-item" class="p-1 rounded-md hover:bg-red-500/20"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-400 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>`;
+                        
+                        li.innerHTML = content;
+                        
+                        const wrapper = document.createElement('div');
+                        wrapper.dataset.wrapperId = item.id;
+                        wrapper.appendChild(li);
+
+                        if (item.type === 'folder') {
+                            const childrenContainer = document.createElement('ul');
+                            childrenContainer.className = `folder-children pl-4 ${collapsedFolders.has(item.id) ? 'collapsed' : ''}`;
+                            item.children.forEach(child => childrenContainer.appendChild(createItemElement(child).container));
+                            wrapper.appendChild(childrenContainer);
+                        }
+                        return { container: wrapper, itemEl: li };
+                    };
+                    rootItems.forEach(item => itemListEl.appendChild(createItemElement(item).container));
+                } else { 
+                     items.forEach(item => {
+                        const li = document.createElement('li');
+                        li.dataset.id = item.id;
+                        li.className = `list-item flex items-center justify-between p-2 rounded-md cursor-pointer text-sm mb-1 ${item.id === activeItemId ? 'active' : ''}`;
+                        li.innerHTML = `<span class="truncate pointer-events-none">${item.name || '이름 없음'}</span><div class="action-btn flex-shrink-0"><button data-action="delete-item" class="p-1 rounded-md hover:bg-red-500/20"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-red-400 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>`;
+                        itemListEl.appendChild(li);
+                    });
+                }
+            }
+
+            function renderEditorPlaceholder() {
+                document.getElementById('editor-panel').innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center text-secondary p-4"><h3 class="text-xl font-semibold">항목을 선택하세요</h3><p class="mt-2">사이드바에서 작업할 회차나 등장인물을 선택해주세요.</p></div>`;
+            }
+            
+            function renderChapterEditorPanel(item) {
+                const editorPanel = document.getElementById('editor-panel');
+                const template = document.getElementById('editor-panel-template');
+                editorPanel.innerHTML = '';
+                editorPanel.appendChild(template.content.cloneNode(true));
+                
+                document.getElementById('editor-title').value = item.title || '';
+                document.getElementById('editor-content').value = item.content || '';
+                
+                const wrapper = document.getElementById('editor-content-wrapper');
+                if (wrapper) wrapper.style.maxWidth = `${settings.editorWidth}px`;
+            }
+
+            function renderCharacterEditorPanel(item) {
+                const editorPanel = document.getElementById('editor-panel');
+                const template = document.getElementById('character-editor-panel-template');
+                editorPanel.innerHTML = '';
+                editorPanel.appendChild(template.content.cloneNode(true));
+
+                document.getElementById('character-name').value = item.name || '';
+                document.getElementById('character-personality').value = item.personality || '';
+                document.getElementById('character-appearance').value = item.appearance || '';
+                document.getElementById('character-characteristics').value = item.characteristics || '';
+            }
+
             function handleGoogleLogin() {
                 loadingOverlay.style.display = 'flex';
                 const provider = new firebase.auth.GoogleAuthProvider();
@@ -453,8 +664,7 @@
                 auth.signInWithPopup(provider).then(result => {
                     const credential = result.credential;
                     if (credential && credential.accessToken) {
-                        const accessToken = credential.accessToken;
-                        gapiAccessToken = { 'access_token': accessToken }; 
+                        gapiAccessToken = { 'access_token': credential.accessToken }; 
                         gapi.client.setToken(gapiAccessToken);
                     } else {
                          throw new Error("Google Drive Access Token not found in credential.");
@@ -470,7 +680,6 @@
             function handleLogout() {
                 auth.signOut().catch(error => {
                     console.error("Logout Error:", error);
-                    showModal({title: "로그아웃 오류", text: "로그아웃 중 문제가 발생했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
                 });
             }
 
@@ -526,99 +735,22 @@
                     console.error("Google Drive Save Error:", err);
                     showStatus('❌ Google Drive 백업 실패', true);
                     if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
-                        gapiAccessToken = null; // Invalidate token
+                        gapiAccessToken = null;
                         showModal({ title: "인증 만료", text: "Google Drive 인증이 만료되었습니다. 다시 로그인하면 권한이 갱신됩니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}] });
                     }
                 }
             }
             
-            function renderSettings() {
-                const backBtn = document.getElementById('back-to-home-btn');
-                backBtn.onclick = () => renderView('home');
-
-                // Theme settings
-                const themeButtons = document.querySelectorAll('[data-theme-btn]');
-                const updateThemeButtons = () => {
-                    themeButtons.forEach(btn => {
-                        const theme = btn.dataset.themeBtn;
-                        if (theme === settings.theme) {
-                            btn.classList.add('border-accent-primary');
-                        } else {
-                            btn.classList.remove('border-accent-primary');
-                        }
-                    });
-                };
-                themeButtons.forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const newTheme = btn.dataset.themeBtn;
-                        settings.theme = newTheme;
-                        document.documentElement.setAttribute('data-theme', newTheme);
-                        saveSettings();
-                        updateThemeButtons();
-                    });
-                });
-                updateThemeButtons();
-
-                // Editor width settings
-                const slider = document.getElementById('editor-width-slider');
-                const valueDisplay = document.getElementById('editor-width-value');
-                const resetBtn = document.getElementById('editor-width-reset-btn');
-                
-                const updateWidth = (width) => {
-                    slider.value = width;
-                    valueDisplay.textContent = `${width}px`;
-                    settings.editorWidth = width;
-                    // Apply width if editor is open
-                    const wrapper = document.getElementById('editor-content-wrapper');
-                    if (wrapper) wrapper.style.maxWidth = `${width}px`;
-                };
-
-                slider.value = settings.editorWidth;
-                valueDisplay.textContent = `${settings.editorWidth}px`;
-
-                slider.addEventListener('input', () => {
-                    updateWidth(parseInt(slider.value));
-                });
-                slider.addEventListener('change', () => { // Save only when user releases mouse
-                    saveSettings();
-                });
-                resetBtn.addEventListener('click', () => {
-                    updateWidth(370);
-                    saveSettings();
-                });
-            }
-            
-            // This is the correct, full event listener
             appContainer.addEventListener('click', (e) => {
                 const target = e.target;
                 const closest = (selector) => target.closest(selector);
 
-                const loginBtn = closest('#google-login-btn');
-                if (loginBtn && !loginBtn.disabled) return handleGoogleLogin();
-
+                if (closest('#google-login-btn')) return handleGoogleLogin();
                 if (closest('#logout-btn')) return handleLogout();
                 if (closest('#settings-btn')) return renderView('settings');
-                if (closest('#new-project-btn')) {
-                    // Placeholder for new project logic
-                    showModal({
-                        title: "새 프로젝트",
-                        inputPlaceholder: "프로젝트 이름을 입력하세요",
-                        buttons: [
-                            { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
-                            { text: "만들기", class: "px-4 py-2 accent-bg accent-hover rounded-md font-semibold", onClick: (name) => {
-                                if (name.trim()) {
-                                    const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`);
-                                    projectsRef.add({
-                                        name: name.trim(),
-                                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                                    });
-                                }
-                            }}
-                        ]
-                    });
-                }
-                
+                if (closest('#home-btn') || closest('#back-to-home-btn')) return renderView('home');
+                if (closest('#save-drive-btn')) return handleSaveToDrive();
+
                 const projectCard = closest('.project-card');
                 if (projectCard && !closest('[data-action="options"]')) {
                     activeProjectId = projectCard.dataset.projectId;
@@ -626,36 +758,19 @@
                 }
 
                 if (closest('[data-action="options"]')) {
-                    // Placeholder for project options logic (rename, delete)
-                    const card = closest('.project-card');
+                     const card = closest('.project-card');
                     const projectId = card.dataset.projectId;
                     const project = getProject(projectId);
                     showModal({
                         title: `"${project.name}" 설정`,
-                        text: "이 프로젝트에 대한 작업을 선택하세요.",
                         buttons: [
-                             { text: "이름 변경", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold", closeOnClick: false, onClick: () => {
-                                showModal({
-                                    title: "이름 변경",
-                                    inputPlaceholder: "새로운 프로젝트 이름을 입력하세요.",
-                                    initialValue: project.name,
-                                    buttons: [
-                                        { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
-                                        { text: "변경", class: "px-4 py-2 accent-bg accent-hover rounded-md font-semibold", onClick: (newName) => {
-                                            if (newName.trim() && newName.trim() !== project.name) {
-                                                 db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${projectId}`).update({ name: newName.trim() });
-                                            }
-                                        }}
-                                    ]
-                                });
-                             }},
-                             { text: "삭제", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", closeOnClick: false, onClick: () => {
+                             { text: "삭제", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", onClick: () => {
                                  showModal({
                                     title: "프로젝트 삭제",
                                     text: `정말로 "${project.name}" 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
                                     buttons: [
                                         { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
-                                        { text: "삭제 확인", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", onClick: () => {
+                                        { text: "삭제", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", onClick: () => {
                                             db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${projectId}`).delete();
                                         }}
                                     ]
@@ -665,12 +780,79 @@
                         ]
                     });
                 }
+
+                const newItemAction = closest('[data-action^="new-"]');
+                if (newItemAction) {
+                    const action = newItemAction.dataset.action;
+                    const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                    
+                    if (action === 'new-character') {
+                         itemsRef.add({ name: "새 등장인물", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    } else if (action === 'new-chapter' || action === 'new-folder') {
+                        const type = action === 'new-chapter' ? 'chapter' : 'folder';
+                        const title = type === 'chapter' ? '새 회차' : '새 폴더';
+                        showModal({
+                            title: title, inputPlaceholder: `${type === 'chapter' ? '회차' : '폴더'} 이름을 입력하세요`,
+                            buttons: [
+                                { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
+                                { text: "만들기", class: "px-4 py-2 accent-bg accent-hover rounded-md font-semibold", onClick: (name) => {
+                                    if (name.trim()) {
+                                        itemsRef.add({ title: name.trim(), type: type, order: chapters.length, content: "", createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                                    }
+                                }}
+                            ]
+                        });
+                    }
+                }
+
+                const listItem = closest('.list-item');
+                if (listItem && !closest('[data-action="delete-item"]') && !closest('.folder-toggle')) {
+                    const itemId = listItem.dataset.id;
+                    activeItemId = itemId;
+                    const item = getItem(itemId);
+
+                    document.querySelectorAll('.list-item').forEach(el => el.classList.remove('active'));
+                    listItem.classList.add('active');
+
+                    if (sidebarMode === 'chapters') {
+                        if (item.type === 'chapter') renderChapterEditorPanel(item);
+                        else renderEditorPlaceholder();
+                    } else {
+                        renderCharacterEditorPanel(item);
+                    }
+                }
                 
-                if (closest('#home-btn') || closest('#back-to-home-btn')) return renderView('home');
-
-                if (closest('#save-drive-btn')) return handleSaveToDrive();
-
-                // Other editor-specific clicks here
+                const deleteButton = closest('[data-action="delete-item"]');
+                if (deleteButton) {
+                    const itemEl = closest('.list-item');
+                    const itemId = itemEl.dataset.id;
+                    const item = getItem(itemId);
+                    const name = item.title || item.name;
+                    showModal({
+                        title: "삭제 확인", text: `'${name}' 항목을 정말로 삭제하시겠습니까?`,
+                        buttons: [
+                            { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
+                            { text: "삭제", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", onClick: () => {
+                                db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}/${itemId}`).delete();
+                                if(activeItemId === itemId) {
+                                    activeItemId = null;
+                                    renderEditorPlaceholder();
+                                }
+                            }}
+                        ]
+                    });
+                }
+                
+                const folderToggle = closest('.folder-toggle');
+                if (folderToggle) {
+                    const folderId = closest('.list-item').dataset.id;
+                    if (collapsedFolders.has(folderId)) {
+                        collapsedFolders.delete(folderId);
+                    } else {
+                        collapsedFolders.add(folderId);
+                    }
+                    renderItemList();
+                }
             });
             
             appContainer.addEventListener('input', (e) => {
@@ -684,43 +866,30 @@
                     }
                     saveTimeouts[id] = setTimeout(() => {
                         const docRef = db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}/${id}`);
-                        docRef.update({
-                            ...data,
-                            lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                        }).then(() => {
+                        docRef.update({ ...data }).then(() => {
                             if (statusEl) {
                                 statusEl.textContent = '✅ 저장됨';
                                 setTimeout(() => statusEl.classList.add('opacity-0'), 2000);
-                            }
-                        }).catch(err => {
-                             if (statusEl) {
-                                statusEl.textContent = '❌ 저장 실패';
-                                statusEl.style.color = '#f87171';
-                                setTimeout(() => { 
-                                    statusEl.classList.add('opacity-0');
-                                    statusEl.style.color = 'var(--text-secondary)';
-                                }, 3000);
                             }
                         });
                         db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}`).update({
                             lastModified: firebase.firestore.FieldValue.serverTimestamp()
                         });
-                    }, 1000); // 1-second debounce
+                    }, 1000);
                 };
 
                 if(target.id === 'editor-title' || target.id === 'editor-content') {
                     if(!activeItemId) return;
-                    const title = document.getElementById('editor-title').value;
-                    const content = document.getElementById('editor-content').value;
-                    saveContent(activeItemId, { title, content });
+                    saveContent(activeItemId, { title: document.getElementById('editor-title').value, content: document.getElementById('editor-content').value });
                 }
                 if(target.id.startsWith('character-')) {
                     if(!activeItemId) return;
-                    const name = document.getElementById('character-name').value;
-                    const personality = document.getElementById('character-personality').value;
-                    const appearance = document.getElementById('character-appearance').value;
-                    const characteristics = document.getElementById('character-characteristics').value;
-                    saveContent(activeItemId, { name, personality, appearance, characteristics });
+                    saveContent(activeItemId, {
+                        name: document.getElementById('character-name').value,
+                        personality: document.getElementById('character-personality').value,
+                        appearance: document.getElementById('character-appearance').value,
+                        characteristics: document.getElementById('character-characteristics').value
+                    });
                 }
             });
 
