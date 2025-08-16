@@ -112,18 +112,19 @@
             background-color: #2a2a2a;
         }
         
-        /* MODIFIED: Reduced list item height */
         .list-item {
             padding-top: 0.375rem; /* 6px */
             padding-bottom: 0.375rem; /* 6px */
         }
 
+        .list-item .options-btn,
         .list-item .delete-btn {
             visibility: hidden;
             opacity: 0;
             transition: opacity 0.2s;
         }
 
+        .list-item:hover .options-btn,
         .list-item:hover .delete-btn {
             visibility: visible;
             opacity: 1;
@@ -338,16 +339,16 @@
                 <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
             </div>
             <div class="flex gap-2">
-                <button id="copy-content-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">내용 복사</button>
-                <button id="save-drive-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Google Drive에 백업</button>
-                <button id="save-txt-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">TXT 저장</button>
+                <button id="copy-content-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition-colors">내용 복사</button>
+                <button id="save-drive-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition-colors">Google Drive에 백업</button>
+                <button id="save-txt-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded-lg text-sm transition-colors">TXT 저장</button>
             </div>
         </header>
         <div class="flex-1 p-6 sm:p-8 overflow-y-auto">
             <div class="max-w-[370px] mx-auto h-full flex flex-col">
-                <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition">
+                <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition flex-shrink-0">
                 
-                <div id="chapter-editor-fields">
+                <div id="chapter-editor-fields" class="flex-grow flex flex-col">
                     <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
                 </div>
                 
@@ -650,12 +651,8 @@
                 const items = sidebarMode === 'chapters' ? chapters : characters;
 
                 if (sidebarMode === 'chapters') {
-                    // Build a tree structure
                     const itemMap = {};
-                    items.forEach(item => {
-                        itemMap[item.id] = { ...item, children: [] };
-                    });
-
+                    items.forEach(item => { itemMap[item.id] = { ...item, children: [] }; });
                     const tree = [];
                     items.forEach(item => {
                         if (item.parentId && itemMap[item.parentId]) {
@@ -664,11 +661,9 @@
                             tree.push(itemMap[item.id]);
                         }
                     });
-
                     const renderNode = (node, container) => {
                         const itemEl = createItemElement(node);
                         container.appendChild(itemEl);
-
                         if (node.type === 'folder' && node.children.length > 0) {
                             const folderContent = document.createElement('div');
                             folderContent.className = 'folder-content';
@@ -677,8 +672,7 @@
                         }
                     };
                     tree.sort((a,b) => (a.order ?? 0) - (b.order ?? 0)).forEach(node => renderNode(node, listEl));
-
-                } else { // Characters (no folders)
+                } else {
                     items.forEach(function(item) {
                         const itemEl = createItemElement(item);
                         listEl.appendChild(itemEl);
@@ -692,28 +686,41 @@
                 wrapper.className = isFolder ? 'folder-item' : '';
 
                 const itemEl = document.createElement('div');
-                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
+                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center gap-2`;
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
 
-                let iconHtml = '';
+                let leftSideHtml = '';
+                let rightSideHtml = '';
+
+                // MODIFIED: Simplified actions for folders vs chapters
                 if (isFolder) {
-                    iconHtml = `
-                        <svg class="folder-toggle-icon h-4 w-4 mr-1 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    leftSideHtml = `
+                        <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
                         <svg class="h-5 w-5 mr-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                        <span class="truncate pointer-events-none"></span>
                     `;
+                    rightSideHtml = `
+                        <button class="options-btn p-1 rounded-full hover:bg-surface" data-action="folder-options">
+                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                        </button>
+                    `;
+                } else { // It's a chapter or a character
+                    leftSideHtml = `<span class="truncate pointer-events-none"></span>`;
+                    if (sidebarMode === 'chapters') {
+                        rightSideHtml = `
+                            <button class="delete-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item">
+                                <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                        `;
+                    }
                 }
 
                 itemEl.innerHTML = `
-                    <div class="flex items-center truncate flex-1">
-                        ${iconHtml}
-                        <span class="truncate pointer-events-none"></span>
-                    </div>
-                    <div class="flex items-center">
-                        <button class="delete-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
-                    </div>`;
-
+                    <div class="flex items-center truncate flex-1 min-w-0">${leftSideHtml}</div>
+                    <div class="flex items-center flex-shrink-0">${rightSideHtml}</div>`;
+                
                 itemEl.querySelector('span').textContent = item.title || item.name;
                 if (item.id === activeItemId) itemEl.classList.add('active');
                 
@@ -870,6 +877,7 @@
                     const tabBtn = target.closest('.tab-btn');
                     const listItem = target.closest('.list-item');
                     const deleteItemBtn = target.closest('[data-action="delete-item"]');
+                    const folderOptionsBtn = target.closest('[data-action="folder-options"]');
                     const saveTxtBtn = target.closest('#save-txt-btn');
                     const saveDriveBtn = target.closest('#save-drive-btn');
                     const copyContentBtn = target.closest('#copy-content-btn');
@@ -890,6 +898,9 @@
                         updateSidebarUI();
                         loadItems();
                         renderEditorPanel();
+                    } else if (folderOptionsBtn) {
+                        const folderId = folderOptionsBtn.closest('.list-item').dataset.id;
+                        handleFolderOptions(folderId);
                     } else if (listItem) {
                         if (deleteItemBtn) {
                              handleDeleteItem(listItem.dataset.id, listItem.dataset.type);
@@ -926,18 +937,6 @@
                 saveTimeouts[key] = setTimeout(saveCurrentWork, 500);
             }
             
-            function handleAppDoubleClick(e) {
-                if (activeView !== 'editor') return;
-                const listItem = e.target.closest('.list-item');
-                if (listItem && listItem.dataset.type === 'folder') {
-                    const folderId = listItem.dataset.id;
-                    const folder = chapters.find(c => c.id === folderId);
-                    if (folder) {
-                        handleRenameFolder(folderId, folder.name);
-                    }
-                }
-            }
-
             function handleNewProject() {
                 showModal({
                     title: '새 프로젝트 생성', text: '새로운 프로젝트의 이름을 입력해주세요.', inputPlaceholder: '나의 멋진 소설',
@@ -1050,6 +1049,24 @@
                                 collectionRef.add(newFolder);
                             }
                         }
+                    ]
+                });
+            }
+
+            // MODIFIED: New function for folder options modal
+            function handleFolderOptions(folderId) {
+                const folder = chapters.find(f => f.id === folderId);
+                if (!folder) return;
+                showModal({
+                    title: `'${folder.name}' 폴더`,
+                    buttons: [
+                        { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold',
+                            onClick: () => setTimeout(() => handleRenameFolder(folderId, folder.name), 50)
+                        },
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
+                            onClick: () => setTimeout(() => handleDeleteItem(folderId, 'folder'), 50)
+                        },
+                        { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }
                     ]
                 });
             }
@@ -1303,7 +1320,6 @@
             initialize();
             appContainer.addEventListener('click', handleAppClick);
             appContainer.addEventListener('input', handleEditorInput);
-            appContainer.addEventListener('dblclick', handleAppDoubleClick);
             document.addEventListener('visibilitychange', function() {
                 if (document.visibilityState === 'hidden') saveCurrentWork();
             });
