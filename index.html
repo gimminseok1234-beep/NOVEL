@@ -12,7 +12,6 @@
 
     <script>
         /* --- Google Drive API 설정 --- */
-        // [RESTORED] 원래 제공해주신 키로 복원했습니다.
         const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키 
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID 
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
@@ -225,7 +224,6 @@
             let activeProjectId = null, activeItemId = null, sidebarMode = 'chapters', charCountMode = 'noSpecialChars', saveTimeouts = {};
 
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            // [UNCHANGED] Firebase 정보는 변경하지 않았습니다.
             const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
                 apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4", authDomain: "novel-8d4ec.firebaseapp.com", projectId: "novel-8d4ec", storageBucket: "novel-8d4ec.appspot.com", messagingSenderId: "836560106988", appId: "1:836560106988:web:cf90872d7b09b9498ffcc9", measurementId: "G-83BZ35QVLC"
             });
@@ -453,11 +451,8 @@
                         sidebarMode = 'chapters';
                         activeItemId = null;
                         openFolderIds = [];
-                        
-                        // --- [FIXED] 이전 프로젝트 데이터가 남는 버그 수정을 위해 상태 초기화 ---
                         chapters = [];
                         characters = [];
-
                         if (unsubscribes.items) unsubscribes.items();
                         loadItems();
                         renderView('editor');
@@ -596,8 +591,6 @@
 
             async function handleSaveToDrive() {
                 if (GOOGLE_API_KEY === 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M' && GOOGLE_CLIENT_ID === '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com') { 
-                    // This is just an example check. In a real app, you might not want to hardcode the check like this.
-                    // But for this case, it prevents the modal if the default keys are still there.
                 } else if (GOOGLE_API_KEY.startsWith('YOUR_') || GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
                     showModal({ title: "설정 필요", text: "Google Drive API 키와 클라이언트 ID가 코드에 설정되지 않았습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]}); 
                     return;
@@ -621,9 +614,6 @@
             }
 
             async function getOrCreateFolderId() {
-                // This is a helper function that might be needed for the Google Drive feature.
-                // It checks if a folder named "소설 백업" exists, and if not, creates it.
-                // It returns the ID of the folder.
                 let response;
                 try {
                     response = await gapi.client.drive.files.list({
@@ -668,71 +658,82 @@
                     const target = e.target.closest('.list-item');
                     document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
                     if (target && target.dataset.id !== draggedItemId) {
-                        if (target.dataset.type === 'folder') { target.classList.add('drag-over-folder'); }
-                        else { const rect = target.getBoundingClientRect(); if (e.clientY > rect.top + rect.height / 2) target.classList.add('drag-over-bottom'); else target.classList.add('drag-over-top'); }
+                        if (target.dataset.type === 'folder') {
+                             target.classList.add('drag-over-folder'); 
+                        } else { 
+                            const rect = target.getBoundingClientRect(); 
+                            if (e.clientY > rect.top + rect.height / 2) {
+                                target.classList.add('drag-over-bottom');
+                            } else {
+                                target.classList.add('drag-over-top'); 
+                            }
+                        }
                     }
                 });
+                // --- [MODIFIED] 드롭 로직 수정 ---
                 listEl.addEventListener('drop', function(e) {
-                    if (!draggedItemId) return; e.preventDefault();
+                    if (!draggedItemId) return;
+                    e.preventDefault();
                     document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
+                    
                     const dropTargetEl = e.target.closest('.list-item');
                     if (!dropTargetEl || dropTargetEl.dataset.id === draggedItemId) return;
-                    
+
                     const draggedItem = chapters.find(c => c.id === draggedItemId);
                     const targetItem = chapters.find(c => c.id === dropTargetEl.dataset.id);
                     if (!draggedItem || !targetItem) return;
 
-                    let newParentId = null;
-                    let targetOrder = 0;
-                    
-                    const isFolderDrop = targetItem.type === 'folder' && dropTargetEl.classList.contains('drag-over-folder');
-                    
-                    if (isFolderDrop) {
+                    let newParentId;
+                    let newOrder;
+
+                    // CASE 1: 폴더 위로 드롭하는 경우
+                    if (targetItem.type === 'folder') {
                         newParentId = targetItem.id;
-                        targetOrder = chapters.filter(c => c.parentId === newParentId).length;
-                    } else {
-                        newParentId = targetItem.parentId;
+                        newOrder = chapters.filter(c => c.parentId === newParentId).length;
+                    } 
+                    // CASE 2: 다른 회차 아이템 주변으로 드롭하는 경우
+                    else {
                         const rect = dropTargetEl.getBoundingClientRect();
                         const isAfter = e.clientY > rect.top + rect.height / 2;
-                        targetOrder = isAfter ? targetItem.order + 1 : targetItem.order;
+                        newParentId = targetItem.parentId;
+                        newOrder = isAfter ? targetItem.order + 1 : targetItem.order;
                     }
 
                     const originalParentId = draggedItem.parentId;
-                    
-                    // --- Firestore Update ---
+
+                    // Firestore에 업데이트할 내용을 일괄 처리(batch)
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
                     
-                    // 1. 아이템을 새 위치로 옮기기 위한 준비
-                    draggedItem.parentId = newParentId;
+                    // 같은 부모 내에서 이동하는 아이템 목록
+                    const sameParentItems = chapters.filter(c => c.parentId === originalParentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                     
-                    // 2. 기존 위치에서 아이템 제거
-                    const oldSiblings = chapters.filter(c => c.parentId === originalParentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                    // 아이템이 원래 있던 위치의 순서 재정렬
+                    let orderCounter = 0;
+                    for(const item of sameParentItems) {
+                        if(item.order !== orderCounter) {
+                           batch.update(collectionRef.doc(item.id), { order: orderCounter });
+                        }
+                        orderCounter++;
+                    }
+
+                    // 아이템이 새로 들어갈 위치의 아이템 목록
+                    const newParentItems = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                     
-                    // 3. 새 위치에 아이템 삽입
-                    const newSiblingsRaw = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItemId).sort((a,b)=>(a.order??0)-(b.order??0));
-                    newSiblingsRaw.splice(targetOrder, 0, draggedItem);
-                    
-                    // 4. 순서 업데이트
-                    if (originalParentId !== newParentId) {
-                        // 부모가 바뀐 경우: 기존 부모와 새 부모의 자식들 순서를 모두 업데이트
-                        oldSiblings.forEach((item, index) => {
-                            batch.update(collectionRef.doc(item.id), { order: index });
-                        });
-                        newSiblingsRaw.forEach((item, index) => {
-                           batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
-                        });
-                    } else {
-                        // 같은 부모 내에서 이동한 경우: 해당 부모의 자식들 순서만 업데이트
-                        newSiblingsRaw.forEach((item, index) => {
-                            batch.update(collectionRef.doc(item.id), { order: index });
-                        });
+                    // 새 위치에 아이템 삽입 후 순서 재정렬
+                    newParentItems.splice(newOrder, 0, draggedItem);
+                    orderCounter = 0;
+                     for(const item of newParentItems) {
+                        if(item.id === draggedItemId) {
+                           batch.update(collectionRef.doc(item.id), { order: orderCounter, parentId: newParentId });
+                        } else if(item.order !== orderCounter) {
+                           batch.update(collectionRef.doc(item.id), { order: orderCounter });
+                        }
+                        orderCounter++;
                     }
                     
                     batch.commit().catch(err => {
                         console.error("Drag-drop failed:", err);
-                        // 에러 발생 시 UI를 원래대로 되돌리기 위해 목록을 다시 로드할 수 있습니다.
-                        // 이 부분은 onSnapshot이 자동으로 처리해줍니다.
                     });
                 });
             }
@@ -758,15 +759,12 @@
                 
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                    // --- [FIXED] 불필요한 조건문을 제거하여 데이터 변경 시 항상 렌더링하도록 수정 ---
                     if (sidebarMode === 'chapters') {
                         chapters = itemList;
                     } else {
                         characters = itemList;
                     }
-                    renderItemList(); // 데이터 수신 시 항상 목록을 다시 그림
-
+                    renderItemList();
                 }, (error) => {
                     console.error("데이터 로딩 오류:", error);
                     if (error.code === 'failed-precondition') console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
