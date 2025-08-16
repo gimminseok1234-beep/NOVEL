@@ -223,7 +223,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <script>
-        // ▼▼▼ 1. API 키 관련 변수 및 초기화 로직 수정 ▼▼▼
         /* --- Google Drive API 설정 --- */
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
@@ -245,10 +244,8 @@
         let gisInited = false;
         
         function gapiLoaded() {
-            // API 키 없이 초기화하도록 gapi.load 콜백 구조 변경
             gapi.load('client', async () => {
                 await gapi.client.init({
-                    // apiKey는 사용자 데이터 접근 시 필요 없으므로 제거
                     discoveryDocs: DISCOVERY_DOCS,
                 });
                 gapiInited = true;
@@ -277,7 +274,6 @@
             const loadingContent = document.getElementById('loading-content');
             
             let gapiAccessToken = null;
-
             let db, auth;
             let currentUserId = null;
             let currentUser = null;
@@ -299,6 +295,18 @@
                 editorWidth: 370
             };
             
+            function saveSettings() {
+                localStorage.setItem('novelAppSettings', JSON.stringify(settings));
+            }
+
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('novelAppSettings');
+                if (savedSettings) {
+                    Object.assign(settings, JSON.parse(savedSettings));
+                }
+                document.documentElement.setAttribute('data-theme', settings.theme);
+            }
+            
             function initialize() {
                 try {
                     loadSettings();
@@ -316,25 +324,20 @@
 
             function setupAuthListener() {
                 auth.onAuthStateChanged(user => {
-                    try {
-                        currentUser = user;
-                        if (user) {
-                            currentUserId = user.uid;
-                            if (!appContainer.querySelector('#project-grid')) {
-                                renderView('home');
-                            }
-                            loadProjects();
-                        } else {
-                            currentUserId = null;
-                            projects = [];
-                            gapiAccessToken = null;
-                            Object.values(unsubscribes).forEach(unsub => unsub && unsub());
-                            unsubscribes = {};
-                            renderView('login');
+                    currentUser = user;
+                    if (user) {
+                        currentUserId = user.uid;
+                        if (!appContainer.querySelector('#project-grid')) {
+                            renderView('home');
                         }
-                    } catch (error) {
-                        console.error("Error during auth state change:", error);
-                        loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">앱 시작 오류</p><p class="text-sm">${error.message}</p></div>`;
+                        loadProjects();
+                    } else {
+                        currentUserId = null;
+                        projects = [];
+                        gapiAccessToken = null;
+                        Object.values(unsubscribes).forEach(unsub => unsub && unsub());
+                        unsubscribes = {};
+                        renderView('login');
                     }
                     loadingOverlay.style.display = 'none';
                 });
@@ -361,6 +364,7 @@
                 document.body.appendChild(modalBackdrop);
                 if(options.inputPlaceholder) inputEl.focus();
             }
+
             function closeModal() { document.getElementById('modal-backdrop')?.remove(); }
 
             function getProject(projectId) { return projects.find(p => p.id === projectId); }
@@ -441,7 +445,6 @@
                 }
             }
             
-            // ★★★★★ 로직 수정 파트 2 ★★★★★
             function handleGoogleLogin() {
                 loadingOverlay.style.display = 'flex';
                 const provider = new firebase.auth.GoogleAuthProvider();
@@ -451,9 +454,7 @@
                     const credential = result.credential;
                     if (credential && credential.accessToken) {
                         const accessToken = credential.accessToken;
-                        // gapiAccessToken을 올바른 객체 형태로 저장
                         gapiAccessToken = { 'access_token': accessToken }; 
-                        // gapi.client.setToken을 여기서 직접 호출
                         gapi.client.setToken(gapiAccessToken);
                     } else {
                          throw new Error("Google Drive Access Token not found in credential.");
@@ -466,13 +467,19 @@
                 });
             };
             
-            // ★★★★★ 로직 수정 파트 3 ★★★★★
+            function handleLogout() {
+                auth.signOut().catch(error => {
+                    console.error("Logout Error:", error);
+                    showModal({title: "로그아웃 오류", text: "로그아웃 중 문제가 발생했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                });
+            }
+
             async function handleSaveToDrive() {
                 const statusEl = document.getElementById('save-status');
                 const showStatus = (msg, isError = false) => {
                     if (statusEl) {
                         statusEl.textContent = msg;
-                        statusEl.style.color = isError ? 'var(--accent-secondary)' : 'var(--text-secondary)';
+                        statusEl.style.color = isError ? '#f87171' : 'var(--text-secondary)';
                         statusEl.classList.remove('opacity-0');
                         setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
                     }
@@ -519,30 +526,205 @@
                     console.error("Google Drive Save Error:", err);
                     showStatus('❌ Google Drive 백업 실패', true);
                     if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
-                        handleDriveDisconnect();
-                        showModal({ title: "인증 오류", text: "Google Drive 인증이 만료되었습니다. 다시 로그인해주세요.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}] });
+                        gapiAccessToken = null; // Invalidate token
+                        showModal({ title: "인증 만료", text: "Google Drive 인증이 만료되었습니다. 다시 로그인하면 권한이 갱신됩니다.", buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}] });
                     }
                 }
             }
             
-            async function renderSettings() {
-                // (이전과 동일)
+            function renderSettings() {
+                const backBtn = document.getElementById('back-to-home-btn');
+                backBtn.onclick = () => renderView('home');
+
+                // Theme settings
+                const themeButtons = document.querySelectorAll('[data-theme-btn]');
+                const updateThemeButtons = () => {
+                    themeButtons.forEach(btn => {
+                        const theme = btn.dataset.themeBtn;
+                        if (theme === settings.theme) {
+                            btn.classList.add('border-accent-primary');
+                        } else {
+                            btn.classList.remove('border-accent-primary');
+                        }
+                    });
+                };
+                themeButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const newTheme = btn.dataset.themeBtn;
+                        settings.theme = newTheme;
+                        document.documentElement.setAttribute('data-theme', newTheme);
+                        saveSettings();
+                        updateThemeButtons();
+                    });
+                });
+                updateThemeButtons();
+
+                // Editor width settings
+                const slider = document.getElementById('editor-width-slider');
+                const valueDisplay = document.getElementById('editor-width-value');
+                const resetBtn = document.getElementById('editor-width-reset-btn');
+                
+                const updateWidth = (width) => {
+                    slider.value = width;
+                    valueDisplay.textContent = `${width}px`;
+                    settings.editorWidth = width;
+                    // Apply width if editor is open
+                    const wrapper = document.getElementById('editor-content-wrapper');
+                    if (wrapper) wrapper.style.maxWidth = `${width}px`;
+                };
+
+                slider.value = settings.editorWidth;
+                valueDisplay.textContent = `${settings.editorWidth}px`;
+
+                slider.addEventListener('input', () => {
+                    updateWidth(parseInt(slider.value));
+                });
+                slider.addEventListener('change', () => { // Save only when user releases mouse
+                    saveSettings();
+                });
+                resetBtn.addEventListener('click', () => {
+                    updateWidth(370);
+                    saveSettings();
+                });
             }
-            // ... (기타 모든 핸들러 및 렌더링 함수는 이전 최종 버전과 동일하게 유지) ...
             
-            initialize();
-            
-            // 이벤트 리스너 등록
+            // This is the correct, full event listener
             appContainer.addEventListener('click', (e) => {
-                 const closest = (selector) => e.target.closest(selector);
-                 if (closest('#google-login-btn')) return handleGoogleLogin();
-                 if (closest('#logout-btn')) return handleLogout();
-                 if (closest('#save-drive-btn')) return handleSaveToDrive();
-                 // ... 기타 모든 클릭 이벤트 핸들러
+                const target = e.target;
+                const closest = (selector) => target.closest(selector);
+
+                const loginBtn = closest('#google-login-btn');
+                if (loginBtn && !loginBtn.disabled) return handleGoogleLogin();
+
+                if (closest('#logout-btn')) return handleLogout();
+                if (closest('#settings-btn')) return renderView('settings');
+                if (closest('#new-project-btn')) {
+                    // Placeholder for new project logic
+                    showModal({
+                        title: "새 프로젝트",
+                        inputPlaceholder: "프로젝트 이름을 입력하세요",
+                        buttons: [
+                            { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
+                            { text: "만들기", class: "px-4 py-2 accent-bg accent-hover rounded-md font-semibold", onClick: (name) => {
+                                if (name.trim()) {
+                                    const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`);
+                                    projectsRef.add({
+                                        name: name.trim(),
+                                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                }
+                            }}
+                        ]
+                    });
+                }
+                
+                const projectCard = closest('.project-card');
+                if (projectCard && !closest('[data-action="options"]')) {
+                    activeProjectId = projectCard.dataset.projectId;
+                    renderView('editor');
+                }
+
+                if (closest('[data-action="options"]')) {
+                    // Placeholder for project options logic (rename, delete)
+                    const card = closest('.project-card');
+                    const projectId = card.dataset.projectId;
+                    const project = getProject(projectId);
+                    showModal({
+                        title: `"${project.name}" 설정`,
+                        text: "이 프로젝트에 대한 작업을 선택하세요.",
+                        buttons: [
+                             { text: "이름 변경", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold", closeOnClick: false, onClick: () => {
+                                showModal({
+                                    title: "이름 변경",
+                                    inputPlaceholder: "새로운 프로젝트 이름을 입력하세요.",
+                                    initialValue: project.name,
+                                    buttons: [
+                                        { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
+                                        { text: "변경", class: "px-4 py-2 accent-bg accent-hover rounded-md font-semibold", onClick: (newName) => {
+                                            if (newName.trim() && newName.trim() !== project.name) {
+                                                 db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${projectId}`).update({ name: newName.trim() });
+                                            }
+                                        }}
+                                    ]
+                                });
+                             }},
+                             { text: "삭제", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", closeOnClick: false, onClick: () => {
+                                 showModal({
+                                    title: "프로젝트 삭제",
+                                    text: `정말로 "${project.name}" 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+                                    buttons: [
+                                        { text: "취소", class: "px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold" },
+                                        { text: "삭제 확인", class: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold", onClick: () => {
+                                            db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${projectId}`).delete();
+                                        }}
+                                    ]
+                                 });
+                             }},
+                             { text: "닫기", class: "px-4 py-2 accent-bg accent-hover rounded-md font-semibold" }
+                        ]
+                    });
+                }
+                
+                if (closest('#home-btn') || closest('#back-to-home-btn')) return renderView('home');
+
+                if (closest('#save-drive-btn')) return handleSaveToDrive();
+
+                // Other editor-specific clicks here
             });
+            
             appContainer.addEventListener('input', (e) => {
-                 // ... 모든 입력 이벤트 핸들러
+                const target = e.target;
+                const saveContent = (id, data) => {
+                    clearTimeout(saveTimeouts[id]);
+                    const statusEl = document.getElementById('save-status');
+                    if (statusEl) {
+                        statusEl.textContent = '저장 중...';
+                        statusEl.classList.remove('opacity-0');
+                    }
+                    saveTimeouts[id] = setTimeout(() => {
+                        const docRef = db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}/${id}`);
+                        docRef.update({
+                            ...data,
+                            lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                        }).then(() => {
+                            if (statusEl) {
+                                statusEl.textContent = '✅ 저장됨';
+                                setTimeout(() => statusEl.classList.add('opacity-0'), 2000);
+                            }
+                        }).catch(err => {
+                             if (statusEl) {
+                                statusEl.textContent = '❌ 저장 실패';
+                                statusEl.style.color = '#f87171';
+                                setTimeout(() => { 
+                                    statusEl.classList.add('opacity-0');
+                                    statusEl.style.color = 'var(--text-secondary)';
+                                }, 3000);
+                            }
+                        });
+                        db.doc(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}`).update({
+                            lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }, 1000); // 1-second debounce
+                };
+
+                if(target.id === 'editor-title' || target.id === 'editor-content') {
+                    if(!activeItemId) return;
+                    const title = document.getElementById('editor-title').value;
+                    const content = document.getElementById('editor-content').value;
+                    saveContent(activeItemId, { title, content });
+                }
+                if(target.id.startsWith('character-')) {
+                    if(!activeItemId) return;
+                    const name = document.getElementById('character-name').value;
+                    const personality = document.getElementById('character-personality').value;
+                    const appearance = document.getElementById('character-appearance').value;
+                    const characteristics = document.getElementById('character-characteristics').value;
+                    saveContent(activeItemId, { name, personality, appearance, characteristics });
+                }
             });
+
+            initialize();
         });
     </script>
 </body>
