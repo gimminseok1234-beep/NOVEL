@@ -19,7 +19,6 @@
         let gapiInited = false;
         let tokenClient;
 
-        // 이 함수들은 외부 스크립트에서 호출되므로 반드시 전역 스코프에 있어야 합니다. 
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
         }
@@ -36,19 +35,13 @@
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: SCOPES,
-                callback: '', // The callback is handled by the Promise from requestAccessToken 
+                callback: '', 
             });
         }
     </script>
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <style>
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #121212;
-            color: #e0e0e0;
-            overflow-x: hidden;
-        }
-
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #121212; color: #e0e0e0; overflow-x: hidden; }
         .bg-main { background-color: #121212; }
         .bg-surface { background-color: #1e1e1e; }
         .bg-card { background-color: #2a2a2a; }
@@ -56,18 +49,12 @@
         .accent { color: #bb86fc; }
         .accent-bg { background-color: #bb86fc; }
         .accent-hover:hover { background-color: #a763ff; }
-
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e1e1e; }
         ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
-
         .project-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
-        .project-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15);
-        }
-
+        .project-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.15); }
         .list-item.active { background-color: #37373d; }
         .list-item:not(.active):hover { background-color: #2a2a2a; }
         .list-item { padding-top: 0.375rem; padding-bottom: 0.375rem; }
@@ -78,55 +65,15 @@
         .drag-over-bottom { border-bottom: 2px solid #bb86fc; }
         .drag-over-folder { background-color: #37373d; box-shadow: 0 0 0 2px #bb86fc; }
         .tab-btn.active { background-color: #37373d; }
-        
-        .folder-content {
-            padding-left: 1.5rem;
-            border-left: 1px solid #3f3f46;
-            margin-left: 0.5rem;
-            display: none;
-        }
+        .folder-content { padding-left: 1.5rem; border-left: 1px solid #3f3f46; margin-left: 0.5rem; display: none; }
         .folder-item.open > .folder-content { display: block; }
         .folder-item.open > .list-item .folder-toggle-icon { transform: rotate(90deg); }
-
         #editor-container { position: relative; overflow-x: hidden; }
-        #editor-sidebar {
-            width: 224px;
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            z-index: 40;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-            will-change: transform;
-        }
-        #editor-main-content {
-            flex: 1;
-            transition: padding-left 0.3s ease-in-out;
-            padding-left: 0;
-        }
+        #editor-sidebar { width: 224px; position: absolute; top: 0; left: 0; height: 100%; z-index: 40; transform: translateX(-100%); transition: transform 0.3s ease-in-out; will-change: transform; }
+        #editor-main-content { flex: 1; transition: padding-left 0.3s ease-in-out; padding-left: 0; }
         #editor-container.sidebar-open #editor-sidebar { transform: translateX(0); }
-        #mobile-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 30;
-            transition: opacity 0.3s ease-in-out;
-        }
-        #editor-sidebar-toggle {
-            position: fixed;
-            top: 50%;
-            left: 0;
-            transform: translateY(-50%);
-            z-index: 50;
-            width: 24px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.3s ease-in-out;
-            border-radius: 0 8px 8px 0;
-        }
+        #mobile-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 30; transition: opacity 0.3s ease-in-out; }
+        #editor-sidebar-toggle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 50; width: 24px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out; border-radius: 0 8px 8px 0; }
         #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%); }
         @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
@@ -136,10 +83,7 @@
 <body class="bg-main antialiased">
 
     <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
-        <div class="text-center text-white"><svg class="animate-spin h-10 w-10 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+        <div class="text-center text-white"><svg class="animate-spin h-10 w-10 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p class="text-lg">데이터를 불러오는 중입니다...</p>
         </div>
     </div>
@@ -239,7 +183,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        // Modal functions
         function showModal(options) {
             closeModal();
             const modalBackdrop = document.createElement('div');
@@ -398,7 +341,6 @@
             function createItemElement(item) {
                 const isFolder = item.type === 'folder';
                 const wrapper = document.createElement('div');
-                
                 if (isFolder) {
                     wrapper.className = openFolderIds.includes(item.id) ? 'folder-item open' : 'folder-item';
                 }
@@ -410,18 +352,9 @@
                 itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
                 
                 if (isFolder) {
-                    itemEl.innerHTML = `
-                        <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                        <svg class="h-5 w-5 mr-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
-                    `;
+                    itemEl.innerHTML = `<svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><svg class="h-5 w-5 mr-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg><span class="truncate pointer-events-none flex-grow min-w-0"></span>`;
                 } else {
-                     itemEl.innerHTML = `
-                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
-                        <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
-                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        </button>
-                    `;
+                     itemEl.innerHTML = `<span class="truncate pointer-events-none flex-grow min-w-0"></span><button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
                 }
                 
                 itemEl.querySelector('span').textContent = item.title || item.name;
@@ -450,18 +383,7 @@
 
             function renderFolderPanel(item) {
                 const editorPanel = document.getElementById('editor-panel');
-                editorPanel.innerHTML = `
-                    <div class="p-6 sm:p-8 max-w-3xl mx-auto h-full flex flex-col">
-                        <div>
-                            <label for="folder-editor-title" class="block text-sm font-medium text-gray-400 mb-2">폴더 이름</label>
-                            <input id="folder-editor-title" type="text" value="${item.name || ''}" class="bg-transparent text-3xl font-bold outline-none w-full pb-2 border-b-2 border-main focus:border-purple-500 transition">
-                        </div>
-                        <div class="mt-8 pt-8 border-t border-main">
-                            <h4 class="text-lg font-semibold text-red-400 mb-2">위험 구역</h4>
-                            <p class="text-sm text-gray-400 mb-4">이 폴더와 폴더에 포함된 모든 회차들이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
-                            <button id="delete-folder-btn" data-id="${item.id}" data-type="folder" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">이 폴더 삭제하기</button>
-                        </div>
-                    </div>`;
+                editorPanel.innerHTML = `<div class="p-6 sm:p-8 max-w-3xl mx-auto h-full flex flex-col"><div class="flex-grow"><label for="folder-editor-title" class="block text-sm font-medium text-gray-400 mb-2">폴더 이름</label><input id="folder-editor-title" type="text" value="${item.name || ''}" class="bg-transparent text-3xl font-bold outline-none w-full pb-2 border-b-2 border-main focus:border-purple-500 transition"></div><div class="mt-8 pt-8 border-t border-main flex-shrink-0"><h4 class="text-lg font-semibold text-red-400 mb-2">위험 구역</h4><p class="text-sm text-gray-400 mb-4">이 폴더와 폴더에 포함된 모든 회차들이 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p><button id="delete-folder-btn" data-id="${item.id}" data-type="folder" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">이 폴더 삭제하기</button></div></div>`;
             }
             
             function renderCharacterPanel(item) {
@@ -529,7 +451,7 @@
                 }
                 if (activeView === 'editor') {
                     const listItem = target.closest('.list-item');
-                    if (target.closest('#home-btn')) { if (unsubscribes.items) unsubscribes.items(); renderView('home'); }
+                    if (target.closest('#home-btn')) { if (unsubscribes.items) unsubscribes.items(); openFolderIds = []; renderView('home'); }
                     else if (target.closest('#new-item-btn')) handleNewItem();
                     else if (target.closest('#new-folder-btn')) handleNewFolder();
                     else if (target.closest('.tab-btn')) {
@@ -546,15 +468,13 @@
                         if (target.closest('[data-action="delete-item"]')) {
                             handleDeleteItem(itemId, itemType);
                         } else {
+                            activeItemId = itemId;
                             if (itemType === 'folder') {
                                 const index = openFolderIds.indexOf(itemId);
-                                if (index > -1) openFolderIds.splice(index, 1);
-                                else openFolderIds.push(itemId);
+                                if (index > -1) openFolderIds.splice(index, 1); else openFolderIds.push(itemId);
                             }
-                            activeItemId = itemId;
                             if (window.innerWidth < 768 && itemType !== 'folder') toggleSidebar(false);
-                            renderItemList();
-                            renderEditorPanel();
+                            renderItemList(); renderEditorPanel();
                         }
                     } else if (target.closest('#save-txt-btn')) handleSaveTxt();
                     else if (target.closest('#save-drive-btn')) handleSaveToDrive();
@@ -694,8 +614,7 @@
                         let siblings = chapters.filter(c => c.parentId === draggedItem.parentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                         const draggedIndex = siblings.findIndex(s => s.id === draggedItemId);
                         const [itemToMove] = siblings.splice(draggedIndex, 1);
-                        const newIndex = targetOrder > draggedIndex ? targetOrder - 1 : targetOrder;
-                        siblings.splice(newIndex, 0, itemToMove);
+                        siblings.splice(targetOrder > draggedIndex ? targetOrder - 1 : targetOrder, 0, itemToMove);
                         siblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
                     } else {
                         let oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItem.id).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
@@ -721,7 +640,7 @@
                     document.getElementById('loading-overlay').innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">데이터 로딩 오류</p><p class="text-sm">데이터를 불러오는 데 실패했습니다. 권한을 확인해주세요.</p></div>`;
                 });
             }
-
+            
             function haveStructuralChanges(oldList, newList) {
                 if (oldList.length !== newList.length) return true;
                 const oldMap = new Map(oldList.map(i => [i.id, i]));
@@ -741,7 +660,6 @@
                 
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    
                     if (sidebarMode === 'chapters') {
                         if (haveStructuralChanges(chapters, itemList)) {
                            renderItemList();
