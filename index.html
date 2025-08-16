@@ -152,7 +152,38 @@
             </main>
         </div>
     </template>
-    <template id="editor-view-template"><!-- unchanged --></template>
+    <template id="editor-view-template">
+        <div id="editor-container" class="h-screen">
+            <div id="mobile-overlay" class="hidden md:hidden"></div>
+            <aside id="editor-sidebar" class="bg-surface flex flex-col border-r border-main flex-shrink-0">
+                <div class="p-4 border-b border-main flex items-center gap-3">
+                    <button id="home-btn" class="p-2 rounded-md hover:bg-card">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                    </button>
+                    <h2 id="project-title-sidebar" class="text-lg font-bold truncate"></h2>
+                </div>
+                <div class="flex-grow flex flex-col min-h-0">
+                    <div class="p-2 border-b border-main">
+                        <div class="flex bg-card rounded-md">
+                            <button data-tab="chapters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">회차</button>
+                            <button data-tab="characters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">등장인물</button>
+                        </div>
+                    </div>
+                    <div class="p-3 flex justify-between items-center">
+                        <h3 id="list-title" class="font-semibold"></h3>
+                        <div id="new-item-buttons-container" class="flex gap-2"></div>
+                    </div>
+                    <nav id="item-list" class="flex-grow overflow-y-auto px-2 pb-2"></nav>
+                </div>
+            </aside>
+            <div id="editor-main-content" class="flex flex-col w-full h-full">
+                <main id="editor-panel" class="flex-1 flex flex-col min-h-0"></main>
+            </div>
+            <button id="editor-sidebar-toggle" class="bg-card hover:bg-purple-800">
+                <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+        </div>
+    </template>
     <template id="editor-panel-template">
         <header class="p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
             <span id="save-status" class="text-sm text-secondary transition-opacity duration-500 opacity-0 mr-auto"></span>
@@ -297,7 +328,7 @@
                     currentUser = user;
                     if (user) {
                         currentUserId = user.uid;
-                        if (!appContainer.querySelector('#home-view-template')) {
+                        if (!appContainer.querySelector('#project-grid')) {
                             renderView('home');
                         }
                         loadProjects();
@@ -348,16 +379,24 @@
         function loadItems() {
             if (unsubscribes.items) unsubscribes.items();
             const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-            const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'asc');
             
-            unsubscribes.items = q.onSnapshot(snapshot => {
-                const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            unsubscribes.items = itemsRef.onSnapshot(snapshot => {
+                let itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
                 if (sidebarMode === 'chapters') {
+                    itemList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
                     chapters = itemList;
                 } else {
+                    itemList.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
                     characters = itemList;
                 }
                 renderItemList();
+            }, error => {
+                console.error(`Error loading ${sidebarMode}:`, error);
+                const listEl = appContainer.querySelector('#item-list');
+                if (listEl) {
+                    listEl.innerHTML = `<p class="p-4 text-sm text-red-400">목록을 불러오는 데 실패했습니다.</p>`;
+                }
             });
         }
 
