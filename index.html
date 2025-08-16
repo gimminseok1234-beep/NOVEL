@@ -682,22 +682,25 @@
                 wrapper.className = isFolder ? 'folder-item' : '';
 
                 const itemEl = document.createElement('div');
-                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center`;
+                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
+                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
-
-                // FIXED: Simplified layout to fix vertical height issues
+                
                 if (isFolder) {
                     itemEl.innerHTML = `
-                        <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                        <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
+                        <div class="flex items-center min-w-0">
+                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                            <span class="truncate pointer-events-none"></span>
+                        </div>
                         <button class="options-btn p-1 rounded-full hover:bg-surface flex-shrink-0" data-action="folder-options">
                             <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
                         </button>
                     `;
                 } else {
+                     itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
                      itemEl.innerHTML = `
                         <span class="truncate pointer-events-none flex-grow min-w-0"></span>
                         <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
@@ -1266,7 +1269,6 @@
                     
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-
                     const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
                     
                     if (draggedItem.parentId === newParentId) {
@@ -1310,7 +1312,6 @@
                 if (unsubscribes.items) unsubscribes.items();
                 const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
                 
-                // FIXED: Query now sorts by 'order' to match render logic, fixing update bugs
                 const q = itemsRef.orderBy(sidebarMode === 'chapters' ? 'order' : 'createdAt', 'asc');
                 
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
@@ -1321,6 +1322,12 @@
                         characters = itemList;
                     }
                     renderItemList();
+                }, (error) => {
+                    console.error("데이터 로딩 오류:", error);
+                    // Firestore 인덱스 생성 링크를 콘솔에 출력하는 등의 사용자 안내가 필요할 수 있습니다.
+                    if (error.code === 'failed-precondition') {
+                        console.error("Firestore 인덱스가 필요합니다. 콘솔의 링크를 클릭하여 생성해주세요.");
+                    }
                 });
             }
 
@@ -1328,7 +1335,9 @@
             appContainer.addEventListener('click', handleAppClick);
             appContainer.addEventListener('input', handleEditorInput);
             document.addEventListener('visibilitychange', function() {
-                if (document.visibilityState === 'hidden') saveCurrentWork();
+                if (document.visibilityState === 'hidden' && activeView === 'editor' && activeItemId) {
+                    saveCurrentWork();
+                }
             });
         });
     </script>
