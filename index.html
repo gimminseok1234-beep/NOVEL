@@ -294,8 +294,12 @@
                 if (!project) { renderView('home'); return; }
                 document.getElementById('project-title-sidebar').textContent = project.name;
                 toggleSidebar(window.innerWidth >= 768);
-                updateSidebarUI(); renderItemList(); addDragAndDropListeners();
-                if (activeItemId) renderEditorPanel(); else document.getElementById('editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">왼쪽에서 항목을 선택해주세요.</div>`;
+                updateSidebarUI();
+                const itemListEl = document.getElementById('item-list');
+                if (itemListEl) itemListEl.innerHTML = `<p class="p-4 text-sm text-gray-500">목록을 불러오는 중...</p>`;
+                addDragAndDropListeners();
+                if (activeItemId) renderEditorPanel(); 
+                else document.getElementById('editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-gray-500">왼쪽에서 항목을 선택해주세요.</div>`;
             }
 
             function toggleSidebar(forceOpen) {
@@ -349,22 +353,12 @@
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
-
-                // FIXED: Rewrote class and innerHTML structure to guarantee alignment
-                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center gap-2`;
+                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center gap-2`;
+                
                 if (isFolder) {
-                    itemEl.innerHTML = `
-                        <div class="flex items-center flex-1 min-w-0">
-                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                            <span class="truncate pointer-events-none"></span>
-                        </div>`;
+                    itemEl.innerHTML = `<div class="flex items-center flex-1 min-w-0"><svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg><svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg><span class="truncate pointer-events-none"></span></div>`;
                 } else {
-                     itemEl.innerHTML = `
-                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
-                        <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
-                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        </button>`;
+                     itemEl.innerHTML = `<span class="truncate pointer-events-none flex-grow min-w-0"></span><button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item"><svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>`;
                 }
                 
                 itemEl.querySelector('span').textContent = item.title || item.name;
@@ -478,15 +472,27 @@
                         if (target.closest('[data-action="delete-item"]')) {
                             handleDeleteItem(itemId, itemType);
                         } else {
-                            activeItemId = itemId;
+                            // FIXED: More efficient click handling to prevent cursor bug
+                            if(activeItemId !== itemId) {
+                                const currentlyActive = document.querySelector('#item-list .active');
+                                if (currentlyActive) currentlyActive.classList.remove('active');
+                                listItem.classList.add('active');
+                                activeItemId = itemId;
+                                renderEditorPanel();
+                            }
+                            
                             if (itemType === 'folder') {
+                                const wrapper = listItem.parentElement;
                                 const index = openFolderIds.indexOf(itemId);
-                                if (index > -1) openFolderIds.splice(index, 1);
-                                else openFolderIds.push(itemId);
+                                if (index > -1) {
+                                    openFolderIds.splice(index, 1);
+                                    wrapper.classList.remove('open');
+                                } else {
+                                    openFolderIds.push(itemId);
+                                    wrapper.classList.add('open');
+                                }
                             }
                             if (window.innerWidth < 768 && itemType !== 'folder') toggleSidebar(false);
-                            renderItemList();
-                            renderEditorPanel();
                         }
                     } else if (target.closest('#save-txt-btn')) handleSaveTxt();
                     else if (target.closest('#save-drive-btn')) handleSaveToDrive();
@@ -621,38 +627,29 @@
                     if (!draggedItem || !targetItem) return;
 
                     let newParentId = null, targetOrder = 0;
-                    if (targetItem.type === 'folder') {
-                        newParentId = targetItem.id;
-                        targetOrder = chapters.filter(c => c.parentId === newParentId).length;
-                    } else {
-                        newParentId = targetItem.parentId;
-                        const rect = dropTargetEl.getBoundingClientRect();
-                        const isAfter = e.clientY > rect.top + rect.height / 2;
-                        targetOrder = isAfter ? targetItem.order + 1 : targetItem.order;
-                    }
+                    if (targetItem.type === 'folder') { newParentId = targetItem.id; targetOrder = chapters.filter(c => c.parentId === newParentId).length; }
+                    else { newParentId = targetItem.parentId; const rect = dropTargetEl.getBoundingClientRect(); targetOrder = (e.clientY > rect.top + rect.height / 2) ? targetItem.order + 1 : targetItem.order; }
 
-                    // Optimistic UI Update
-                    const originalChapters = [...chapters];
-                    const draggedIndex = originalChapters.findIndex(c => c.id === draggedItemId);
-                    const [itemToMove] = originalChapters.splice(draggedIndex, 1);
+                    const originalParentId = draggedItem.parentId;
+                    
+                    // --- Optimistic UI Update ---
+                    const draggedIndex = chapters.findIndex(c => c.id === draggedItemId);
+                    const [itemToMove] = chapters.splice(draggedIndex, 1);
                     itemToMove.parentId = newParentId;
 
-                    let targetList = originalChapters.filter(c => c.parentId === newParentId);
-                    targetList.splice(targetOrder, 0, itemToMove);
+                    let newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b)=>(a.order??0)-(b.order??0));
+                    newSiblings.splice(targetOrder, 0, itemToMove);
                     
-                    chapters = originalChapters;
                     renderItemList();
 
-                    // Firestore Update
-                    const batch = db.batch(), collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-                    if (draggedItem.parentId === newParentId) {
-                        let siblings = chapters.filter(c => c.parentId === draggedItem.parentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                        siblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
-                    } else {
-                        let oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                        oldSiblings.forEach((item, index) => { if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index }); });
-                        let newSiblings = chapters.filter(c => c.parentId === newParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-                        newSiblings.forEach((item, index) => { if (item.order !== index || item.parentId !== newParentId) batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId }); });
+                    // --- Firestore Update ---
+                    const batch = db.batch();
+                    const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
+                    
+                    newSiblings.forEach((item, index) => { batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId }); });
+                    if (originalParentId !== newParentId) {
+                        let oldSiblings = chapters.filter(c => c.parentId === originalParentId).sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                        oldSiblings.forEach((item, index) => { batch.update(collectionRef.doc(item.id), { order: index }); });
                     }
                     batch.commit().catch(err => console.error("Drag-drop failed:", err));
                 });
@@ -677,7 +674,7 @@
                 const oldMap = new Map(oldList.map(i => [i.id, i]));
                 for (const newItem of newList) {
                     const oldItem = oldMap.get(newItem.id);
-                    if (!oldItem || oldItem.title !== newItem.title || oldItem.name !== newItem.name || oldItem.order !== newItem.order || oldItem.parentId !== newItem.parentId) {
+                    if (!oldItem || (newItem.title || newItem.name) !== (oldItem.title || oldItem.name) || newItem.order !== oldItem.order || newItem.parentId !== oldItem.parentId) {
                         return true;
                     }
                 }
@@ -692,7 +689,7 @@
                 unsubscribes.items = q.onSnapshot(function(snapshot) {
                     const itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     if (sidebarMode === 'chapters') {
-                        if (haveStructuralChanges(chapters, itemList)) {
+                        if (chapters.length === 0 || haveStructuralChanges(chapters, itemList)) {
                            renderItemList();
                         }
                         chapters = itemList; 
