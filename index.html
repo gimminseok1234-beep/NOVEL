@@ -682,25 +682,24 @@
                 wrapper.className = isFolder ? 'folder-item' : '';
 
                 const itemEl = document.createElement('div');
-                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex justify-between items-center`;
+                itemEl.className = `list-item px-3 rounded-md cursor-pointer text-sm flex items-center`;
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
 
+                // FIXED: Simplified layout to fix vertical height issues
                 if (isFolder) {
                     itemEl.innerHTML = `
-                        <div class="flex items-center truncate flex-1 min-w-0">
-                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                            <span class="truncate pointer-events-none"></span>
-                        </div>
+                        <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                        <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
                         <button class="options-btn p-1 rounded-full hover:bg-surface flex-shrink-0" data-action="folder-options">
                             <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
                         </button>
                     `;
                 } else {
                      itemEl.innerHTML = `
-                        <span class="truncate pointer-events-none flex-1 min-w-0"></span>
+                        <span class="truncate pointer-events-none flex-grow min-w-0"></span>
                         <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
                             <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                         </button>
@@ -1027,6 +1026,7 @@
                 });
             }
 
+            // FIXED: Renaming bug and 'undefined' issue
             function handleFolderOptions(folderId, folderName) {
                 showModal({
                     title: `'${folderName}' 폴더`,
@@ -1055,7 +1055,8 @@
                         { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' },
                         { text: '저장', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold', onClick: (newName) => {
                             if (newName && newName !== currentName) {
-                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`).doc(folderId).update({ name: newName });
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`).doc(folderId).update({ name: newName })
+                                .catch(err => alert('이름 변경에 실패했습니다: ' + err.message));
                             }
                         }}
                     ]
@@ -1215,8 +1216,7 @@
                 });
                 listEl.addEventListener('dragend', function(e) {
                     if (!draggedItemId) return;
-                    const target = document.querySelector(`[data-id="${draggedItemId}"]`);
-                    if(target) target.classList.remove('dragging');
+                    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
                     document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-folder').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-folder'));
                     draggedItemId = null;
                 });
@@ -1267,14 +1267,14 @@
                     
                     const batch = db.batch();
                     const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-
-                    // Logic for moving items between different or same lists
                     const oldSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItemId).sort((a,b) => a.order - b.order);
-                    
+
                     if (draggedItem.parentId === newParentId) {
-                        const newSiblings = oldSiblings;
-                        newSiblings.splice(draggedItem.order, 1);
-                        newSiblings.splice(targetOrder > draggedItem.order ? targetOrder - 1 : targetOrder, 0, draggedItem);
+                        const newSiblings = [...oldSiblings];
+                        const oldIndex = draggedItem.order;
+                        newSiblings.splice(oldIndex, 1);
+                        const newIndex = targetOrder > oldIndex ? targetOrder - 1 : targetOrder;
+                        newSiblings.splice(newIndex, 0, draggedItem);
                         newSiblings.forEach((item, index) => {
                              if (item.order !== index) batch.update(collectionRef.doc(item.id), { order: index });
                         });
@@ -1288,9 +1288,7 @@
                             batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
                         });
                     }
-
                     await batch.commit();
-                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                 });
             }
 
