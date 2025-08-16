@@ -69,9 +69,9 @@
         <div class="flex flex-col items-center justify-center h-full text-center p-4">
             <h1 class="text-4xl font-bold">나만의 작업실</h1>
             <p class="text-gray-400 mb-8">당신의 이야기를 펼쳐보세요.</p>
-            <button id="google-login-btn" class="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-3 transition-transform hover:scale-105">
+            <button id="google-login-btn" class="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-3 transition-transform hover:scale-105" disabled>
                 <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.61-3.317-11.28-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.596 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
-                <span>Google 계정으로 시작하기</span>
+                <span id="google-login-btn-text">준비 중...</span>
             </button>
         </div>
     </template>
@@ -220,70 +220,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const appContainer = document.getElementById('app-container');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingContent = document.getElementById('loading-content');
-        
+        // ▼▼▼ 1. 키/설정 정보를 스크립트 최상단으로 이동 ▼▼▼
         /* --- Google Drive API 설정 --- */
         const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M'; // API 키
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com'; // OAuth 2.0 클라이언트 ID
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-        let gapiInited = false;
-        let gisInited = false;
-        let tokenClient; // gisLoaded에서 초기화되므로 제거하지 않음
-        let gapiAccessToken = null;
 
-        window.gapiLoaded = function() {
-            gapi.load('client', initializeGapiClient);
-        }
-        async function initializeGapiClient() {
-            await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: DISCOVERY_DOCS });
-            gapiInited = true;
-        }
-        window.gisLoaded = function() {
-            // 이 함수는 이제 직접적인 인증 흐름에 사용되지 않지만,
-            // 향후 다른 gis 기능 사용을 위해 남겨둘 수 있습니다.
-            gisInited = true;
-        }
-        
-        // 이 함수는 이제 직접 호출되지 않지만, 호환성을 위해 남겨둡니다.
-        function handleTokenResponse(tokenResponse) {
-            if (tokenResponse && tokenResponse.access_token) {
-                gapiAccessToken = tokenResponse;
-                gapi.client.setToken(tokenResponse);
-                if(appContainer.querySelector('#drive-status-area')) {
-                    renderSettings();
-                }
-            } else {
-                console.error("Google Drive access token not received.");
-            }
-        }
-
-
-        let db, auth;
-        let currentUserId = null;
-        let currentUser = null;
-        let unsubscribes = {};
-        
-        let projects = [];
-        let chapters = [];
-        let characters = [];
-
-        let activeProjectId = null;
-        let activeItemId = null;
-        let sidebarMode = 'chapters';
-        let charCountMode = 'noSpecialChars';
-        let saveTimeouts = {};
-        let collapsedFolders = new Set();
-        
-        let settings = {
-            theme: 'dark',
-            editorWidth: 370
-        };
-
+        /* --- Firebase 설정 --- */
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
             apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4",
@@ -294,1021 +240,1074 @@
             appId: "1:836560106988:web:cf90872d7b09b9498ffcc9",
             measurementId: "G-83BZ35QVLC"
         });
-        
-        function initialize() {
-            try {
-                loadSettings();
-                const firebaseConfig = JSON.parse(firebaseConfigStr);
-                if (!firebaseConfig.projectId) throw new Error("'projectId'가 Firebase 설정에 없습니다.");
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.firestore();
-                auth = firebase.auth();
-                setupAuthListener();
-            } catch (error) {
-                console.error("Firebase Initialization Error:", error);
-                loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">초기화 오류</p><p class="text-sm">${error.message}</p></div>`;
-            }
-        }
 
-        function setupAuthListener() {
-            auth.onAuthStateChanged(user => {
+        document.addEventListener('DOMContentLoaded', () => {
+            const appContainer = document.getElementById('app-container');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingContent = document.getElementById('loading-content');
+            
+            let gapiInited = false;
+            let gisInited = false;
+            let gapiAccessToken = null;
+
+            window.gapiLoaded = function() {
+                gapi.load('client', initializeGapiClient);
+            }
+            async function initializeGapiClient() {
+                await gapi.client.init({ apiKey: GOOGLE_API_KEY, discoveryDocs: DISCOVERY_DOCS });
+                gapiInited = true;
+                checkApisAndEnableLogin();
+            }
+            window.gisLoaded = function() {
+                gisInited = true;
+                checkApisAndEnableLogin();
+            }
+            
+            function checkApisAndEnableLogin() {
+                if (gapiInited && gisInited) {
+                    const loginButton = document.getElementById('google-login-btn');
+                    const loginButtonText = document.getElementById('google-login-btn-text');
+                    if (loginButton && loginButton.disabled) {
+                        loginButton.disabled = false;
+                        if (loginButtonText) loginButtonText.textContent = 'Google 계정으로 시작하기';
+                    }
+                }
+            }
+
+            function handleTokenResponse(tokenResponse) {
+                if (tokenResponse && tokenResponse.access_token) {
+                    gapiAccessToken = tokenResponse;
+                    gapi.client.setToken(tokenResponse);
+                    if(appContainer.querySelector('#drive-status-area')) {
+                        renderSettings();
+                    }
+                } else {
+                    console.error("Google Drive access token not received.");
+                }
+            }
+
+            let db, auth;
+            let currentUserId = null;
+            let currentUser = null;
+            let unsubscribes = {};
+            
+            let projects = [];
+            let chapters = [];
+            let characters = [];
+
+            let activeProjectId = null;
+            let activeItemId = null;
+            let sidebarMode = 'chapters';
+            let charCountMode = 'noSpecialChars';
+            let saveTimeouts = {};
+            let collapsedFolders = new Set();
+            
+            let settings = {
+                theme: 'dark',
+                editorWidth: 370
+            };
+            
+            function initialize() {
                 try {
-                    currentUser = user;
-                    if (user) {
-                        currentUserId = user.uid;
-                        if (!appContainer.querySelector('#project-grid')) {
-                            renderView('home');
-                        }
-                        loadProjects();
-                    } else {
-                        currentUserId = null;
-                        projects = [];
-                        gapiAccessToken = null; // 로그아웃 시 토큰 정보 초기화
-                        Object.values(unsubscribes).forEach(unsub => {
-                            if (typeof unsub === 'function') unsub();
-                        });
-                        unsubscribes = {};
-                        renderView('login');
-                    }
+                    loadSettings();
+                    const firebaseConfig = JSON.parse(firebaseConfigStr);
+                    if (!firebaseConfig.projectId) throw new Error("'projectId'가 Firebase 설정에 없습니다.");
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    auth = firebase.auth();
+                    setupAuthListener();
                 } catch (error) {
-                    console.error("Error during auth state change:", error);
-                    loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">앱 시작 오류</p><p class="text-sm">${error.message}</p></div>`;
-                    return; 
-                }
-                loadingOverlay.style.display = 'none';
-            });
-        }
-        
-        function showModal(options) {
-            closeModal();
-            const modalBackdrop = document.createElement('div');
-            modalBackdrop.id = 'modal-backdrop';
-            modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
-            const template = document.getElementById('modal-template').content.cloneNode(true);
-            modalBackdrop.appendChild(template);
-            
-            const titleEl = modalBackdrop.querySelector('#modal-title');
-            const textEl = modalBackdrop.querySelector('#modal-text');
-            const customContentEl = modalBackdrop.querySelector('#modal-custom-content');
-            const inputEl = modalBackdrop.querySelector('#modal-input');
-            const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
-
-            titleEl.textContent = options.title;
-            if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
-            if (options.customHtml) customContentEl.innerHTML = options.customHtml;
-            if (options.inputPlaceholder) {
-                inputEl.classList.remove('hidden');
-                inputEl.placeholder = options.inputPlaceholder;
-                inputEl.value = options.initialValue || '';
-            }
-            options.buttons.forEach(function(btnInfo) {
-                const button = document.createElement('button');
-                button.textContent = btnInfo.text;
-                button.className = btnInfo.class;
-                button.onclick = function() {
-                    if (typeof btnInfo.onClick === 'function') btnInfo.onClick(inputEl.value);
-                    if (btnInfo.closeOnClick !== false) closeModal();
-                };
-                buttonsEl.appendChild(button);
-            });
-            document.body.appendChild(modalBackdrop);
-            if(options.inputPlaceholder) inputEl.focus();
-        }
-        function closeModal() {
-            const modal = document.getElementById('modal-backdrop');
-            if (modal) modal.remove();
-        }
-
-        // --- Data Loading & State ---
-        function getProject(projectId) { return projects.find(p => p.id === projectId); }
-        function getItem(itemId) {
-            const items = sidebarMode === 'chapters' ? chapters : characters;
-            return items.find(i => i.id === itemId);
-        }
-
-        function loadProjects() {
-            if (!currentUserId) return;
-            const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`);
-            
-            unsubscribes.projects = projectsRef.onSnapshot(snapshot => {
-                let projectList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                projectList.sort((a, b) => (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0));
-                projects = projectList;
-                renderProjectGrid(); 
-            }, error => {
-                console.error("Project Loading Error:", error);
-                const placeholder = appContainer.querySelector('#no-projects-placeholder');
-                if(placeholder) {
-                    placeholder.innerHTML = `<h3 class="text-xl font-semibold text-red-400">데이터 로딩 오류</h3><p class="text-secondary mt-2">프로젝트를 불러오지 못했습니다. Firestore 규칙을 확인해주세요.</p>`;
-                    placeholder.classList.remove('hidden');
-                }
-            });
-        }
-
-        function loadItems() {
-            if (unsubscribes.items) unsubscribes.items();
-            const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-            
-            unsubscribes.items = itemsRef.onSnapshot(snapshot => {
-                let itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                if (sidebarMode === 'chapters') {
-                    itemList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-                    chapters = itemList;
-                } else {
-                    itemList.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
-                    characters = itemList;
-                }
-                renderItemList();
-            }, error => {
-                console.error(`Error loading ${sidebarMode}:`, error);
-                const listEl = appContainer.querySelector('#item-list');
-                if (listEl) {
-                    listEl.innerHTML = `<p class="p-4 text-sm text-red-400">목록을 불러오는 데 실패했습니다.</p>`;
-                }
-            });
-        }
-
-        // --- View Rendering ---
-        function renderView(viewName) {
-            const template = document.getElementById(`${viewName}-view-template`);
-            if (!template) return;
-            appContainer.innerHTML = '';
-            appContainer.appendChild(template.content.cloneNode(true));
-            
-            if (viewName === 'home') renderHome();
-            else if (viewName === 'editor') renderEditor();
-            else if (viewName === 'settings') renderSettings();
-        }
-
-        function renderHome() {
-            const userProfileArea = appContainer.querySelector('#user-profile-area');
-            if (currentUser) {
-                userProfileArea.innerHTML = `
-                    <button id="settings-btn" class="p-2 rounded-full hover:bg-hover" title="설정">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    </button>
-                    <div class="text-right">
-                        <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
-                        <p class="text-xs text-secondary hidden sm:block truncate">${currentUser.email || '이메일 정보 없음'}</p>
-                    </div>
-                    <img class="w-10 h-10 rounded-full" src="${currentUser.photoURL || 'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile">
-                    <button id="logout-btn" class="bg-surface border border-main text-secondary font-bold py-2 px-4 rounded-lg text-sm transition-colors hover:bg-hover">로그아웃</button>
-                `;
-            }
-            renderProjectGrid();
-        }
-
-        function renderProjectGrid() {
-            const projectGrid = appContainer.querySelector('#project-grid');
-            const placeholder = appContainer.querySelector('#no-projects-placeholder');
-            if (!projectGrid || !placeholder) return; 
-
-            if (projects.length === 0) {
-                projectGrid.innerHTML = '';
-                projectGrid.classList.add('hidden');
-                placeholder.classList.remove('hidden');
-            } else {
-                projectGrid.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                projectGrid.innerHTML = '';
-                projects.forEach(project => projectGrid.appendChild(createProjectCard(project)));
-            }
-        }
-
-        function createProjectCard(project) {
-            const card = document.createElement('div');
-            card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48 border border-main';
-            card.dataset.projectId = project.id;
-            const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
-            card.innerHTML = `
-                <div class="flex-grow">
-                    <div class="flex justify-between items-start">
-                        <h3 class="text-lg font-bold"></h3>
-                        <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="text-xs text-secondary">
-                    <span>${lastModified} 수정됨</span>
-                </div>`;
-            card.querySelector('h3').textContent = project.name;
-            return card;
-        }
-        
-        function renderEditor() {
-            const project = getProject(activeProjectId);
-            if (!project) {
-                renderView('home');
-                return;
-            }
-            appContainer.querySelector('#project-title-sidebar').textContent = project.name;
-            toggleSidebar(window.innerWidth >= 768);
-            updateSidebarUI();
-            
-            if (activeItemId) renderEditorPanel();
-            else appContainer.querySelector('#editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">왼쪽에서 항목을 선택해주세요.</div>`;
-            
-            addDragAndDropListeners(appContainer.querySelector('#item-list'));
-        }
-        
-        function renderItemList() {
-            const listEl = appContainer.querySelector('#item-list');
-            if (!listEl) return;
-            listEl.innerHTML = '';
-            
-            let itemsToRender = sidebarMode === 'chapters' ? chapters : characters;
-
-            if (sidebarMode !== 'chapters') {
-                itemsToRender.forEach(char => listEl.appendChild(createItemElement(char)));
-                return;
-            }
-
-            const tree = buildItemTree(itemsToRender);
-            
-            function renderNode(node, container) {
-                container.appendChild(createItemElement(node));
-                if (node.children && node.children.length > 0) {
-                    const childrenContainer = container.lastChild.querySelector('.folder-children');
-                    node.children.forEach(childNode => renderNode(childNode, childrenContainer));
+                    console.error("Firebase Initialization Error:", error);
+                    loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">초기화 오류</p><p class="text-sm">${error.message}</p></div>`;
                 }
             }
-            tree.forEach(rootNode => renderNode(rootNode, listEl));
-        }
 
-        function buildItemTree(list) {
-            const map = new Map(list.map(item => [item.id, { ...item, children: [] }]));
-            const tree = [];
-            for (const item of map.values()) {
-                if (item.parentId && map.has(item.parentId)) {
-                    map.get(item.parentId).children.push(item);
-                } else {
-                    tree.push(item);
-                }
-            }
-            map.forEach(node => node.children.sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
-            tree.sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
-            return tree;
-        }
-
-        function createItemElement(item) {
-            const itemEl = document.createElement('div');
-            const isFolder = item.type === 'folder';
-            const isCollapsed = collapsedFolders.has(item.id);
-
-            itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm flex-col`;
-            itemEl.dataset.id = item.id;
-            itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
-            itemEl.draggable = true;
-
-            let itemHeaderHTML = `
-                <div class="flex justify-between items-center w-full">
-                    <div class="flex items-center gap-2 truncate flex-1">
-                        ${isFolder ? `
-                            <svg data-action="toggle-folder" class="folder-toggle h-4 w-4 flex-shrink-0 ${isCollapsed ? 'collapsed' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                            <svg class="h-4 w-4 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                        ` : `
-                            <svg class="h-4 w-4 text-secondary flex-shrink-0 ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
-                        `}
-                        <span class="truncate pointer-events-none"></span>
-                    </div>
-                    <div class="flex items-center">
-                        ${isFolder ? `<button class="action-btn p-1 rounded-full hover:bg-blue-500/20" data-action="rename-item" title="이름 변경"><svg class="h-4 w-4 pointer-events-none text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
-                        <button class="action-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item" title="삭제"><svg class="h-4 w-4 pointer-events-none text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
-                    </div>
-                </div>
-            `;
-            
-            itemEl.innerHTML = itemHeaderHTML;
-            if (isFolder) {
-                const childrenContainer = document.createElement('div');
-                childrenContainer.className = `folder-children pl-4 ${isCollapsed ? 'collapsed' : ''}`;
-                itemEl.appendChild(childrenContainer);
-                itemEl.classList.add('list-item-folder');
-            } else {
-                itemEl.classList.add('list-item-chapter');
-            }
-
-            itemEl.querySelector('span').textContent = item.title || item.name;
-            if (item.id === activeItemId) itemEl.classList.add('active');
-
-            return itemEl;
-        }
-
-        function renderEditorPanel() {
-            const editorPanel = appContainer.querySelector('#editor-panel');
-            if (!editorPanel) return;
-            const item = getItem(activeItemId);
-
-            if (!item || item.type === 'folder') {
-                editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">${item ? '폴더가 선택되었습니다.' : '항목을 선택해주세요.'}</div>`;
-                return;
-            }
-            
-            editorPanel.innerHTML = '';
-            const templateId = sidebarMode === 'chapters' ? 'editor-panel-template' : 'character-editor-panel-template';
-            editorPanel.appendChild(document.getElementById(templateId).content.cloneNode(true));
-            
-            if (sidebarMode === 'chapters') {
-                const wrapper = editorPanel.querySelector('#editor-content-wrapper');
-                wrapper.style.maxWidth = `${settings.editorWidth}px`;
-                editorPanel.querySelector('#editor-title').value = item.title || '';
-                editorPanel.querySelector('#editor-content').value = item.content || '';
-            } else {
-                editorPanel.querySelector('#character-name').value = item.name || '';
-                editorPanel.querySelector('#character-personality').value = item.personality || '';
-                editorPanel.querySelector('#character-appearance').value = item.appearance || '';
-                editorPanel.querySelector('#character-characteristics').value = item.characteristics || item.description || '';
-            }
-            updateCharCount();
-        }
-        
-        function updateSidebarUI() {
-            const container = appContainer.querySelector('#editor-container');
-            if (!container) return;
-            container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === sidebarMode));
-            const listTitle = container.querySelector('#list-title');
-            const newItemButtonsContainer = container.querySelector('#new-item-buttons-container');
-            newItemButtonsContainer.innerHTML = '';
-            
-            if (sidebarMode === 'chapters') {
-                listTitle.textContent = '회차 목록';
-                newItemButtonsContainer.innerHTML = `
-                    <button id="new-folder-btn" title="새 폴더" class="accent-bg accent-hover p-2 rounded-md transition-colors">
-                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                    </button>
-                    <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 새 회차</button>
-                `;
-            } else {
-                listTitle.textContent = '등장인물';
-                 newItemButtonsContainer.innerHTML = `
-                    <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 추가</button>
-                `;
-            }
-        }
-
-        function updateCharCount() {
-            const countEl = appContainer.querySelector('#char-count');
-            const labelEl = appContainer.querySelector('#char-count-label');
-            if (!countEl || !labelEl) return;
-            
-            let content = '';
-            if (sidebarMode === 'chapters') {
-                const contentEl = appContainer.querySelector('#editor-content');
-                if(contentEl) content = contentEl.value;
-            }
-            
-            let count = 0;
-            let label = '';
-            switch (charCountMode) {
-                case 'noSpaces':
-                    count = content.replace(/\s/g, '').length;
-                    label = '공백 제외';
-                    break;
-                default:
-                    count = content.replace(/[.",'\s]/g, '').length;
-                    label = '공백/특문 제외';
-                    break;
-            }
-            countEl.textContent = count.toLocaleString();
-            labelEl.textContent = label;
-        }
-
-        function toggleSidebar(forceOpen) {
-            const container = appContainer.querySelector('#editor-container');
-            if (!container) return;
-            const shouldBeOpen = typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open');
-            container.classList.toggle('sidebar-open', shouldBeOpen);
-            updateSidebarVisuals();
-        };
-
-        function updateSidebarVisuals() {
-            const container = appContainer.querySelector('#editor-container');
-            if (!container) return;
-            const overlay = container.querySelector('#mobile-overlay');
-            const icon = container.querySelector('#toggle-icon');
-            const isOpen = container.classList.contains('sidebar-open');
-            if (window.innerWidth < 768) {
-                overlay.classList.toggle('hidden', !isOpen);
-            } else {
-                overlay.classList.add('hidden');
-            }
-            icon.innerHTML = isOpen ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
-        }
-        
-        // --- Handlers ---
-        // ===================================
-        // ▼▼▼ 핵심 수정: handleGoogleLogin 함수 ▼▼▼
-        // ===================================
-        function handleGoogleLogin() {
-            loadingOverlay.style.display = 'flex';
-            const provider = new firebase.auth.GoogleAuthProvider();
-            // 로그인 시 Google Drive 권한을 함께 요청합니다.
-            provider.addScope(SCOPES);
-
-            auth.signInWithPopup(provider)
-                .then(result => {
-                    // 로그인 성공 시 Google Drive API를 위한 액세스 토큰을 받아옵니다.
-                    const credential = result.credential;
-                    if (credential && credential.accessToken) {
-                        const accessToken = credential.accessToken;
-                        
-                        // GAPI 클라이언트에 토큰을 설정합니다.
-                        gapi.client.setToken({ 'access_token': accessToken });
-                        
-                        // gapiAccessToken 상태를 업데이트하여 앱 전체에서 사용 가능하도록 합니다.
-                        gapiAccessToken = { access_token: accessToken };
-                    } else {
-                         throw new Error("Google Drive Access Token not found in credential.");
-                    }
-                })
-                .catch(error => {
-                    loadingOverlay.style.display = 'none';
-                    console.error("Google Login Error:", error);
-                    gapiAccessToken = null; // 실패 시 토큰 정보 초기화
-                    showModal({title: "로그인 오류", text: error.message, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
-            });
-        };
-
-        function handleLogout() {
-            auth.signOut();
-        };
-        
-        function handleNewProject() {
-            showModal({
-                title: '새 프로젝트 생성', text: '새로운 프로젝트의 이름을 입력해주세요.', inputPlaceholder: '나의 멋진 소설',
-                buttons: [
-                    { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                    { text: '생성', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold', 
-                        onClick: function(name) {
-                            if (!name) return;
-                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({
-                                name: name,
-                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+            function setupAuthListener() {
+                auth.onAuthStateChanged(user => {
+                    try {
+                        currentUser = user;
+                        if (user) {
+                            currentUserId = user.uid;
+                            if (!appContainer.querySelector('#project-grid')) {
+                                renderView('home');
+                            }
+                            loadProjects();
+                        } else {
+                            currentUserId = null;
+                            projects = [];
+                            gapiAccessToken = null;
+                            Object.values(unsubscribes).forEach(unsub => {
+                                if (typeof unsub === 'function') unsub();
                             });
+                            unsubscribes = {};
+                            renderView('login');
                         }
+                    } catch (error) {
+                        console.error("Error during auth state change:", error);
+                        loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">앱 시작 오류</p><p class="text-sm">${error.message}</p></div>`;
+                        return; 
                     }
-                ]
-            });
-        }
-
-        function handleProjectOptions(projectId) {
-            const project = getProject(projectId);
-            showModal({
-                title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.',
-                buttons: [
-                    { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                    { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleRenameProject(projectId), 10)},
-                    { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleDeleteProject(projectId), 10)}
-                ]
-            });
-        };
-        
-        function handleRenameProject(projectId) {
-            const project = getProject(projectId);
-            showModal({
-                title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name, initialValue: project.name,
-                buttons: [
-                    { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                    { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold', 
-                        onClick: function(newName) {
-                            if (!newName) return;
-                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
-                        }
-                    }
-                ]
-            });
-        };
-        
-        function handleDeleteProject(projectId) {
-            const project = getProject(projectId);
-            showModal({
-                title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-                buttons: [
-                    { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                    { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', 
-                        onClick: function() {
-                            const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
-                            projectRef.delete();
-                        }
-                    }
-                ]
-            });
-        };
-
-        function handleNewItem(type, parentId = null) {
-            let newItemData;
-            const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-            
-            if (sidebarMode === 'chapters') {
-                const siblings = chapters.filter(c => c.parentId === parentId);
-                if (type === 'folder') {
-                    newItemData = { title: '새 폴더', type: 'folder', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                } else {
-                    newItemData = { title: '새 회차', content: '', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-                }
-            } else {
-                newItemData = { name: '새 등장인물', personality: '', appearance: '', characteristics: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-            }
-
-            collectionRef.add(newItemData).then(newDocRef => {
-                const newItemObject = { id: newDocRef.id, ...newItemData };
-                if (sidebarMode === 'chapters') {
-                    chapters.push(newItemObject);
-                } else {
-                    characters.push(newItemObject);
-                }
-                
-                activeItemId = newDocRef.id;
-                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
-                
-                renderItemList();
-                renderEditorPanel();
-            }).catch(error => {
-                console.error("Error adding new item:", error);
-                showModal({title: "오류", text: "항목을 추가하는 데 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
-            });
-        }
-        
-        function handleDeleteItem(itemId) {
-            const item = getItem(itemId);
-            const isFolder = item?.type === 'folder';
-            const itemType = isFolder ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
-
-            let confirmationText = `정말로 이 ${itemType}를 삭제하시겠습니까?`;
-            if (isFolder) confirmationText += ' 폴더 안의 모든 회차도 함께 삭제됩니다.';
-
-            showModal({
-                title: `${itemType} 삭제`, text: confirmationText,
-                buttons: [
-                    { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                    { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', 
-                        onClick: async function() {
-                            const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                            const batch = db.batch();
-                            
-                            if (isFolder) {
-                                const childrenToDelete = chapters.filter(c => c.parentId === itemId);
-                                childrenToDelete.forEach(child => batch.delete(collectionRef.doc(child.id)));
-                            }
-
-                            batch.delete(collectionRef.doc(itemId));
-                            await batch.commit();
-
-                            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
-                            if (activeItemId === itemId) {
-                                activeItemId = null;
-                                renderEditorPanel();
-                            }
-                        }
-                    }
-                ]
-            });
-        };
-
-        function handleRenameItem(itemId) {
-            const item = getItem(itemId);
-            if (!item) return;
-
-            showModal({
-                title: `'${item.title || item.name}' 이름 변경`,
-                text: '새로운 이름을 입력하세요.',
-                inputPlaceholder: item.title || item.name,
-                initialValue: item.title || item.name,
-                buttons: [
-                    { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                    { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
-                        onClick: function(newName) {
-                            if (!newName || newName === (item.title || item.name)) return;
-                            const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                            const fieldToUpdate = sidebarMode === 'chapters' ? 'title' : 'name';
-                            collectionRef.doc(itemId).update({ [fieldToUpdate]: newName });
-                        }
-                    }
-                ]
-            });
-        }
-
-        function handleEditorInput(e) {
-            if (!activeProjectId || !activeItemId) return;
-            updateCharCount();
-            const key = `${activeProjectId}-${activeItemId}`;
-            clearTimeout(saveTimeouts[key]);
-            saveTimeouts[key] = setTimeout(saveCurrentWork, 500);
-        }
-
-        function saveCurrentWork() {
-            if (!activeProjectId || !activeItemId) return;
-            const item = getItem(activeItemId);
-            if (!item || item.type === 'folder') return;
-
-            const editorPanel = appContainer.querySelector('#editor-panel');
-            if (!editorPanel) return;
-            
-            let data = {};
-            if (sidebarMode === 'chapters') {
-                data.title = editorPanel.querySelector('#editor-title').value;
-                data.content = editorPanel.querySelector('#editor-content').value;
-            } else {
-                data.name = editorPanel.querySelector('#character-name').value;
-                data.personality = editorPanel.querySelector('#character-personality').value;
-                data.appearance = editorPanel.querySelector('#character-appearance').value;
-                data.characteristics = editorPanel.querySelector('#character-characteristics').value;
-            }
-            const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
-            itemRef.update(data);
-            db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
-        }
-
-        function handleCopyContent() {
-            const contentEl = appContainer.querySelector('#editor-content');
-            if (!contentEl || !contentEl.value) return;
-            navigator.clipboard.writeText(contentEl.value);
-        }
-
-        function handleSaveTxt() {
-            const item = getItem(activeItemId);
-            if (sidebarMode === 'chapters' && activeItemId && item && item.type !== 'folder') {
-                const project = getProject(activeProjectId);
-                const content = `# ${item.title}\n\n${item.content}`;
-                const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
-                a.download = `[${project.name}] ${sanitizedTitle}.txt`;
-                a.click();
-                URL.revokeObjectURL(a.href);
-            } else {
-                showModal({title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
-            }
-        };
-        
-        async function handleSaveToDrive() {
-            if (!gapiAccessToken) {
-                showModal({
-                    title: "Google Drive 연결 필요",
-                    text: "Google Drive가 연결되지 않았습니다. 로그아웃 후 다시 로그인하여 권한을 허용해주세요.",
-                    buttons: [ { text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' } ]
+                    loadingOverlay.style.display = 'none';
                 });
-                return;
             }
+            
+            function showModal(options) {
+                closeModal();
+                const modalBackdrop = document.createElement('div');
+                modalBackdrop.id = 'modal-backdrop';
+                modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50';
+                const template = document.getElementById('modal-template').content.cloneNode(true);
+                modalBackdrop.appendChild(template);
+                
+                const titleEl = modalBackdrop.querySelector('#modal-title');
+                const textEl = modalBackdrop.querySelector('#modal-text');
+                const customContentEl = modalBackdrop.querySelector('#modal-custom-content');
+                const inputEl = modalBackdrop.querySelector('#modal-input');
+                const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
 
-            const item = getItem(activeItemId);
-            if (!item || sidebarMode !== 'chapters' || item.type === 'folder') {
-                showModal({title: "알림", text: "백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
-                return;
-            }
-
-            const statusEl = document.getElementById('save-status');
-            const showStatus = (msg, isError = false) => {
-                if (statusEl) {
-                    statusEl.textContent = msg;
-                    statusEl.style.color = isError ? 'var(--accent-secondary)' : 'var(--text-secondary)';
-                    statusEl.classList.remove('opacity-0');
-                    setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
+                titleEl.textContent = options.title;
+                if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
+                if (options.customHtml) customContentEl.innerHTML = options.customHtml;
+                if (options.inputPlaceholder) {
+                    inputEl.classList.remove('hidden');
+                    inputEl.placeholder = options.inputPlaceholder;
+                    inputEl.value = options.initialValue || '';
                 }
+                options.buttons.forEach(function(btnInfo) {
+                    const button = document.createElement('button');
+                    button.textContent = btnInfo.text;
+                    button.className = btnInfo.class;
+                    button.onclick = function() {
+                        if (typeof btnInfo.onClick === 'function') btnInfo.onClick(inputEl.value);
+                        if (btnInfo.closeOnClick !== false) closeModal();
+                    };
+                    buttonsEl.appendChild(button);
+                });
+                document.body.appendChild(modalBackdrop);
+                if(options.inputPlaceholder) inputEl.focus();
+            }
+            function closeModal() {
+                const modal = document.getElementById('modal-backdrop');
+                if (modal) modal.remove();
+            }
+
+            // --- Data Loading & State ---
+            function getProject(projectId) { return projects.find(p => p.id === projectId); }
+            function getItem(itemId) {
+                const items = sidebarMode === 'chapters' ? chapters : characters;
+                return items.find(i => i.id === itemId);
+            }
+
+            function loadProjects() {
+                if (!currentUserId) return;
+                const projectsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`);
+                
+                unsubscribes.projects = projectsRef.onSnapshot(snapshot => {
+                    let projectList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    projectList.sort((a, b) => (b.lastModified?.toMillis() || 0) - (a.lastModified?.toMillis() || 0));
+                    projects = projectList;
+                    renderProjectGrid(); 
+                }, error => {
+                    console.error("Project Loading Error:", error);
+                    const placeholder = appContainer.querySelector('#no-projects-placeholder');
+                    if(placeholder) {
+                        placeholder.innerHTML = `<h3 class="text-xl font-semibold text-red-400">데이터 로딩 오류</h3><p class="text-secondary mt-2">프로젝트를 불러오지 못했습니다. Firestore 규칙을 확인해주세요.</p>`;
+                        placeholder.classList.remove('hidden');
+                    }
+                });
+            }
+
+            function loadItems() {
+                if (unsubscribes.items) unsubscribes.items();
+                const itemsRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                
+                unsubscribes.items = itemsRef.onSnapshot(snapshot => {
+                    let itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    
+                    if (sidebarMode === 'chapters') {
+                        itemList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                        chapters = itemList;
+                    } else {
+                        itemList.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+                        characters = itemList;
+                    }
+                    renderItemList();
+                }, error => {
+                    console.error(`Error loading ${sidebarMode}:`, error);
+                    const listEl = appContainer.querySelector('#item-list');
+                    if (listEl) {
+                        listEl.innerHTML = `<p class="p-4 text-sm text-red-400">목록을 불러오는 데 실패했습니다.</p>`;
+                    }
+                });
+            }
+
+            // --- View Rendering ---
+            function renderView(viewName) {
+                const template = document.getElementById(`${viewName}-view-template`);
+                if (!template) return;
+                appContainer.innerHTML = '';
+                appContainer.appendChild(template.content.cloneNode(true));
+                
+                if (viewName === 'home') renderHome();
+                else if (viewName === 'editor') renderEditor();
+                else if (viewName === 'settings') renderSettings();
+                else if (viewName === 'login') {
+                    checkApisAndEnableLogin();
+                }
+            }
+
+            function renderHome() {
+                const userProfileArea = appContainer.querySelector('#user-profile-area');
+                if (currentUser) {
+                    userProfileArea.innerHTML = `
+                        <button id="settings-btn" class="p-2 rounded-full hover:bg-hover" title="설정">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                        <div class="text-right">
+                            <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
+                            <p class="text-xs text-secondary hidden sm:block truncate">${currentUser.email || '이메일 정보 없음'}</p>
+                        </div>
+                        <img class="w-10 h-10 rounded-full" src="${currentUser.photoURL || 'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile">
+                        <button id="logout-btn" class="bg-surface border border-main text-secondary font-bold py-2 px-4 rounded-lg text-sm transition-colors hover:bg-hover">로그아웃</button>
+                    `;
+                }
+                renderProjectGrid();
+            }
+
+            function renderProjectGrid() {
+                const projectGrid = appContainer.querySelector('#project-grid');
+                const placeholder = appContainer.querySelector('#no-projects-placeholder');
+                if (!projectGrid || !placeholder) return; 
+
+                if (projects.length === 0) {
+                    projectGrid.innerHTML = '';
+                    projectGrid.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                } else {
+                    projectGrid.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    projectGrid.innerHTML = '';
+                    projects.forEach(project => projectGrid.appendChild(createProjectCard(project)));
+                }
+            }
+
+            function createProjectCard(project) {
+                const card = document.createElement('div');
+                card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48 border border-main';
+                card.dataset.projectId = project.id;
+                const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
+                card.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start">
+                            <h3 class="text-lg font-bold"></h3>
+                            <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-xs text-secondary">
+                        <span>${lastModified} 수정됨</span>
+                    </div>`;
+                card.querySelector('h3').textContent = project.name;
+                return card;
+            }
+            
+            function renderEditor() {
+                const project = getProject(activeProjectId);
+                if (!project) {
+                    renderView('home');
+                    return;
+                }
+                appContainer.querySelector('#project-title-sidebar').textContent = project.name;
+                toggleSidebar(window.innerWidth >= 768);
+                updateSidebarUI();
+                
+                if (activeItemId) renderEditorPanel();
+                else appContainer.querySelector('#editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">왼쪽에서 항목을 선택해주세요.</div>`;
+                
+                addDragAndDropListeners(appContainer.querySelector('#item-list'));
+            }
+            
+            function renderItemList() {
+                const listEl = appContainer.querySelector('#item-list');
+                if (!listEl) return;
+                listEl.innerHTML = '';
+                
+                let itemsToRender = sidebarMode === 'chapters' ? chapters : characters;
+
+                if (sidebarMode !== 'chapters') {
+                    itemsToRender.forEach(char => listEl.appendChild(createItemElement(char)));
+                    return;
+                }
+
+                const tree = buildItemTree(itemsToRender);
+                
+                function renderNode(node, container) {
+                    container.appendChild(createItemElement(node));
+                    if (node.children && node.children.length > 0) {
+                        const childrenContainer = container.lastChild.querySelector('.folder-children');
+                        node.children.forEach(childNode => renderNode(childNode, childrenContainer));
+                    }
+                }
+                tree.forEach(rootNode => renderNode(rootNode, listEl));
+            }
+
+            function buildItemTree(list) {
+                const map = new Map(list.map(item => [item.id, { ...item, children: [] }]));
+                const tree = [];
+                for (const item of map.values()) {
+                    if (item.parentId && map.has(item.parentId)) {
+                        map.get(item.parentId).children.push(item);
+                    } else {
+                        tree.push(item);
+                    }
+                }
+                map.forEach(node => node.children.sort((a,b) => (a.order ?? 0) - (b.order ?? 0)));
+                tree.sort((a,b) => (a.order ?? 0) - (b.order ?? 0));
+                return tree;
+            }
+
+            function createItemElement(item) {
+                const itemEl = document.createElement('div');
+                const isFolder = item.type === 'folder';
+                const isCollapsed = collapsedFolders.has(item.id);
+
+                itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm flex-col`;
+                itemEl.dataset.id = item.id;
+                itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
+                itemEl.draggable = true;
+
+                let itemHeaderHTML = `
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2 truncate flex-1">
+                            ${isFolder ? `
+                                <svg data-action="toggle-folder" class="folder-toggle h-4 w-4 flex-shrink-0 ${isCollapsed ? 'collapsed' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                <svg class="h-4 w-4 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                            ` : `
+                                <svg class="h-4 w-4 text-secondary flex-shrink-0 ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                            `}
+                            <span class="truncate pointer-events-none"></span>
+                        </div>
+                        <div class="flex items-center">
+                            ${isFolder ? `<button class="action-btn p-1 rounded-full hover:bg-blue-500/20" data-action="rename-item" title="이름 변경"><svg class="h-4 w-4 pointer-events-none text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
+                            <button class="action-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item" title="삭제"><svg class="h-4 w-4 pointer-events-none text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
+                        </div>
+                    </div>
+                `;
+                
+                itemEl.innerHTML = itemHeaderHTML;
+                if (isFolder) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = `folder-children pl-4 ${isCollapsed ? 'collapsed' : ''}`;
+                    itemEl.appendChild(childrenContainer);
+                    itemEl.classList.add('list-item-folder');
+                } else {
+                    itemEl.classList.add('list-item-chapter');
+                }
+
+                itemEl.querySelector('span').textContent = item.title || item.name;
+                if (item.id === activeItemId) itemEl.classList.add('active');
+
+                return itemEl;
+            }
+
+            function renderEditorPanel() {
+                const editorPanel = appContainer.querySelector('#editor-panel');
+                if (!editorPanel) return;
+                const item = getItem(activeItemId);
+
+                if (!item || item.type === 'folder') {
+                    editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">${item ? '폴더가 선택되었습니다.' : '항목을 선택해주세요.'}</div>`;
+                    return;
+                }
+                
+                editorPanel.innerHTML = '';
+                const templateId = sidebarMode === 'chapters' ? 'editor-panel-template' : 'character-editor-panel-template';
+                editorPanel.appendChild(document.getElementById(templateId).content.cloneNode(true));
+                
+                if (sidebarMode === 'chapters') {
+                    const wrapper = editorPanel.querySelector('#editor-content-wrapper');
+                    wrapper.style.maxWidth = `${settings.editorWidth}px`;
+                    editorPanel.querySelector('#editor-title').value = item.title || '';
+                    editorPanel.querySelector('#editor-content').value = item.content || '';
+                } else {
+                    editorPanel.querySelector('#character-name').value = item.name || '';
+                    editorPanel.querySelector('#character-personality').value = item.personality || '';
+                    editorPanel.querySelector('#character-appearance').value = item.appearance || '';
+                    editorPanel.querySelector('#character-characteristics').value = item.characteristics || item.description || '';
+                }
+                updateCharCount();
+            }
+            
+            function updateSidebarUI() {
+                const container = appContainer.querySelector('#editor-container');
+                if (!container) return;
+                container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === sidebarMode));
+                const listTitle = container.querySelector('#list-title');
+                const newItemButtonsContainer = container.querySelector('#new-item-buttons-container');
+                newItemButtonsContainer.innerHTML = '';
+                
+                if (sidebarMode === 'chapters') {
+                    listTitle.textContent = '회차 목록';
+                    newItemButtonsContainer.innerHTML = `
+                        <button id="new-folder-btn" title="새 폴더" class="accent-bg accent-hover p-2 rounded-md transition-colors">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                        </button>
+                        <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 새 회차</button>
+                    `;
+                } else {
+                    listTitle.textContent = '등장인물';
+                     newItemButtonsContainer.innerHTML = `
+                        <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 추가</button>
+                    `;
+                }
+            }
+
+            function updateCharCount() {
+                const countEl = appContainer.querySelector('#char-count');
+                const labelEl = appContainer.querySelector('#char-count-label');
+                if (!countEl || !labelEl) return;
+                
+                let content = '';
+                if (sidebarMode === 'chapters') {
+                    const contentEl = appContainer.querySelector('#editor-content');
+                    if(contentEl) content = contentEl.value;
+                }
+                
+                let count = 0;
+                let label = '';
+                switch (charCountMode) {
+                    case 'noSpaces':
+                        count = content.replace(/\s/g, '').length;
+                        label = '공백 제외';
+                        break;
+                    default:
+                        count = content.replace(/[.",'\s]/g, '').length;
+                        label = '공백/특문 제외';
+                        break;
+                }
+                countEl.textContent = count.toLocaleString();
+                labelEl.textContent = label;
+            }
+
+            function toggleSidebar(forceOpen) {
+                const container = appContainer.querySelector('#editor-container');
+                if (!container) return;
+                const shouldBeOpen = typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open');
+                container.classList.toggle('sidebar-open', shouldBeOpen);
+                updateSidebarVisuals();
             };
 
-            showStatus('Google Drive에 백업하는 중...');
-            
-            try {
-                const project = getProject(activeProjectId);
-                const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
-                const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
-                const fileContent = `# ${item.title}\n\n${item.content}`;
-                
-                const fileMetadata = {
-                    'name': fileName,
-                    'mimeType': 'text/plain'
-                };
-                
-                const createResponse = await gapi.client.drive.files.create({
-                    resource: fileMetadata,
-                    fields: 'id'
-                });
-
-                const fileId = createResponse.result.id;
-                if (!fileId) {
-                    throw new Error("파일 생성에 실패했습니다.");
+            function updateSidebarVisuals() {
+                const container = appContainer.querySelector('#editor-container');
+                if (!container) return;
+                const overlay = container.querySelector('#mobile-overlay');
+                const icon = container.querySelector('#toggle-icon');
+                const isOpen = container.classList.contains('sidebar-open');
+                if (window.innerWidth < 768) {
+                    overlay.classList.toggle('hidden', !isOpen);
+                } else {
+                    overlay.classList.add('hidden');
                 }
-
-                await gapi.client.request({
-                    path: `/upload/drive/v3/files/${fileId}`,
-                    method: 'PATCH',
-                    params: { uploadType: 'media' },
-                    body: fileContent
-                });
-                
-                showStatus('✅ Google Drive 백업 완료!');
-
-            } catch(err) {
-                console.error("Google Drive Save Error:", err);
-                showStatus('❌ Google Drive 백업 실패', true);
-                if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
-                    handleDriveDisconnect();
-                    showModal({
-                        title: "인증 오류",
-                        text: "Google Drive 인증이 만료되었습니다. 설정에서 다시 계정을 연결해주세요.",
-                        buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]
-                    });
-                }
+                icon.innerHTML = isOpen ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
             }
-        }
-        
-        function addDragAndDropListeners(listEl) {
-            if (!listEl) return;
-            let draggedItemId = null;
+            
+            // --- Handlers ---
+            function handleGoogleLogin() {
+                loadingOverlay.style.display = 'flex';
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope(SCOPES);
 
-            listEl.addEventListener('dragstart', e => {
-                if (sidebarMode !== 'chapters') return;
-                const target = e.target.closest('.list-item');
-                if (target) {
-                    draggedItemId = target.dataset.id;
-                    setTimeout(() => target.classList.add('dragging'), 0);
-                }
-            });
-
-            listEl.addEventListener('dragover', e => {
-                if (!draggedItemId) return;
-                e.preventDefault();
-                const targetEl = e.target.closest('.list-item');
-                
-                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
-                    el.classList.remove('drag-over-item', 'drag-over-folder');
-                });
-
-                if (targetEl && targetEl.dataset.id !== draggedItemId) {
-                    if (targetEl.dataset.type === 'folder') {
-                        targetEl.classList.add('drag-over-folder');
-                    } else {
-                        targetEl.classList.add('drag-over-item');
-                    }
-                }
-            });
-
-            listEl.addEventListener('dragleave', e => {
-                e.target.closest('.list-item')?.classList.remove('drag-over-item', 'drag-over-folder');
-            });
-
-            listEl.addEventListener('dragend', e => {
-                draggedItemId = null;
-                listEl.querySelector('.dragging')?.classList.remove('dragging');
-                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
-                    el.classList.remove('drag-over-item', 'drag-over-folder');
-                });
-            });
-
-            listEl.addEventListener('drop', e => {
-                e.preventDefault();
-                if (!draggedItemId) return;
-
-                const targetEl = e.target.closest('.list-item');
-                const draggedItem = getItem(draggedItemId);
-                
-                listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => el.classList.remove('drag-over-item', 'drag-over-folder'));
-
-                if (!draggedItem) return;
-                
-                let newParentId = null;
-                let targetOrder = 0;
-
-                if (targetEl) {
-                    const targetItem = getItem(targetEl.dataset.id);
-                    if (targetItem && targetItem.id !== draggedItem.id) {
-                         if (targetItem.type === 'folder') {
-                            newParentId = targetItem.id;
-                            targetOrder = chapters.filter(c => c.parentId === newParentId).length;
+                auth.signInWithPopup(provider)
+                    .then(result => {
+                        const credential = result.credential;
+                        if (credential && credential.accessToken) {
+                            const accessToken = credential.accessToken;
+                            gapi.client.setToken({ 'access_token': accessToken });
+                            gapiAccessToken = { access_token: accessToken };
                         } else {
-                            newParentId = targetItem.parentId || null;
-                            targetOrder = targetItem.order;
+                             throw new Error("Google Drive Access Token not found in credential.");
                         }
-                    } else { return; }
+                    })
+                    .catch(error => {
+                        loadingOverlay.style.display = 'none';
+                        console.error("Google Login Error:", error);
+                        gapiAccessToken = null;
+                        showModal({title: "로그인 오류", text: error.message, buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover text-black rounded-md font-semibold'}]});
+                });
+            };
+
+            function handleLogout() {
+                auth.signOut();
+            };
+            
+            function handleNewProject() {
+                showModal({
+                    title: '새 프로젝트 생성', text: '새로운 프로젝트의 이름을 입력해주세요.', inputPlaceholder: '나의 멋진 소설',
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '생성', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold', 
+                            onClick: function(name) {
+                                if (!name) return;
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({
+                                    name: name,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                    lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+                                });
+                            }
+                        }
+                    ]
+                });
+            }
+
+            function handleProjectOptions(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.',
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleRenameProject(projectId), 10)},
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleDeleteProject(projectId), 10)}
+                    ]
+                });
+            };
+            
+            function handleRenameProject(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name, initialValue: project.name,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold', 
+                            onClick: function(newName) {
+                                if (!newName) return;
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                            }
+                        }
+                    ]
+                });
+            };
+            
+            function handleDeleteProject(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', 
+                            onClick: function() {
+                                const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
+                                projectRef.delete();
+                            }
+                        }
+                    ]
+                });
+            };
+
+            function handleNewItem(type, parentId = null) {
+                let newItemData;
+                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                
+                if (sidebarMode === 'chapters') {
+                    const siblings = chapters.filter(c => c.parentId === parentId);
+                    if (type === 'folder') {
+                        newItemData = { title: '새 폴더', type: 'folder', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                    } else {
+                        newItemData = { title: '새 회차', content: '', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                    }
                 } else {
-                    newParentId = null;
-                    targetOrder = chapters.filter(c => !c.parentId).length;
+                    newItemData = { name: '새 등장인물', personality: '', appearance: '', characteristics: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                 }
 
-                const batch = db.batch();
-                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
-                
-                const originalSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
-                originalSiblings.forEach((item, index) => {
-                    if (item.order !== index) {
-                        batch.update(collectionRef.doc(item.id), { order: index });
+                collectionRef.add(newItemData).then(newDocRef => {
+                    const newItemObject = { id: newDocRef.id, ...newItemData };
+                    if (sidebarMode === 'chapters') {
+                        chapters.push(newItemObject);
+                    } else {
+                        characters.push(newItemObject);
                     }
-                });
-
-                const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
-                newSiblings.splice(targetOrder, 0, draggedItem); 
-                
-                newSiblings.forEach((item, index) => {
-                    if (item.id === draggedItem.id) {
-                        batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
-                    } else if (item.order !== index) {
-                        batch.update(collectionRef.doc(item.id), { order: index });
-                    }
-                });
-
-                batch.commit().then(() => {
+                    
+                    activeItemId = newDocRef.id;
                     db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
-                }).catch(err => {
-                    console.error("Failed to reorder items:", err);
-                    showModal({title: "오류", text: "순서 변경에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
-                });
-            });
-        }
-        
-        // --- Settings ---
-        function saveSettings() {
-            localStorage.setItem('novelWriterSettings', JSON.stringify(settings));
-        }
-
-        function loadSettings() {
-            const savedSettings = localStorage.getItem('novelWriterSettings');
-            if (savedSettings) {
-                settings = JSON.parse(savedSettings);
-            }
-            applySettings();
-        }
-
-        function applySettings() {
-            document.body.dataset.theme = settings.theme;
-        }
-        
-        // ===================================
-        // ▼▼▼ 핵심 수정: renderSettings 함수 ▼▼▼
-        // ===================================
-        async function renderSettings() {
-            const themeButtons = appContainer.querySelectorAll('[data-theme-btn]');
-            const widthSlider = appContainer.querySelector('#editor-width-slider');
-            const widthValue = appContainer.querySelector('#editor-width-value');
-
-            themeButtons.forEach(btn => {
-                btn.classList.toggle('ring-2', btn.dataset.themeBtn === settings.theme);
-                btn.classList.toggle('ring-accent-primary', btn.dataset.themeBtn === settings.theme);
-            });
-            widthSlider.value = settings.editorWidth;
-            widthValue.textContent = `${settings.editorWidth}px`;
-            
-            const driveStatusArea = appContainer.querySelector('#drive-status-area');
-            if (!driveStatusArea) return;
-
-            // 이제 gapiAccessToken 유무로만 상태를 표시합니다.
-            if (gapiAccessToken) {
-                try {
-                    const response = await gapi.client.drive.about.get({ fields: 'user' });
-                    const driveUser = response.result.user;
-                    driveStatusArea.innerHTML = `
-                        <div class="flex items-center gap-4">
-                            <img src="${driveUser.photoLink}" class="w-10 h-10 rounded-full" alt="Google User Photo">
-                            <div class="flex-grow">
-                                <p class="font-semibold">${driveUser.displayName}</p>
-                                <p class="text-sm text-secondary">${driveUser.emailAddress}</p>
-                            </div>
-                            <button id="drive-disconnect-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결 해제</button>
-                        </div>
-                    `;
-                } catch(e) {
-                     handleDriveDisconnect();
-                     renderSettings(); // 에러 발생 시 UI 다시 그리기
-                }
-            } else {
-                driveStatusArea.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <p class="text-secondary">Google Drive 계정이 연결되지 않았습니다.</p>
-                        <p class="text-xs text-secondary">로그아웃 후 다시 로그인하여 권한을 허용해주세요.</p>
-                    </div>
-                `;
-            }
-        }
-        
-        // 이 함수는 이제 로그인 흐름에 포함되었으므로 직접 사용되지 않습니다.
-        function handleDriveConnect() {
-            showModal({title: "알림", text: "Google Drive 연동은 로그인 시 함께 진행됩니다. 연동을 원하시면 로그아웃 후 다시 로그인해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
-        }
-        
-        function handleDriveDisconnect() {
-            if (gapiAccessToken) {
-                google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {
-                    console.log('Token revoked.');
-                });
-            }
-            gapiAccessToken = null;
-            gapi.client.setToken(null);
-            if(appContainer.querySelector('#drive-status-area')) {
-                renderSettings();
-            }
-        }
-
-        // --- Central Event Handler ---
-        appContainer.addEventListener('click', (e) => {
-            const target = e.target;
-            const closest = (selector) => target.closest(selector);
-
-            if (closest('#google-login-btn')) return handleGoogleLogin();
-            if (closest('#new-project-btn')) return handleNewProject();
-            if (closest('#logout-btn')) return handleLogout();
-            if (closest('#settings-btn')) return renderView('settings');
-            
-            const projectCard = closest('.project-card');
-            if (projectCard) {
-                const optionsBtn = closest('[data-action="options"]');
-                if (optionsBtn) {
-                    e.stopPropagation();
-                    return handleProjectOptions(projectCard.dataset.projectId);
-                }
-                activeProjectId = projectCard.dataset.projectId;
-                sidebarMode = 'chapters';
-                activeItemId = null;
-                if (unsubscribes.items) unsubscribes.items();
-                renderView('editor');
-                loadItems();
-                return;
-            }
-
-            if (closest('#back-to-home-btn')) return renderView('home');
-            const themeBtn = closest('[data-theme-btn]');
-            if(themeBtn) {
-                settings.theme = themeBtn.dataset.themeBtn;
-                saveSettings();
-                applySettings();
-                renderSettings();
-                return;
-            }
-            if (closest('#editor-width-reset-btn')) {
-                settings.editorWidth = 370;
-                saveSettings();
-                renderSettings();
-                return;
-            }
-            if (closest('#drive-connect-btn')) return handleDriveConnect();
-            if (closest('#drive-disconnect-btn')) return handleDriveDisconnect();
-
-
-            if (closest('#home-btn')) return renderView('home');
-            if (closest('#editor-sidebar-toggle')) return toggleSidebar();
-            if (closest('#mobile-overlay')) return toggleSidebar(false);
-            
-            if (closest('#new-item-btn')) return handleNewItem(sidebarMode === 'chapters' ? 'chapter' : 'character');
-            if (closest('#new-folder-btn')) return handleNewItem('folder');
-
-            const tabBtn = closest('.tab-btn');
-            if (tabBtn) {
-                sidebarMode = tabBtn.dataset.tab;
-                activeItemId = null;
-                updateSidebarUI();
-                loadItems();
-                renderEditorPanel();
-                return;
-            }
-
-            const itemEl = closest('.list-item');
-            if (itemEl) {
-                if (closest('[data-action="toggle-folder"]')) {
-                    const folderId = itemEl.dataset.id;
-                    if (collapsedFolders.has(folderId)) collapsedFolders.delete(folderId);
-                    else collapsedFolders.add(folderId);
-                    renderItemList();
-                } else if (closest('[data-action="delete-item"]')) {
-                    handleDeleteItem(itemEl.dataset.id);
-                } else if (closest('[data-action="rename-item"]')) {
-                    handleRenameItem(itemEl.dataset.id);
-                } else {
-                    activeItemId = itemEl.dataset.id;
-                    if (window.innerWidth < 768) toggleSidebar(false);
+                    
                     renderItemList();
                     renderEditorPanel();
-                }
-                return;
+                }).catch(error => {
+                    console.error("Error adding new item:", error);
+                    showModal({title: "오류", text: "항목을 추가하는 데 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                });
+            }
+            
+            function handleDeleteItem(itemId) {
+                const item = getItem(itemId);
+                const isFolder = item?.type === 'folder';
+                const itemType = isFolder ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
+
+                let confirmationText = `정말로 이 ${itemType}를 삭제하시겠습니까?`;
+                if (isFolder) confirmationText += ' 폴더 안의 모든 회차도 함께 삭제됩니다.';
+
+                showModal({
+                    title: `${itemType} 삭제`, text: confirmationText,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', 
+                            onClick: async function() {
+                                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                                const batch = db.batch();
+                                
+                                if (isFolder) {
+                                    const childrenToDelete = chapters.filter(c => c.parentId === itemId);
+                                    childrenToDelete.forEach(child => batch.delete(collectionRef.doc(child.id)));
+                                }
+
+                                batch.delete(collectionRef.doc(itemId));
+                                await batch.commit();
+
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                                if (activeItemId === itemId) {
+                                    activeItemId = null;
+                                    renderEditorPanel();
+                                }
+                            }
+                        }
+                    ]
+                });
+            };
+
+            function handleRenameItem(itemId) {
+                const item = getItem(itemId);
+                if (!item) return;
+
+                showModal({
+                    title: `'${item.title || item.name}' 이름 변경`,
+                    text: '새로운 이름을 입력하세요.',
+                    inputPlaceholder: item.title || item.name,
+                    initialValue: item.title || item.name,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
+                            onClick: function(newName) {
+                                if (!newName || newName === (item.title || item.name)) return;
+                                const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
+                                const fieldToUpdate = sidebarMode === 'chapters' ? 'title' : 'name';
+                                collectionRef.doc(itemId).update({ [fieldToUpdate]: newName });
+                            }
+                        }
+                    ]
+                });
             }
 
-            if (closest('#copy-content-btn')) return handleCopyContent();
-            if (closest('#save-drive-btn')) return handleSaveToDrive();
-            if (closest('#save-txt-btn')) return handleSaveTxt();
-            if (closest('#char-count-container')) {
-                charCountMode = charCountMode === 'noSpecialChars' ? 'noSpaces' : 'noSpecialChars';
+            function handleEditorInput(e) {
+                if (!activeProjectId || !activeItemId) return;
                 updateCharCount();
-                return;
+                const key = `${activeProjectId}-${activeItemId}`;
+                clearTimeout(saveTimeouts[key]);
+                saveTimeouts[key] = setTimeout(saveCurrentWork, 500);
             }
-        });
 
-        appContainer.addEventListener('input', e => {
-            if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
-                handleEditorInput(e);
-            }
-            const widthSlider = e.target.closest('#editor-width-slider');
-            if(widthSlider) {
-                const widthValueEl = appContainer.querySelector('#editor-width-value');
-                settings.editorWidth = widthSlider.value;
-                widthValueEl.textContent = `${settings.editorWidth}px`;
-                saveSettings();
-            }
-        });
+            function saveCurrentWork() {
+                if (!activeProjectId || !activeItemId) return;
+                const item = getItem(activeItemId);
+                if (!item || item.type === 'folder') return;
 
-        initialize();
-    });
+                const editorPanel = appContainer.querySelector('#editor-panel');
+                if (!editorPanel) return;
+                
+                let data = {};
+                if (sidebarMode === 'chapters') {
+                    data.title = editorPanel.querySelector('#editor-title').value;
+                    data.content = editorPanel.querySelector('#editor-content').value;
+                } else {
+                    data.name = editorPanel.querySelector('#character-name').value;
+                    data.personality = editorPanel.querySelector('#character-personality').value;
+                    data.appearance = editorPanel.querySelector('#character-appearance').value;
+                    data.characteristics = editorPanel.querySelector('#character-characteristics').value;
+                }
+                const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
+                itemRef.update(data);
+                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+
+            function handleCopyContent() {
+                const contentEl = appContainer.querySelector('#editor-content');
+                if (!contentEl || !contentEl.value) return;
+                navigator.clipboard.writeText(contentEl.value);
+            }
+
+            function handleSaveTxt() {
+                const item = getItem(activeItemId);
+                if (sidebarMode === 'chapters' && activeItemId && item && item.type !== 'folder') {
+                    const project = getProject(activeProjectId);
+                    const content = `# ${item.title}\n\n${item.content}`;
+                    const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
+                    a.download = `[${project.name}] ${sanitizedTitle}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                } else {
+                    showModal({title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                }
+            };
+            
+            async function handleSaveToDrive() {
+                if (!gapiAccessToken) {
+                    showModal({
+                        title: "Google Drive 연결 필요",
+                        text: "Google Drive가 연결되지 않았습니다. 로그아웃 후 다시 로그인하여 권한을 허용해주세요.",
+                        buttons: [ { text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' } ]
+                    });
+                    return;
+                }
+
+                const item = getItem(activeItemId);
+                if (!item || sidebarMode !== 'chapters' || item.type === 'folder') {
+                    showModal({title: "알림", text: "백업할 회차를 선택해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                    return;
+                }
+
+                const statusEl = document.getElementById('save-status');
+                const showStatus = (msg, isError = false) => {
+                    if (statusEl) {
+                        statusEl.textContent = msg;
+                        statusEl.style.color = isError ? 'var(--accent-secondary)' : 'var(--text-secondary)';
+                        statusEl.classList.remove('opacity-0');
+                        setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
+                    }
+                };
+
+                showStatus('Google Drive에 백업하는 중...');
+                
+                try {
+                    const project = getProject(activeProjectId);
+                    const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
+                    const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
+                    const fileContent = `# ${item.title}\n\n${item.content}`;
+                    
+                    const fileMetadata = {
+                        'name': fileName,
+                        'mimeType': 'text/plain'
+                    };
+                    
+                    const createResponse = await gapi.client.drive.files.create({
+                        resource: fileMetadata,
+                        fields: 'id'
+                    });
+
+                    const fileId = createResponse.result.id;
+                    if (!fileId) {
+                        throw new Error("파일 생성에 실패했습니다.");
+                    }
+
+                    await gapi.client.request({
+                        path: `/upload/drive/v3/files/${fileId}`,
+                        method: 'PATCH',
+                        params: { uploadType: 'media' },
+                        body: fileContent
+                    });
+                    
+                    showStatus('✅ Google Drive 백업 완료!');
+
+                } catch(err) {
+                    console.error("Google Drive Save Error:", err);
+                    showStatus('❌ Google Drive 백업 실패', true);
+                    if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
+                        handleDriveDisconnect();
+                        showModal({
+                            title: "인증 오류",
+                            text: "Google Drive 인증이 만료되었습니다. 설정에서 다시 계정을 연결해주세요.",
+                            buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]
+                        });
+                    }
+                }
+            }
+            
+            function addDragAndDropListeners(listEl) {
+                if (!listEl) return;
+                let draggedItemId = null;
+
+                listEl.addEventListener('dragstart', e => {
+                    if (sidebarMode !== 'chapters') return;
+                    const target = e.target.closest('.list-item');
+                    if (target) {
+                        draggedItemId = target.dataset.id;
+                        setTimeout(() => target.classList.add('dragging'), 0);
+                    }
+                });
+
+                listEl.addEventListener('dragover', e => {
+                    if (!draggedItemId) return;
+                    e.preventDefault();
+                    const targetEl = e.target.closest('.list-item');
+                    
+                    listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                        el.classList.remove('drag-over-item', 'drag-over-folder');
+                    });
+
+                    if (targetEl && targetEl.dataset.id !== draggedItemId) {
+                        if (targetEl.dataset.type === 'folder') {
+                            targetEl.classList.add('drag-over-folder');
+                        } else {
+                            targetEl.classList.add('drag-over-item');
+                        }
+                    }
+                });
+
+                listEl.addEventListener('dragleave', e => {
+                    e.target.closest('.list-item')?.classList.remove('drag-over-item', 'drag-over-folder');
+                });
+
+                listEl.addEventListener('dragend', e => {
+                    draggedItemId = null;
+                    listEl.querySelector('.dragging')?.classList.remove('dragging');
+                    listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                        el.classList.remove('drag-over-item', 'drag-over-folder');
+                    });
+                });
+
+                listEl.addEventListener('drop', e => {
+                    e.preventDefault();
+                    if (!draggedItemId) return;
+
+                    const targetEl = e.target.closest('.list-item');
+                    const draggedItem = getItem(draggedItemId);
+                    
+                    listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => el.classList.remove('drag-over-item', 'drag-over-folder'));
+
+                    if (!draggedItem) return;
+                    
+                    let newParentId = null;
+                    let targetOrder = 0;
+
+                    if (targetEl) {
+                        const targetItem = getItem(targetEl.dataset.id);
+                        if (targetItem && targetItem.id !== draggedItem.id) {
+                             if (targetItem.type === 'folder') {
+                                newParentId = targetItem.id;
+                                targetOrder = chapters.filter(c => c.parentId === newParentId).length;
+                            } else {
+                                newParentId = targetItem.parentId || null;
+                                targetOrder = targetItem.order;
+                            }
+                        } else { return; }
+                    } else {
+                        newParentId = null;
+                        targetOrder = chapters.filter(c => !c.parentId).length;
+                    }
+
+                    const batch = db.batch();
+                    const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
+                    
+                    const originalSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
+                    originalSiblings.forEach((item, index) => {
+                        if (item.order !== index) {
+                            batch.update(collectionRef.doc(item.id), { order: index });
+                        }
+                    });
+
+                    const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
+                    newSiblings.splice(targetOrder, 0, draggedItem); 
+                    
+                    newSiblings.forEach((item, index) => {
+                        if (item.id === draggedItem.id) {
+                            batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
+                        } else if (item.order !== index) {
+                            batch.update(collectionRef.doc(item.id), { order: index });
+                        }
+                    });
+
+                    batch.commit().then(() => {
+                        db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                    }).catch(err => {
+                        console.error("Failed to reorder items:", err);
+                        showModal({title: "오류", text: "순서 변경에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                    });
+                });
+            }
+            
+            // --- Settings ---
+            function saveSettings() {
+                localStorage.setItem('novelWriterSettings', JSON.stringify(settings));
+            }
+
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('novelWriterSettings');
+                if (savedSettings) {
+                    settings = JSON.parse(savedSettings);
+                }
+                applySettings();
+            }
+
+            function applySettings() {
+                document.body.dataset.theme = settings.theme;
+            }
+            
+            async function renderSettings() {
+                const themeButtons = appContainer.querySelectorAll('[data-theme-btn]');
+                const widthSlider = appContainer.querySelector('#editor-width-slider');
+                const widthValue = appContainer.querySelector('#editor-width-value');
+
+                themeButtons.forEach(btn => {
+                    btn.classList.toggle('ring-2', btn.dataset.themeBtn === settings.theme);
+                    btn.classList.toggle('ring-accent-primary', btn.dataset.themeBtn === settings.theme);
+                });
+                widthSlider.value = settings.editorWidth;
+                widthValue.textContent = `${settings.editorWidth}px`;
+                
+                const driveStatusArea = appContainer.querySelector('#drive-status-area');
+                if (!driveStatusArea) return;
+
+                if (gapiAccessToken) {
+                    try {
+                        const response = await gapi.client.drive.about.get({ fields: 'user' });
+                        const driveUser = response.result.user;
+                        driveStatusArea.innerHTML = `
+                            <div class="flex items-center gap-4">
+                                <img src="${driveUser.photoLink}" class="w-10 h-10 rounded-full" alt="Google User Photo">
+                                <div class="flex-grow">
+                                    <p class="font-semibold">${driveUser.displayName}</p>
+                                    <p class="text-sm text-secondary">${driveUser.emailAddress}</p>
+                                </div>
+                                <button id="drive-disconnect-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결 해제</button>
+                            </div>
+                        `;
+                    } catch(e) {
+                         handleDriveDisconnect();
+                         renderSettings();
+                    }
+                } else {
+                    driveStatusArea.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <p class="text-secondary">Google Drive 계정이 연결되지 않았습니다.</p>
+                            <p class="text-xs text-secondary">로그아웃 후 다시 로그인하여 권한을 허용해주세요.</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            function handleDriveConnect() {
+                showModal({title: "알림", text: "Google Drive 연동은 로그인 시 함께 진행됩니다. 연동을 원하시면 로그아웃 후 다시 로그인해주세요.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+            }
+            
+            function handleDriveDisconnect() {
+                if (gapiAccessToken && gapiAccessToken.access_token) {
+                     google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {});
+                }
+                gapiAccessToken = null;
+                gapi.client.setToken(null);
+                if(appContainer.querySelector('#drive-status-area')) {
+                    renderSettings();
+                }
+            }
+
+            // --- Central Event Handler ---
+            appContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                const closest = (selector) => target.closest(selector);
+
+                if (closest('#google-login-btn')) return handleGoogleLogin();
+                if (closest('#new-project-btn')) return handleNewProject();
+                if (closest('#logout-btn')) return handleLogout();
+                if (closest('#settings-btn')) return renderView('settings');
+                
+                const projectCard = closest('.project-card');
+                if (projectCard) {
+                    const optionsBtn = closest('[data-action="options"]');
+                    if (optionsBtn) {
+                        e.stopPropagation();
+                        return handleProjectOptions(projectCard.dataset.projectId);
+                    }
+                    activeProjectId = projectCard.dataset.projectId;
+                    sidebarMode = 'chapters';
+                    activeItemId = null;
+                    if (unsubscribes.items) unsubscribes.items();
+                    renderView('editor');
+                    loadItems();
+                    return;
+                }
+
+                if (closest('#back-to-home-btn')) return renderView('home');
+                const themeBtn = closest('[data-theme-btn]');
+                if(themeBtn) {
+                    settings.theme = themeBtn.dataset.themeBtn;
+                    saveSettings();
+                    applySettings();
+                    renderSettings();
+                    return;
+                }
+                if (closest('#editor-width-reset-btn')) {
+                    settings.editorWidth = 370;
+                    saveSettings();
+                    renderSettings();
+                    return;
+                }
+                if (closest('#drive-connect-btn')) return handleDriveConnect();
+                if (closest('#drive-disconnect-btn')) return handleDriveDisconnect();
+
+
+                if (closest('#home-btn')) return renderView('home');
+                if (closest('#editor-sidebar-toggle')) return toggleSidebar();
+                if (closest('#mobile-overlay')) return toggleSidebar(false);
+                
+                if (closest('#new-item-btn')) return handleNewItem(sidebarMode === 'chapters' ? 'chapter' : 'character');
+                if (closest('#new-folder-btn')) return handleNewItem('folder');
+
+                const tabBtn = closest('.tab-btn');
+                if (tabBtn) {
+                    sidebarMode = tabBtn.dataset.tab;
+                    activeItemId = null;
+                    updateSidebarUI();
+                    loadItems();
+                    renderEditorPanel();
+                    return;
+                }
+
+                const itemEl = closest('.list-item');
+                if (itemEl) {
+                    if (closest('[data-action="toggle-folder"]')) {
+                        const folderId = itemEl.dataset.id;
+                        if (collapsedFolders.has(folderId)) collapsedFolders.delete(folderId);
+                        else collapsedFolders.add(folderId);
+                        renderItemList();
+                    } else if (closest('[data-action="delete-item"]')) {
+                        handleDeleteItem(itemEl.dataset.id);
+                    } else if (closest('[data-action="rename-item"]')) {
+                        handleRenameItem(itemEl.dataset.id);
+                    } else {
+                        activeItemId = itemEl.dataset.id;
+                        if (window.innerWidth < 768) toggleSidebar(false);
+                        renderItemList();
+                        renderEditorPanel();
+                    }
+                    return;
+                }
+
+                if (closest('#copy-content-btn')) return handleCopyContent();
+                if (closest('#save-drive-btn')) return handleSaveToDrive();
+                if (closest('#save-txt-btn')) return handleSaveTxt();
+                if (closest('#char-count-container')) {
+                    charCountMode = charCountMode === 'noSpecialChars' ? 'noSpaces' : 'noSpecialChars';
+                    updateCharCount();
+                    return;
+                }
+            });
+
+            appContainer.addEventListener('input', e => {
+                if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
+                    handleEditorInput(e);
+                }
+                const widthSlider = e.target.closest('#editor-width-slider');
+                if(widthSlider) {
+                    const widthValueEl = appContainer.querySelector('#editor-width-value');
+                    settings.editorWidth = widthSlider.value;
+                    widthValueEl.textContent = `${settings.editorWidth}px`;
+                    saveSettings();
+                }
+            });
+
+            initialize();
+        });
     </script>
 </body>
 </html>
