@@ -86,7 +86,6 @@
     </div>
     <div id="app-container" class="h-screen w-screen"></div>
 
-    <!-- TEMPLATES -->
     <template id="login-view-template">
         <div class="flex flex-col items-center justify-center h-full text-center p-4">
             <h1 class="text-4xl font-bold">나만의 작업실</h1>
@@ -224,7 +223,15 @@
             </div>
         </div>
     </template>
-    <template id="modal-template"><!-- unchanged --></template>
+    <template id="modal-template">
+        <div id="modal-content" class="bg-card rounded-lg shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
+            <h2 id="modal-title" class="text-2xl font-bold"></h2>
+            <p id="modal-text" class="text-secondary"></p>
+            <div id="modal-custom-content"></div>
+            <input id="modal-input" type="text" class="hidden bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border border-main">
+            <div id="modal-buttons" class="flex justify-end gap-3 mt-2"></div>
+        </div>
+    </template>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -480,6 +487,8 @@
             
             if (activeItemId) renderEditorPanel();
             else appContainer.querySelector('#editor-panel').innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">왼쪽에서 항목을 선택해주세요.</div>`;
+            
+            addDragAndDropListeners(appContainer.querySelector('#item-list'));
         }
         
         function renderItemList() {
@@ -969,6 +978,7 @@
                 const batch = db.batch();
                 const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/chapters`);
                 
+                // 1. 기존 위치에서 아이템 제거 후 재정렬
                 const originalSiblings = chapters.filter(c => c.parentId === draggedItem.parentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
                 originalSiblings.forEach((item, index) => {
                     if (item.order !== index) {
@@ -976,8 +986,9 @@
                     }
                 });
 
+                // 2. 새 위치에 아이템 삽입 후 재정렬
                 const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
-                newSiblings.splice(targetOrder, 0, draggedItem);
+                newSiblings.splice(targetOrder, 0, draggedItem); 
                 
                 newSiblings.forEach((item, index) => {
                     if (item.id === draggedItem.id) {
