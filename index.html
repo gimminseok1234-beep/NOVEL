@@ -146,9 +146,12 @@
         .tab-btn.active {
             background-color: #37373d;
         }
-
+        
+        /* MODIFIED: Enhanced indentation for nested items */
         .folder-content {
-            padding-left: 1.25rem;
+            padding-left: 1.5rem; /* Increased padding */
+            border-left: 1px solid #3f3f46; /* Added vertical line */
+            margin-left: 0.5rem; /* Space between caret and line */
             display: none;
         }
 
@@ -680,6 +683,7 @@
                 }
             }
             
+            // MODIFIED: Reworked element creation for better layout and specific actions
             function createItemElement(item) {
                 const isFolder = item.type === 'folder';
                 const wrapper = document.createElement(isFolder ? 'div' : 'div');
@@ -691,35 +695,29 @@
                 itemEl.dataset.type = item.type || 'chapter';
                 itemEl.draggable = sidebarMode === 'chapters';
 
-                let leftSideHtml = '';
                 let rightSideHtml = '';
 
-                // MODIFIED: Simplified actions for folders vs chapters
                 if (isFolder) {
-                    leftSideHtml = `
-                        <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                        <svg class="h-5 w-5 mr-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                        <span class="truncate pointer-events-none"></span>
+                    itemEl.innerHTML = `
+                        <div class="flex items-center truncate flex-1 min-w-0">
+                            <svg class="folder-toggle-icon h-4 w-4 transition-transform pointer-events-none flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                            <svg class="h-5 w-5 mx-1 text-gray-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                            <span class="truncate pointer-events-none"></span>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <button class="options-btn p-1 rounded-full hover:bg-surface" data-action="folder-options">
+                                <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                            </button>
+                        </div>
                     `;
-                    rightSideHtml = `
-                        <button class="options-btn p-1 rounded-full hover:bg-surface" data-action="folder-options">
-                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                } else {
+                    itemEl.innerHTML = `
+                        <span class="truncate pointer-events-none flex-1 min-w-0"></span>
+                        <button class="delete-btn p-1 rounded-full hover:bg-red-500/20 flex-shrink-0" data-action="delete-item">
+                            <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                         </button>
                     `;
-                } else { // It's a chapter or a character
-                    leftSideHtml = `<span class="truncate pointer-events-none"></span>`;
-                    if (sidebarMode === 'chapters') {
-                        rightSideHtml = `
-                            <button class="delete-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item">
-                                <svg class="h-4 w-4 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                            </button>
-                        `;
-                    }
                 }
-
-                itemEl.innerHTML = `
-                    <div class="flex items-center truncate flex-1 min-w-0">${leftSideHtml}</div>
-                    <div class="flex items-center flex-shrink-0">${rightSideHtml}</div>`;
                 
                 itemEl.querySelector('span').textContent = item.title || item.name;
                 if (item.id === activeItemId) itemEl.classList.add('active');
@@ -792,19 +790,6 @@
                 labelEl.textContent = label;
             }
 
-            function showSaveStatus(message, isError) {
-                const statusEl = document.getElementById('save-status');
-                if (!statusEl) return;
-                statusEl.textContent = message;
-                statusEl.className = `text-sm transition-opacity duration-500 opacity-100 ${isError ? 'text-red-400' : 'text-gray-500'} mr-auto`;
-                
-                clearTimeout(statusEl.fadeTimeout);
-                statusEl.fadeTimeout = setTimeout(function() {
-                    statusEl.classList.remove('opacity-100');
-                    statusEl.classList.add('opacity-0');
-                }, 2000);
-            }
-
             function saveCurrentWork() {
                 if (activeView !== 'editor' || !activeProjectId || !activeItemId) return;
                 
@@ -826,12 +811,11 @@
                 
                 const itemRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`).doc(activeItemId);
                 itemRef.update(data).then(() => {
-                    showSaveStatus('저장됨');
+                    // REMOVED: Save status feedback
                     db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({
                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }).catch((error) => {
-                     showSaveStatus('저장 실패', true);
                      console.error("Save failed:", error);
                 });
             }
@@ -899,6 +883,7 @@
                         loadItems();
                         renderEditorPanel();
                     } else if (folderOptionsBtn) {
+                        e.stopPropagation();
                         const folderId = folderOptionsBtn.closest('.list-item').dataset.id;
                         handleFolderOptions(folderId);
                     } else if (listItem) {
@@ -1053,7 +1038,6 @@
                 });
             }
 
-            // MODIFIED: New function for folder options modal
             function handleFolderOptions(folderId) {
                 const folder = chapters.find(f => f.id === folderId);
                 if (!folder) return;
@@ -1061,10 +1045,16 @@
                     title: `'${folder.name}' 폴더`,
                     buttons: [
                         { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md font-semibold',
-                            onClick: () => setTimeout(() => handleRenameFolder(folderId, folder.name), 50)
+                            onClick: () => {
+                                closeModal(); // Close this modal before opening the next
+                                handleRenameFolder(folderId, folder.name);
+                            }
                         },
                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 rounded-md font-semibold',
-                            onClick: () => setTimeout(() => handleDeleteItem(folderId, 'folder'), 50)
+                            onClick: () => {
+                                closeModal();
+                                handleDeleteItem(folderId, 'folder');
+                            }
                         },
                         { text: '취소', class: 'px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-md font-semibold' }
                     ]
