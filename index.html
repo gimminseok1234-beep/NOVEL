@@ -108,6 +108,11 @@
         [data-theme="light"] #editor-content-wrapper {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
+        
+        /* --- [NEW] 문장 간격 조정 --- */
+        #editor-content {
+            line-height: 1.8; 
+        }
 
         /* --- 기존 스타일 --- */
 
@@ -282,7 +287,7 @@
                     <h2 class="text-xl font-semibold mb-4">에디터 너비 설정</h2>
                     <div class="flex items-center gap-4">
                         <input id="editor-width-slider" type="range" min="300" max="900" step="10" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
-                        <span id="editor-width-value" class="font-semibold w-16 text-center">370px</span>
+                        <span id="editor-width-value" class="font-semibold w-16 text-center">450px</span>
                         <button id="editor-width-reset-btn" class="text-sm bg-surface hover:bg-hover px-3 py-1 rounded-md border border-main">기본값</button>
                     </div>
                 </div>
@@ -488,7 +493,7 @@
             
             let settings = {
                 theme: 'dark',
-                editorWidth: 370
+                editorWidth: 450
             };
             
             function initialize() {
@@ -1654,7 +1659,7 @@
                     return;
                 }
                 if (closest('#editor-width-reset-btn')) {
-                    settings.editorWidth = 370;
+                    settings.editorWidth = 450;
                     saveSettings();
                     renderSettings();
                     return;
