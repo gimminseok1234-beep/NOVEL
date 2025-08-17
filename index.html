@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>소설 집필 프로그램</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -121,8 +121,7 @@
         
         @media (max-width: 767px) { 
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } 
-            /* [수정] ID 선택자를 추가하여 CSS 우선순위를 높여 모바일에서 여백이 확실히 줄어들도록 수정 */
-            #item-list .list-item {
+            .list-item {
                 padding-top: 0.25rem;
                 padding-bottom: 0.25rem;
             }
