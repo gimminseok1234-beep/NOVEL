@@ -957,7 +957,6 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
-            // ▼▼▼ 수정된 부분 ▼▼▼
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.value) {
@@ -1033,15 +1032,13 @@
                     return;
                 }
 
-                showEditorStatus('Drive 폴더 확인 중...');
+                showEditorStatus('백업 중...');
                 
                 try {
                     const folderId = await getOrCreateFolderId();
                     if (!folderId) {
                         throw new Error("폴더를 찾거나 생성할 수 없습니다.");
                     }
-
-                    showEditorStatus('Drive에 백업하는 중...');
 
                     const project = getProject(activeProjectId);
                     const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
@@ -1081,7 +1078,7 @@
                         body: fileContent
                     });
                     
-                    showEditorStatus('✅ Drive 백업 완료');
+                    showEditorStatus('백업 완료!');
 
                 } catch(err) {
                     console.error("Google Drive Save Error:", err);
