@@ -118,12 +118,12 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
-        
         @media (max-width: 767px) { 
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } 
-            .list-item {
-                padding-top: 0.25rem;
-                padding-bottom: 0.25rem;
+            /* [추가] 모바일에서 선택된(.active) 항목의 여백이 커지는 문제를 해결하기 위한 강제 스타일 */
+            #item-list .list-item.active {
+                padding-top: 0.25rem !important;
+                padding-bottom: 0.25rem !important;
             }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
@@ -688,7 +688,8 @@
                 const isFolder = item.type === 'folder';
                 const isCollapsed = collapsedFolders.has(item.id);
 
-                itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm flex-col`;
+                // [수정] p-2 클래스를 반응형 클래스(py-1 md:py-2)로 변경하고 불필요한 flex-col 제거
+                itemEl.className = `list-item py-1 md:py-2 px-3 rounded-md cursor-pointer text-sm`;
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
                 itemEl.draggable = true;
