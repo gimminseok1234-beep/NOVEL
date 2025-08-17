@@ -659,7 +659,7 @@
                     if (node.children && node.children.length > 0) {
                         const childrenContainer = container.lastChild.querySelector('.folder-children');
                         if(childrenContainer) {
-                           node.children.forEach(childNode => renderNode(childNode, childrenContainer));
+                           node.children.forEach(childNode => renderNode(childNode, container));
                         }
                     }
                 }
@@ -688,25 +688,27 @@
                 // --- 모바일 UI: 단순하고 안정적인 목록 ---
                 if (isMobile) {
                     const isFolder = item.type === 'folder';
-                    itemEl.className = 'list-item flex items-center justify-between w-full p-3 rounded-md text-sm cursor-pointer border-b border-main';
+                    itemEl.className = 'list-item flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer border-b border-main';
                     if (item.id === activeItemId) {
                         itemEl.classList.add('active');
                     }
                     itemEl.dataset.id = item.id;
                     itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
-                    itemEl.draggable = false; // 모바일에서 드래그 기능 비활성화
+                    itemEl.draggable = false;
 
                     itemEl.innerHTML = `
-                        <div class="flex items-center gap-3 truncate">
+                        <div class="flex items-center gap-3 truncate flex-1 min-w-0">
                             ${isFolder
                                 ? `<svg class="h-5 w-5 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
                                 : `<svg class="h-5 w-5 text-secondary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>`
                             }
                             <span class="truncate">${item.title || item.name}</span>
                         </div>
-                        <button data-action="delete-item" class="p-1 rounded-full text-red-400 hover:bg-red-500/20">
-                            <svg class="h-5 w-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                        </button>
+                        <div class="flex-shrink-0">
+                            <button data-action="delete-item" class="p-1 rounded-full text-red-400 hover:bg-red-500/20">
+                                <svg class="h-5 w-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
                     `;
                 // --- 데스크톱 UI: 기존 트리 구조 ---
                 } else {
@@ -757,7 +759,7 @@
                 if (!editorPanel) return;
                 const item = getItem(activeItemId);
 
-                if (!item || (sidebarMode === 'chapters' && item.type === 'folder' && window.innerWidth < 768)) {
+                if (!item || (sidebarMode === 'chapters' && item.type === 'folder')) {
                     editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">${item ? '폴더가 선택되었습니다.' : '항목을 선택해주세요.'}</div>`;
                     return;
                 }
