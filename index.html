@@ -118,7 +118,69 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
-        @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
+
+        @media (max-width: 767px) { 
+            #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
+
+            /* --- [최종] 모바일 목록 UI 리셋 및 재설계 --- */
+            #item-list {
+                border-top: 1px solid var(--border-main);
+            }
+            /* 1. 목록 아이템 전체 스타일 강제 지정 */
+            #item-list .list-item {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                height: 48px !important;
+                padding: 0 12px !important;
+                border-bottom: 1px solid var(--border-main);
+                border-radius: 0;
+                margin-top: 0 !important;
+                background-color: transparent !important; /* 호버/폴더 배경색 제거 */
+            }
+            #item-list .list-item.active {
+                background-color: var(--bg-hover) !important;
+            }
+            #item-list .list-item:hover {
+                transform: none !important;
+                background-color: var(--bg-hover) !important;
+            }
+
+            /* 2. 기존 내부 구조 무시하고 내용물 재배치 */
+            #item-list .list-item > .flex {
+                display: contents;
+            }
+
+            /* 3. 아이콘/텍스트 영역 (왼쪽) */
+            #item-list .list-item .flex-1 {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem; /* 12px */
+            }
+
+            /* 4. 삭제 버튼 항상 보이게 하고 위치 고정 (오른쪽) */
+            #item-list .list-item .action-btn {
+                visibility: visible !important;
+                opacity: 1 !important;
+                margin-left: auto;
+            }
+            #item-list .list-item .action-btn[data-action="rename-item"] {
+                display: none; /* 모바일에서 이름변경 버튼 숨김 */
+            }
+
+            /* 5. 데스크톱용 스타일 초기화 */
+            #item-list .list-item svg.ml-4 {
+                margin-left: 0 !important;
+            }
+            #item-list .list-item .folder-toggle {
+                display: none !important; /* 폴더 토글 버튼 숨김 */
+            }
+            
+            /* 6. 폴더 하위 목록 숨김 */
+            #item-list .folder-children {
+                display: none !important;
+            }
+        }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
 </head>
@@ -659,7 +721,7 @@
                     if (node.children && node.children.length > 0) {
                         const childrenContainer = container.lastChild.querySelector('.folder-children');
                         if(childrenContainer) {
-                           node.children.forEach(childNode => renderNode(childNode, container));
+                           node.children.forEach(childNode => renderNode(childNode, childrenContainer));
                         }
                     }
                 }
@@ -688,7 +750,7 @@
                 // --- 모바일 UI: 단순하고 안정적인 목록 ---
                 if (isMobile) {
                     const isFolder = item.type === 'folder';
-                    itemEl.className = 'list-item flex items-center w-full py-2 px-3 rounded-md text-sm cursor-pointer border-b border-main';
+                    itemEl.className = 'list-item flex items-center w-full py-2 px-3 text-sm cursor-pointer';
                     if (item.id === activeItemId) {
                         itemEl.classList.add('active');
                     }
