@@ -120,9 +120,22 @@
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
         @media (max-width: 767px) { 
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } 
-            /* [수정] 모바일에서 선택된(.active) 항목의 불필요한 여백을 제거합니다. */
-            #item-list .list-item.active {
-                padding-block: 0.25rem !important;
+            
+            /* [최종 수정] 아이템별 UI 정밀 조정 */
+            
+            /* 1. '회차' 아이템: 높이 고정 후 내부 Flexbox를 확장시켜 완벽한 중앙 정렬 구현 */
+            #item-list .list-item-chapter {
+                height: 38px !important;
+                padding: 0 !important;
+            }
+            #item-list .list-item-chapter > .flex {
+                height: 100% !important;
+            }
+
+            /* 2. '폴더' 아이템: 상하 여백을 더 줄여서 UI 균형 맞춤 */
+            #item-list .list-item-folder {
+                padding-top: 4px !important;
+                padding-bottom: 4px !important;
             }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
@@ -687,8 +700,7 @@
                 const isFolder = item.type === 'folder';
                 const isCollapsed = collapsedFolders.has(item.id);
 
-                // [수정] p-2 클래스를 반응형 클래스(py-1 md:py-2)로 변경하고 불필요한 flex-col 제거
-                itemEl.className = `list-item py-1 md:py-2 px-3 rounded-md cursor-pointer text-sm`;
+                itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm flex-col`;
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
                 itemEl.draggable = true;
