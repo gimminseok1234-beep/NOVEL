@@ -69,9 +69,9 @@
         <div class="flex flex-col items-center justify-center h-full text-center p-4">
             <h1 class="text-4xl font-bold">나만의 작업실</h1>
             <p class="text-gray-400 mb-8">당신의 이야기를 펼쳐보세요.</p>
-            <button id="google-login-btn" class="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-3 transition-transform hover:scale-105" disabled>
+            <button id="google-login-btn" class="bg-white text-black font-bold py-3 px-6 rounded-lg flex items-center gap-3 transition-transform hover:scale-105">
                 <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.222 0-9.61-3.317-11.28-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C42.021 35.596 44 30.138 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
-                <span id="google-login-btn-text">준비 중...</span>
+                <span id="google-login-btn-text">Google 계정으로 시작하기</span>
             </button>
         </div>
     </template>
@@ -244,63 +244,50 @@
         let gisInited = false;
         let tokenClient;
         
+        // ▼▼▼ 수정된 부분: 함수를 전역 스코프로 이동 ▼▼▼
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
         }
         
-        // ▼▼▼ 수정된 부분 ▼▼▼
         async function initializeGapiClient() {
             try {
-                // API 키를 init에서 제거. Discovery Document는 공개적으로 접근 가능.
-                // API 호출 시 인증은 OAuth 토큰으로 처리됨.
                 await gapi.client.init({ discoveryDocs: DISCOVERY_DOCS });
                 gapiInited = true;
-                checkApisAndEnableLogin();
             } catch (error) {
                 console.error("Google API 클라이언트 초기화 오류:", error);
+                // 로그인 화면이 아니더라도 오류를 인지할 수 있도록 처리
                 const loginButtonText = document.getElementById('google-login-btn-text');
                 if (loginButtonText) {
                     loginButtonText.textContent = 'Google API 로드 실패';
                 }
             }
         }
-        // ▲▲▲ 수정된 부분 ▲▲▲
 
         function gisLoaded() {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: SCOPES,
                 callback: (tokenResponse) => {
+                    const appContainer = document.getElementById('app-container');
                     if (tokenResponse && tokenResponse.access_token) {
-                        gapiAccessToken = tokenResponse;
                         gapi.client.setToken(tokenResponse);
-                        renderSettings();
+                        // renderSettings 함수는 DOMContentLoaded 내에 있으므로,
+                        // 전역 이벤트나 다른 방식으로 호출해야 합니다.
+                        // 여기서는 간단하게 커스텀 이벤트를 사용합니다.
+                        appContainer.dispatchEvent(new CustomEvent('driveConnected', { detail: tokenResponse }));
                     } else {
                         console.error("Google Drive 연결 실패: 토큰을 받지 못했습니다.");
-                        showModal({
+                        appContainer.dispatchEvent(new CustomEvent('showModal', { detail: {
                             title: "연결 오류",
                             text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
                             buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
-                        });
+                        }}));
                     }
                 },
             });
             gisInited = true;
-            checkApisAndEnableLogin();
         }
-        
-        function checkApisAndEnableLogin() {
-            if (gapiInited && gisInited) {
-                const loginButton = document.getElementById('google-login-btn');
-                const loginButtonText = document.getElementById('google-login-btn-text');
-                if (loginButton && loginButton.disabled) {
-                    loginButton.disabled = false;
-                    if (loginButtonText.textContent === '준비 중...') {
-                       loginButtonText.textContent = 'Google 계정으로 시작하기';
-                    }
-                }
-            }
-        }
+        // ▲▲▲ 수정된 부분 ▲▲▲
 
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');
@@ -481,9 +468,6 @@
                 if (viewName === 'home') renderHome();
                 else if (viewName === 'editor') renderEditor();
                 else if (viewName === 'settings') renderSettings();
-                else if (viewName === 'login') {
-                    checkApisAndEnableLogin();
-                }
             }
 
             function renderHome() {
@@ -754,6 +738,14 @@
 
             // --- Handlers ---
             function handleGoogleLogin() {
+                if (!gapiInited || !gisInited) {
+                    showModal({
+                        title: "준비 중",
+                        text: "Google 로그인 서비스가 아직 준비 중입니다. 잠시 후 다시 시도해주세요.",
+                        buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
+                    });
+                    return;
+                }
                 loadingOverlay.style.display = 'flex';
                 const provider = new firebase.auth.GoogleAuthProvider();
                 
@@ -1344,6 +1336,17 @@
                     saveSettings();
                 }
             });
+
+            // ▼▼▼ 수정된 부분: 커스텀 이벤트 리스너 추가 ▼▼▼
+            appContainer.addEventListener('driveConnected', (e) => {
+                gapiAccessToken = e.detail;
+                renderSettings();
+            });
+
+            appContainer.addEventListener('showModal', (e) => {
+                showModal(e.detail);
+            });
+            // ▲▲▲ 수정된 부분 ▲▲▲
 
             initialize();
         });
