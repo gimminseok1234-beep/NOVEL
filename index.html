@@ -41,7 +41,7 @@
             -ms-user-select: none;
             user-select: none;
         }
-        input, textarea {
+        input, textarea, [contenteditable] {
             -webkit-user-select: auto;
             -moz-user-select: auto;
             -ms-user-select: auto;
@@ -92,8 +92,9 @@
         }
 
         /* 6. 입력창 포커스 효과 */
-        input:focus, textarea:focus {
+        input:focus, textarea:focus, [contenteditable]:focus {
             border-color: var(--accent-primary);
+            outline: none;
         }
         
         /* --- 원고 영역 색상 구분 (라이트/다크 모두 적용) --- */
@@ -110,8 +111,9 @@
         }
         
         /* --- [NEW] 문장 및 문단 간격 조정 --- */
-        #editor-content {
-            line-height: 1.7; /* 문장 내 줄 간격은 좁게 조정 */
+        #editor-content p {
+            line-height: 1.7; /* 문장 내 줄 간격은 좁게 유지 */
+            margin-bottom: 1.2rem; /* 문단 사이의 간격을 넓게 설정 */
         }
 
         /* --- 기존 스타일 --- */
@@ -346,7 +348,7 @@
         <div class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <div id="editor-content-wrapper" class="mx-auto h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
-                <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
+                <div id="editor-content" contenteditable="true" class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
             </div>
         </div>
     </template>
@@ -870,7 +872,8 @@
                     const wrapper = editorPanel.querySelector('#editor-content-wrapper');
                     wrapper.style.maxWidth = `${settings.editorWidth}px`;
                     editorPanel.querySelector('#editor-title').value = item.title || '';
-                    editorPanel.querySelector('#editor-content').value = item.content || '';
+                    const contentEl = editorPanel.querySelector('#editor-content');
+                    contentEl.innerHTML = item.content ? item.content.replace(/\n/g, '<br>') : '<p><br></p>';
                 } else {
                     editorPanel.querySelector('#character-name').value = item.name || '';
                     editorPanel.querySelector('#character-personality').value = item.personality || '';
@@ -912,7 +915,7 @@
                 let content = '';
                 if (sidebarMode === 'chapters') {
                     const contentEl = appContainer.querySelector('#editor-content');
-                    if(contentEl) content = contentEl.value;
+                    if(contentEl) content = contentEl.innerText;
                 }
                 
                 let count = 0;
@@ -1287,7 +1290,7 @@
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    data.content = editorPanel.querySelector('#editor-content').value;
+                    data.content = editorPanel.querySelector('#editor-content').innerText;
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
@@ -1301,11 +1304,11 @@
 
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
-                if (!contentEl || !contentEl.value) {
+                if (!contentEl || !contentEl.innerText) {
                     showEditorStatus('복사할 내용이 없습니다.', true);
                     return;
                 }
-                navigator.clipboard.writeText(contentEl.value).then(() => {
+                navigator.clipboard.writeText(contentEl.innerText).then(() => {
                     showEditorStatus('✅ 복사 완료');
                 }).catch(err => {
                     console.error('Could not copy text: ', err);
@@ -1716,7 +1719,10 @@
             });
 
             appContainer.addEventListener('input', e => {
-                if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
+                if (e.target.closest('#editor-title, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
+                    handleEditorInput(e);
+                }
+                if (e.target.closest('#editor-content')) {
                     handleEditorInput(e);
                 }
                 const widthSlider = e.target.closest('#editor-width-slider');
