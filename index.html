@@ -112,8 +112,22 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
-        @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
-        @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
+        
+        /* --- 반응형 스타일 --- */
+        @media (max-width: 767px) { 
+            #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } 
+
+            /* ▼▼▼ 추가된 부분 ▼▼▼ */
+            /* 모바일에서만 회차 목록의 상하 여백을 대폭 줄임 */
+            .list-item {
+                padding-top: 0.125rem;    /* py-0.5 */
+                padding-bottom: 0.125rem; /* py-0.5 */
+            }
+            /* ▲▲▲ 추가된 부분 ▲▲▲ */
+        }
+        @media (min-width: 768px) { 
+            #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } 
+        }
     </style>
 </head>
 <body class="bg-main text-main">
@@ -675,9 +689,8 @@
                 const isFolder = item.type === 'folder';
                 const isCollapsed = collapsedFolders.has(item.id);
 
-                // ▼▼▼ 수정된 부분 ▼▼▼
-                itemEl.className = `list-item py-1 px-3 rounded-md cursor-pointer text-sm`;
-                // ▲▲▲ 수정된 부분 ▲▲▲
+                // 데스크톱 기본 스타일 (py-2)
+                itemEl.className = `list-item py-2 px-3 rounded-md cursor-pointer text-sm`;
                 
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
