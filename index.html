@@ -670,14 +670,15 @@
                 return tree;
             }
             
-            // ▼▼▼ 수정된 부분 ▼▼▼
             function createItemElement(item) {
                 const itemEl = document.createElement('div');
                 const isFolder = item.type === 'folder';
                 const isCollapsed = collapsedFolders.has(item.id);
 
-                // flex-col 제거, p-2 -> py-1.5 로 변경하여 상하 여백 줄임
-                itemEl.className = `list-item py-1.5 px-3 rounded-md cursor-pointer text-sm`;
+                // ▼▼▼ 수정된 부분 ▼▼▼
+                itemEl.className = `list-item py-1 px-3 rounded-md cursor-pointer text-sm`;
+                // ▲▲▲ 수정된 부분 ▲▲▲
+                
                 itemEl.dataset.id = item.id;
                 itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
                 itemEl.draggable = true;
@@ -821,7 +822,7 @@
                 const statusEl = document.getElementById('save-status');
                 if (statusEl) {
                     statusEl.textContent = msg;
-                    statusEl.style.color = isError ? 'var(--accent-secondary)' : '#4ade80'; // Green for success
+                    statusEl.style.color = isError ? 'var(--accent-secondary)' : '#4ade80';
                     statusEl.classList.remove('opacity-0');
                     setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
                 }
