@@ -118,15 +118,7 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
-        @media (max-width: 767px) { 
-            #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } 
-
-            /* [최종 수정] JS에서 flex-col을 제거하고, CSS로 여백을 단순하고 확실하게 제어 */
-            #item-list .list-item {
-                padding-top: 6px !important;
-                padding-bottom: 6px !important;
-            }
-        }
+        @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
 </head>
@@ -651,19 +643,24 @@
                 listEl.innerHTML = '';
                 
                 let itemsToRender = sidebarMode === 'chapters' ? chapters : characters;
+                const isMobile = window.innerWidth < 768;
 
-                if (sidebarMode !== 'chapters') {
-                    itemsToRender.forEach(char => listEl.appendChild(createItemElement(char)));
+                // 모바일이거나 등장인물 탭일 경우, 단순 목록으로 렌더링
+                if (isMobile || sidebarMode !== 'chapters') {
+                    itemsToRender.forEach(item => listEl.appendChild(createItemElement(item)));
                     return;
                 }
 
+                // 데스크톱 회차 탭일 경우, 트리 구조로 렌더링
                 const tree = buildItemTree(itemsToRender);
                 
                 function renderNode(node, container) {
                     container.appendChild(createItemElement(node));
                     if (node.children && node.children.length > 0) {
                         const childrenContainer = container.lastChild.querySelector('.folder-children');
-                        node.children.forEach(childNode => renderNode(childNode, childrenContainer));
+                        if(childrenContainer) {
+                           node.children.forEach(childNode => renderNode(childNode, childrenContainer));
+                        }
                     }
                 }
                 tree.forEach(rootNode => renderNode(rootNode, listEl));
@@ -686,46 +683,72 @@
 
             function createItemElement(item) {
                 const itemEl = document.createElement('div');
-                const isFolder = item.type === 'folder';
-                const isCollapsed = collapsedFolders.has(item.id);
+                const isMobile = window.innerWidth < 768;
 
-                // [수정] 오류의 원인이었던 flex-col 클래스를 제거하여 레이아웃 안정화
-                itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm`;
-                itemEl.dataset.id = item.id;
-                itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
-                itemEl.draggable = true;
+                // --- 모바일 UI: 단순하고 안정적인 목록 ---
+                if (isMobile) {
+                    const isFolder = item.type === 'folder';
+                    itemEl.className = 'list-item flex items-center justify-between w-full p-3 rounded-md text-sm cursor-pointer border-b border-main';
+                    if (item.id === activeItemId) {
+                        itemEl.classList.add('active');
+                    }
+                    itemEl.dataset.id = item.id;
+                    itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
+                    itemEl.draggable = false; // 모바일에서 드래그 기능 비활성화
 
-                let itemHeaderHTML = `
-                    <div class="flex justify-between items-center w-full">
-                        <div class="flex items-center gap-2 truncate flex-1">
-                            ${isFolder ? `
-                                <svg data-action="toggle-folder" class="folder-toggle h-4 w-4 flex-shrink-0 ${isCollapsed ? 'collapsed' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                                <svg class="h-4 w-4 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                            ` : `
-                                <svg class="h-4 w-4 text-secondary flex-shrink-0 ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
-                            `}
-                            <span class="truncate pointer-events-none"></span>
+                    itemEl.innerHTML = `
+                        <div class="flex items-center gap-3 truncate">
+                            ${isFolder
+                                ? `<svg class="h-5 w-5 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
+                                : `<svg class="h-5 w-5 text-secondary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>`
+                            }
+                            <span class="truncate">${item.title || item.name}</span>
                         </div>
-                        <div class="flex items-center">
-                            ${isFolder ? `<button class="action-btn p-1 rounded-full hover:bg-blue-500/20" data-action="rename-item" title="이름 변경"><svg class="h-4 w-4 pointer-events-none text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
-                            <button class="action-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item" title="삭제"><svg class="h-4 w-4 pointer-events-none text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
-                        </div>
-                    </div>
-                `;
-                
-                itemEl.innerHTML = itemHeaderHTML;
-                if (isFolder) {
-                    const childrenContainer = document.createElement('div');
-                    childrenContainer.className = `folder-children pl-4 ${isCollapsed ? 'collapsed' : ''}`;
-                    itemEl.appendChild(childrenContainer);
-                    itemEl.classList.add('list-item-folder');
+                        <button data-action="delete-item" class="p-1 rounded-full text-red-400 hover:bg-red-500/20">
+                            <svg class="h-5 w-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </button>
+                    `;
+                // --- 데스크톱 UI: 기존 트리 구조 ---
                 } else {
-                    itemEl.classList.add('list-item-chapter');
+                    const isFolder = item.type === 'folder';
+                    const isCollapsed = collapsedFolders.has(item.id);
+
+                    itemEl.className = `list-item p-2 px-3 rounded-md cursor-pointer text-sm flex-col`;
+                    itemEl.dataset.id = item.id;
+                    itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
+                    itemEl.draggable = true;
+
+                    let itemHeaderHTML = `
+                        <div class="flex justify-between items-center w-full">
+                            <div class="flex items-center gap-2 truncate flex-1">
+                                ${isFolder ? `
+                                    <svg data-action="toggle-folder" class="folder-toggle h-4 w-4 flex-shrink-0 ${isCollapsed ? 'collapsed' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    <svg class="h-4 w-4 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                                ` : `
+                                    <svg class="h-4 w-4 text-secondary flex-shrink-0 ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                                `}
+                                <span class="truncate pointer-events-none"></span>
+                            </div>
+                            <div class="flex items-center">
+                                ${isFolder ? `<button class="action-btn p-1 rounded-full hover:bg-blue-500/20" data-action="rename-item" title="이름 변경"><svg class="h-4 w-4 pointer-events-none text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
+                                <button class="action-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item" title="삭제"><svg class="h-4 w-4 pointer-events-none text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    itemEl.innerHTML = itemHeaderHTML;
+                    if (isFolder) {
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.className = `folder-children pl-4 ${isCollapsed ? 'collapsed' : ''}`;
+                        itemEl.appendChild(childrenContainer);
+                        itemEl.classList.add('list-item-folder');
+                    } else {
+                        itemEl.classList.add('list-item-chapter');
+                    }
+
+                    itemEl.querySelector('span').textContent = item.title || item.name;
+                    if (item.id === activeItemId) itemEl.classList.add('active');
                 }
-
-                itemEl.querySelector('span').textContent = item.title || item.name;
-                if (item.id === activeItemId) itemEl.classList.add('active');
-
                 return itemEl;
             }
 
@@ -734,7 +757,7 @@
                 if (!editorPanel) return;
                 const item = getItem(activeItemId);
 
-                if (!item || item.type === 'folder') {
+                if (!item || (sidebarMode === 'chapters' && item.type === 'folder' && window.innerWidth < 768)) {
                     editorPanel.innerHTML = `<div class="flex-1 flex items-center justify-center text-secondary">${item ? '폴더가 선택되었습니다.' : '항목을 선택해주세요.'}</div>`;
                     return;
                 }
