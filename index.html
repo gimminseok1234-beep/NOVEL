@@ -23,7 +23,22 @@
             --border-main: #dce4f2; --text-main: #1a202c; --text-secondary: #718096;
             --accent-primary: #4299e1; --accent-secondary: #2b6cb0; --accent-text: #ffffff;
         }
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: var(--bg-main); color: var(--text-main); overflow-x: hidden; }
+        body { 
+            font-family: 'Noto Sans KR', sans-serif; 
+            background-color: var(--bg-main); 
+            color: var(--text-main); 
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        input, textarea {
+            -webkit-user-select: auto;
+            -moz-user-select: auto;
+            -ms-user-select: auto;
+            user-select: auto;
+        }
         .bg-main { background-color: var(--bg-main); } .bg-surface { background-color: var(--bg-surface); } .bg-card { background-color: var(--bg-card); } 
         .text-main { color: var(--text-main); } .text-secondary { color: var(--text-secondary); } .border-main { border-color: var(--border-main); } 
         .accent-bg { background-color: var(--accent-primary); color: var(--accent-text); } .accent-hover:hover { background-color: var(--accent-secondary); }
@@ -52,8 +67,6 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
-        /* ▼▼▼ 수정된 부분 ▼▼▼ */
-        .no-select { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
         @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
@@ -170,9 +183,9 @@
         </div>
     </template>
     <template id="editor-panel-template">
-        <header class="p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
-            <span id="save-status" class="text-sm text-secondary transition-opacity duration-500 opacity-0 mr-auto"></span>
-            <div id="char-count-container" class="text-sm cursor-pointer no-select" title="클릭하여 모드 변경">
+        <header class="relative p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
+            <span id="save-status" class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-secondary transition-opacity duration-500 opacity-0"></span>
+            <div id="char-count-container" class="text-sm cursor-pointer" title="클릭하여 모드 변경">
                 <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
             </div>
              <div class="flex gap-2 flex-wrap justify-end">
@@ -944,6 +957,7 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
+            // ▼▼▼ 수정된 부분 ▼▼▼
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.value) {
@@ -951,10 +965,10 @@
                     return;
                 }
                 navigator.clipboard.writeText(contentEl.value).then(() => {
-                    showEditorStatus('✅ 원고가 복사되었습니다!');
+                    showEditorStatus('✅ 복사 완료');
                 }).catch(err => {
                     console.error('Could not copy text: ', err);
-                    showEditorStatus('❌ 복사에 실패했습니다.', true);
+                    showEditorStatus('❌ 복사 실패', true);
                 });
             }
 
@@ -975,15 +989,9 @@
                 }
             };
             
-            // ▼▼▼ 수정된 부분 ▼▼▼
-            /**
-             * Google Drive에서 '소설 백업' 폴더를 찾거나 생성하고 ID를 반환합니다.
-             * @returns {Promise<string|null>} 폴더 ID 또는 실패 시 null
-             */
             async function getOrCreateFolderId() {
                 const FOLDER_NAME = '소설 백업';
                 try {
-                    // 1. 폴더 검색
                     const searchResponse = await gapi.client.drive.files.list({
                         q: `mimeType='application/vnd.google-apps.folder' and name='${FOLDER_NAME}' and trashed=false`,
                         fields: 'files(id, name)',
@@ -991,10 +999,8 @@
                     });
             
                     if (searchResponse.result.files.length > 0) {
-                        // 2. 폴더가 있으면 ID 반환
                         return searchResponse.result.files[0].id;
                     } else {
-                        // 3. 폴더가 없으면 새로 생성
                         const createResponse = await gapi.client.drive.files.create({
                             resource: {
                                 name: FOLDER_NAME,
@@ -1010,6 +1016,7 @@
                 }
             }
 
+            // ▼▼▼ 수정된 부분 ▼▼▼
             async function handleSaveToDrive() {
                 if (!gapiAccessToken) {
                     showModal({
@@ -1026,7 +1033,7 @@
                     return;
                 }
 
-                showEditorStatus('Google Drive 폴더 확인 중...');
+                showEditorStatus('Drive 폴더 확인 중...');
                 
                 try {
                     const folderId = await getOrCreateFolderId();
@@ -1034,7 +1041,7 @@
                         throw new Error("폴더를 찾거나 생성할 수 없습니다.");
                     }
 
-                    showEditorStatus('Google Drive에 백업하는 중...');
+                    showEditorStatus('Drive에 백업하는 중...');
 
                     const project = getProject(activeProjectId);
                     const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
@@ -1044,10 +1051,9 @@
                     const fileMetadata = {
                         'name': fileName,
                         'mimeType': 'text/plain',
-                        'parents': [folderId] // 생성된 폴더 안에 저장
+                        'parents': [folderId]
                     };
                     
-                    // 파일 검색 (같은 이름의 파일이 있는지 확인)
                     const searchFileResponse = await gapi.client.drive.files.list({
                         q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
                         fields: 'files(id)'
@@ -1055,10 +1061,8 @@
 
                     let fileId;
                     if (searchFileResponse.result.files.length > 0) {
-                        // 파일이 이미 있으면 해당 파일 ID를 사용 (덮어쓰기)
                         fileId = searchFileResponse.result.files[0].id;
                     } else {
-                        // 파일이 없으면 새로 생성
                         const createResponse = await gapi.client.drive.files.create({
                             resource: fileMetadata,
                             fields: 'id'
@@ -1070,7 +1074,6 @@
                         throw new Error("파일 ID를 가져오는 데 실패했습니다.");
                     }
 
-                    // 파일 내용 업데이트
                     await gapi.client.request({
                         path: `/upload/drive/v3/files/${fileId}`,
                         method: 'PATCH',
@@ -1078,11 +1081,11 @@
                         body: fileContent
                     });
                     
-                    showEditorStatus('✅ Google Drive 백업 완료!');
+                    showEditorStatus('✅ Drive 백업 완료');
 
                 } catch(err) {
                     console.error("Google Drive Save Error:", err);
-                    showEditorStatus('❌ Google Drive 백업 실패', true);
+                    showEditorStatus('❌ Drive 백업 실패', true);
                     if (err.result && (err.result.error.code === 401 || err.result.error.code === 403)) {
                         handleDriveDisconnect();
                         showModal({
