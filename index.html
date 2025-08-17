@@ -39,6 +39,57 @@
             -ms-user-select: auto;
             user-select: auto;
         }
+
+        /* --- 애니메이션 및 효과 --- */
+
+        /* 1. 부드러운 전환 효과를 위한 기본 설정 */
+        button, .project-card, .list-item, input, textarea {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* 2. 프로젝트 카드 호버 효과 */
+        .project-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        [data-theme="dark"] .project-card:hover {
+            box-shadow: 0 0 12px 0 rgba(187, 134, 252, 0.3);
+        }
+        
+        /* 3. 버튼 호버 및 클릭 효과 */
+        button:hover {
+            transform: scale(1.03);
+        }
+        button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        
+        /* 4. 사이드바 목록 아이템 호버 효과 */
+        .list-item:hover {
+            transform: translateX(4px);
+        }
+        .list-item.active {
+            transform: none;
+        }
+
+        /* 5. 모달 등장 애니메이션 */
+        @keyframes modal-pop-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        #modal-content {
+            animation: modal-pop-in 0.2s ease-out forwards;
+        }
+
+        /* 6. 입력창 포커스 효과 */
+        input:focus, textarea:focus {
+            border-color: var(--accent-primary);
+        }
+
+        /* --- 기존 스타일 --- */
+
         .bg-main { background-color: var(--bg-main); } .bg-surface { background-color: var(--bg-surface); } .bg-card { background-color: var(--bg-card); } 
         .text-main { color: var(--text-main); } .text-secondary { color: var(--text-secondary); } .border-main { border-color: var(--border-main); } 
         .accent-bg { background-color: var(--accent-primary); color: var(--accent-text); } .accent-hover:hover { background-color: var(--accent-secondary); }
@@ -196,7 +247,7 @@
         </header>
         <div class="flex-1 p-6 sm:p-8 overflow-y-auto">
             <div id="editor-content-wrapper" class="mx-auto h-full flex flex-col">
-                <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main transition">
+                <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
                 <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
             </div>
         </div>
@@ -204,19 +255,19 @@
     <template id="character-editor-panel-template">
          <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
             <div class="max-w-4xl mx-auto">
-                <input id="character-name" type="text" placeholder="등장인물 이름" class="bg-transparent text-3xl font-bold outline-none mb-6 w-full pb-2 border-b-2 border-transparent focus:border-main transition">
+                <input id="character-name" type="text" placeholder="등장인물 이름" class="bg-transparent text-3xl font-bold outline-none mb-6 w-full pb-2 border-b-2 border-transparent focus:border-main">
                 <div class="space-y-6">
                     <div>
                         <label for="character-personality" class="block text-sm font-medium text-secondary mb-2">성격</label>
-                        <textarea id="character-personality" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent transition" placeholder="자신감 넘치지만 때로는 무모함..."></textarea>
+                        <textarea id="character-personality" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="자신감 넘치지만 때로는 무모함..."></textarea>
                     </div>
                     <div>
                         <label for="character-appearance" class="block text-sm font-medium text-secondary mb-2">외모</label>
-                        <textarea id="character-appearance" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent transition" placeholder="검은 머리카락과 날카로운 눈매..."></textarea>
+                        <textarea id="character-appearance" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="검은 머리카락과 날카로운 눈매..."></textarea>
                     </div>
                     <div>
                         <label for="character-characteristics" class="block text-sm font-medium text-secondary mb-2">특징 및 기타</label>
-                        <textarea id="character-characteristics" rows="8" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent transition" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
+                        <textarea id="character-characteristics" rows="8" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
                     </div>
                 </div>
             </div>
@@ -259,14 +310,12 @@
         let gisInited = false;
         let tokenClient;
         
-        // ▼▼▼ 추가된 부분 ▼▼▼
         /**
          * PIN을 간단히 암호화합니다. (고급 보안용 아님)
          * @param {string} pin - 4자리 PIN 번호
          * @returns {string} Base64 인코딩된 문자열
          */
         function hashPin(pin) {
-            // 간단한 솔트를 추가하여 원본 PIN 추측을 조금 더 어렵게 만듭니다.
             const salt = "novel-writer-salt";
             return btoa(pin + salt);
         }
@@ -280,7 +329,6 @@
         function verifyPin(enteredPin, hashedPin) {
             return hashPin(enteredPin) === hashedPin;
         }
-        // ▲▲▲ 추가된 부분 ▲▲▲
 
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
@@ -402,6 +450,7 @@
                 const template = document.getElementById('modal-template').content.cloneNode(true);
                 modalBackdrop.appendChild(template);
                 
+                const modalContent = modalBackdrop.querySelector('#modal-content');
                 const titleEl = modalBackdrop.querySelector('#modal-title');
                 const textEl = modalBackdrop.querySelector('#modal-text');
                 const customContentEl = modalBackdrop.querySelector('#modal-custom-content');
@@ -430,7 +479,7 @@
                 });
                 document.body.appendChild(modalBackdrop);
                 if(options.inputPlaceholder || options.customHtml) {
-                    const firstInput = modalBackdrop.querySelector('input, textarea');
+                    const firstInput = modalContent.querySelector('input, textarea');
                     if (firstInput) firstInput.focus();
                 }
             }
@@ -541,13 +590,12 @@
                     projects.forEach(project => projectGrid.appendChild(createProjectCard(project)));
                 }
             }
-
-            // ▼▼▼ 수정된 부분 ▼▼▼
+            
             function createProjectCard(project) {
                 const card = document.createElement('div');
                 card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48 border border-main';
                 card.dataset.projectId = project.id;
-                card.dataset.locked = project.isLocked || false; // 잠금 상태 데이터 속성 추가
+                card.dataset.locked = project.isLocked || false;
                 const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
                 
                 const lockIcon = project.isLocked 
@@ -820,7 +868,7 @@
                                     name: name,
                                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                                     lastModified: firebase.firestore.FieldValue.serverTimestamp(),
-                                    isLocked: false, // 잠금 필드 초기화
+                                    isLocked: false,
                                     pin: null
                                 });
                             }
@@ -829,7 +877,6 @@
                 });
             }
 
-            // ▼▼▼ 수정된 부분 ▼▼▼
             function handleProjectOptions(projectId) {
                 const project = getProject(projectId);
                 const isLocked = project.isLocked;
@@ -883,8 +930,7 @@
                     ]
                 });
             };
-
-            // ▼▼▼ 추가된 부분 ▼▼▼
+            
             function handleSetPin(projectId) {
                 const customHtml = `
                     <div class="space-y-2">
@@ -947,7 +993,7 @@
                                 if (verifyPin(enteredPin, project.pin)) {
                                     db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({
                                         isLocked: false,
-                                        pin: firebase.firestore.FieldValue.delete(), // PIN 필드 삭제
+                                        pin: firebase.firestore.FieldValue.delete(),
                                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
                                     });
                                 } else {
@@ -1445,7 +1491,6 @@
             }
 
             // --- Central Event Handler ---
-            // ▼▼▼ 수정된 부분 ▼▼▼
             appContainer.addEventListener('click', (e) => {
                 const target = e.target;
                 const closest = (selector) => target.closest(selector);
