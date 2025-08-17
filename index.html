@@ -259,6 +259,29 @@
         let gisInited = false;
         let tokenClient;
         
+        // ▼▼▼ 추가된 부분 ▼▼▼
+        /**
+         * PIN을 간단히 암호화합니다. (고급 보안용 아님)
+         * @param {string} pin - 4자리 PIN 번호
+         * @returns {string} Base64 인코딩된 문자열
+         */
+        function hashPin(pin) {
+            // 간단한 솔트를 추가하여 원본 PIN 추측을 조금 더 어렵게 만듭니다.
+            const salt = "novel-writer-salt";
+            return btoa(pin + salt);
+        }
+
+        /**
+         * 입력된 PIN과 암호화된 PIN을 비교합니다.
+         * @param {string} enteredPin - 사용자가 입력한 PIN
+         * @param {string} hashedPin - 저장된 암호화된 PIN
+         * @returns {boolean} 일치 여부
+         */
+        function verifyPin(enteredPin, hashedPin) {
+            return hashPin(enteredPin) === hashedPin;
+        }
+        // ▲▲▲ 추가된 부분 ▲▲▲
+
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
         }
@@ -392,6 +415,8 @@
                     inputEl.classList.remove('hidden');
                     inputEl.placeholder = options.inputPlaceholder;
                     inputEl.value = options.initialValue || '';
+                    inputEl.type = options.inputType || 'text';
+                    if(options.maxLength) inputEl.maxLength = options.maxLength;
                 }
                 options.buttons.forEach(function(btnInfo) {
                     const button = document.createElement('button');
@@ -404,7 +429,10 @@
                     buttonsEl.appendChild(button);
                 });
                 document.body.appendChild(modalBackdrop);
-                if(options.inputPlaceholder) inputEl.focus();
+                if(options.inputPlaceholder || options.customHtml) {
+                    const firstInput = modalBackdrop.querySelector('input, textarea');
+                    if (firstInput) firstInput.focus();
+                }
             }
             function closeModal() {
                 const modal = document.getElementById('modal-backdrop');
@@ -514,15 +542,25 @@
                 }
             }
 
+            // ▼▼▼ 수정된 부분 ▼▼▼
             function createProjectCard(project) {
                 const card = document.createElement('div');
                 card.className = 'project-card bg-card p-4 rounded-lg cursor-pointer flex flex-col h-48 border border-main';
                 card.dataset.projectId = project.id;
+                card.dataset.locked = project.isLocked || false; // 잠금 상태 데이터 속성 추가
                 const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
+                
+                const lockIcon = project.isLocked 
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-secondary ml-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a3 3 0 00-3 3v1H6a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-1V5a3 3 0 00-3-3zm-1 4V5a1 1 0 112 0v1H9z" clip-rule="evenodd" /></svg>` 
+                    : '';
+
                 card.innerHTML = `
                     <div class="flex-grow">
                         <div class="flex justify-between items-start">
-                            <h3 class="text-lg font-bold"></h3>
+                            <div class="flex items-center">
+                                <h3 class="text-lg font-bold"></h3>
+                                ${lockIcon}
+                            </div>
                             <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
                             </button>
@@ -782,6 +820,8 @@
                                     name: name,
                                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                                     lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+                                    isLocked: false, // 잠금 필드 초기화
+                                    pin: null
                                 });
                             }
                         }
@@ -789,12 +829,23 @@
                 });
             }
 
+            // ▼▼▼ 수정된 부분 ▼▼▼
             function handleProjectOptions(projectId) {
                 const project = getProject(projectId);
+                const isLocked = project.isLocked;
+
+                let lockButton;
+                if (isLocked) {
+                    lockButton = { text: '잠금 해제', class: 'px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleRemoveLock(projectId), 10)};
+                } else {
+                    lockButton = { text: '잠금 설정', class: 'px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleSetPin(projectId), 10)};
+                }
+
                 showModal({
-                    title: `'${project.name}' 설정`, text: '프로젝트 이름을 수정하거나 프로젝트를 영구적으로 삭제할 수 있습니다.',
+                    title: `'${project.name}' 설정`, text: '프로젝트 설정을 변경합니다.',
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        lockButton,
                         { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleRenameProject(projectId), 10)},
                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleDeleteProject(projectId), 10)}
                     ]
@@ -832,6 +883,119 @@
                     ]
                 });
             };
+
+            // ▼▼▼ 추가된 부분 ▼▼▼
+            function handleSetPin(projectId) {
+                const customHtml = `
+                    <div class="space-y-2">
+                        <input id="pin-input" type="password" placeholder="4자리 PIN 입력" maxlength="4" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border border-main">
+                        <input id="pin-confirm" type="password" placeholder="PIN 확인" maxlength="4" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border border-main">
+                        <p id="pin-error" class="text-red-400 text-sm h-4"></p>
+                    </div>
+                `;
+                showModal({
+                    title: 'PIN 설정',
+                    text: '프로젝트를 잠그려면 4자리 숫자로 PIN을 설정하세요.',
+                    customHtml: customHtml,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { 
+                            text: '설정', 
+                            class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
+                            closeOnClick: false,
+                            onClick: function() {
+                                const pinInput = document.getElementById('pin-input');
+                                const pinConfirm = document.getElementById('pin-confirm');
+                                const errorEl = document.getElementById('pin-error');
+                                
+                                if (pinInput.value.length !== 4 || !/^\d{4}$/.test(pinInput.value)) {
+                                    errorEl.textContent = 'PIN은 4자리 숫자여야 합니다.';
+                                    return;
+                                }
+                                if (pinInput.value !== pinConfirm.value) {
+                                    errorEl.textContent = 'PIN이 일치하지 않습니다.';
+                                    return;
+                                }
+
+                                const hashedPin = hashPin(pinInput.value);
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({
+                                    isLocked: true,
+                                    pin: hashedPin,
+                                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                                closeModal();
+                            }
+                        }
+                    ]
+                });
+            }
+            
+            function handleRemoveLock(projectId) {
+                const project = getProject(projectId);
+                showModal({
+                    title: '잠금 해제',
+                    text: `'${project.name}' 프로젝트의 잠금을 해제하려면 PIN을 입력하세요.`,
+                    inputPlaceholder: '4자리 PIN 입력',
+                    inputType: 'password',
+                    maxLength: 4,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        {
+                            text: '확인',
+                            class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
+                            onClick: function(enteredPin) {
+                                if (verifyPin(enteredPin, project.pin)) {
+                                    db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({
+                                        isLocked: false,
+                                        pin: firebase.firestore.FieldValue.delete(), // PIN 필드 삭제
+                                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                } else {
+                                    alert('PIN이 올바르지 않습니다.');
+                                }
+                            }
+                        }
+                    ]
+                });
+            }
+            
+            function handleUnlockProject(projectId) {
+                const project = getProject(projectId);
+                 showModal({
+                    title: 'PIN 입력',
+                    text: `'${project.name}' 프로젝트를 열려면 PIN을 입력하세요.`,
+                    inputPlaceholder: '4자리 PIN 입력',
+                    inputType: 'password',
+                    maxLength: 4,
+                    buttons: [
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        {
+                            text: '열기',
+                            class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
+                            onClick: function(enteredPin) {
+                                if (verifyPin(enteredPin, project.pin)) {
+                                    openProject(projectId);
+                                } else {
+                                    alert('PIN이 올바르지 않습니다.');
+                                }
+                            }
+                        }
+                    ]
+                });
+            }
+
+            function openProject(projectId) {
+                activeProjectId = projectId;
+                sidebarMode = 'chapters';
+                activeItemId = null;
+                if (unsubscribes.items) unsubscribes.items();
+
+                collapsedFolders = new Set();
+                isProjectJustOpened = true;
+
+                renderView('editor');
+                loadItems();
+            }
 
             function handleNewItem(type, parentId = null) {
                 let newItemData;
@@ -1015,7 +1179,6 @@
                 }
             }
 
-            // ▼▼▼ 수정된 부분 ▼▼▼
             async function handleSaveToDrive() {
                 if (!gapiAccessToken) {
                     showModal({
@@ -1282,6 +1445,7 @@
             }
 
             // --- Central Event Handler ---
+            // ▼▼▼ 수정된 부분 ▼▼▼
             appContainer.addEventListener('click', (e) => {
                 const target = e.target;
                 const closest = (selector) => target.closest(selector);
@@ -1293,22 +1457,19 @@
                 
                 const projectCard = closest('.project-card');
                 if (projectCard) {
-                    const optionsBtn = closest('[data-action="options"]');
-                    if (optionsBtn) {
+                    const projectId = projectCard.dataset.projectId;
+                    const isLocked = projectCard.dataset.locked === 'true';
+
+                    if (closest('[data-action="options"]')) {
                         e.stopPropagation();
-                        return handleProjectOptions(projectCard.dataset.projectId);
+                        return handleProjectOptions(projectId);
                     }
-                    activeProjectId = projectCard.dataset.projectId;
-                    sidebarMode = 'chapters';
-                    activeItemId = null;
-                    if (unsubscribes.items) unsubscribes.items();
-
-                    collapsedFolders = new Set();
-                    isProjectJustOpened = true;
-
-                    renderView('editor');
-                    loadItems();
-                    return;
+                    
+                    if (isLocked) {
+                        return handleUnlockProject(projectId);
+                    } else {
+                        return openProject(projectId);
+                    }
                 }
 
                 if (closest('#back-to-home-btn')) return renderView('home');
