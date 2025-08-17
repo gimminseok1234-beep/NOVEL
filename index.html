@@ -98,13 +98,14 @@
         }
         
         /* --- [FIX] 원고 영역 색상 구분 및 스크롤 오류 수정 --- */
-        #editor-panel, [data-theme="light"] #editor-panel {
+        #editor-panel, #editor-panel > .overflow-y-auto {
              background-color: var(--bg-main);
         }
         #editor-content-wrapper {
             background-color: var(--bg-surface);
             border-radius: 0.5rem;
             padding: 2.5rem;
+            min-height: 100%;
         }
         [data-theme="light"] #editor-content-wrapper {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
@@ -113,7 +114,7 @@
         /* --- [FIX] 문장 및 문단 간격 조정 --- */
         #editor-content p {
             line-height: 1.7; /* 문장 내 줄 간격은 좁게 유지 */
-            margin-bottom: 1.5rem; /* 문단 사이의 간격을 넓게 설정 */
+            margin-bottom: 1rem; /* 문단 사이의 간격을 적절하게 설정 */
         }
         #editor-content p:last-child {
             margin-bottom: 0;
@@ -349,7 +350,7 @@
             </div>
         </header>
         <div class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <div id="editor-content-wrapper" class="mx-auto h-full flex flex-col">
+            <div id="editor-content-wrapper" class="mx-auto flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
                 <div id="editor-content" contenteditable="true" class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
             </div>
@@ -1198,7 +1199,7 @@
                     if (type === 'folder') {
                         newItemData = { title: '새 폴더', type: 'folder', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                     } else {
-                        newItemData = { title: '새 회차', content: '', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                        newItemData = { title: '새 회차', content: '<p><br></p>', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                     }
                 } else {
                     newItemData = { name: '새 등장인물', personality: '', appearance: '', characteristics: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
@@ -1301,7 +1302,9 @@
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    data.content = editorPanel.querySelector('#editor-content').innerText;
+                    const contentEl = editorPanel.querySelector('#editor-content');
+                    const paragraphs = Array.from(contentEl.querySelectorAll('p')).map(p => p.innerHTML.replace(/<br>/g, '\n'));
+                    data.content = paragraphs.join('\n\n');
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
