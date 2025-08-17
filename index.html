@@ -52,6 +52,8 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
+        /* ▼▼▼ 수정된 부분 ▼▼▼ */
+        .no-select { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
         @media (max-width: 767px) { #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; } }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
@@ -170,7 +172,7 @@
     <template id="editor-panel-template">
         <header class="p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
             <span id="save-status" class="text-sm text-secondary transition-opacity duration-500 opacity-0 mr-auto"></span>
-            <div id="char-count-container" class="text-sm cursor-pointer" title="클릭하여 모드 변경">
+            <div id="char-count-container" class="text-sm cursor-pointer no-select" title="클릭하여 모드 변경">
                 <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
             </div>
              <div class="flex gap-2 flex-wrap justify-end">
@@ -244,7 +246,6 @@
         let gisInited = false;
         let tokenClient;
         
-        // ▼▼▼ 수정된 부분: 함수를 전역 스코프로 이동 ▼▼▼
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
         }
@@ -255,7 +256,6 @@
                 gapiInited = true;
             } catch (error) {
                 console.error("Google API 클라이언트 초기화 오류:", error);
-                // 로그인 화면이 아니더라도 오류를 인지할 수 있도록 처리
                 const loginButtonText = document.getElementById('google-login-btn-text');
                 if (loginButtonText) {
                     loginButtonText.textContent = 'Google API 로드 실패';
@@ -271,9 +271,6 @@
                     const appContainer = document.getElementById('app-container');
                     if (tokenResponse && tokenResponse.access_token) {
                         gapi.client.setToken(tokenResponse);
-                        // renderSettings 함수는 DOMContentLoaded 내에 있으므로,
-                        // 전역 이벤트나 다른 방식으로 호출해야 합니다.
-                        // 여기서는 간단하게 커스텀 이벤트를 사용합니다.
                         appContainer.dispatchEvent(new CustomEvent('driveConnected', { detail: tokenResponse }));
                     } else {
                         console.error("Google Drive 연결 실패: 토큰을 받지 못했습니다.");
@@ -287,7 +284,6 @@
             });
             gisInited = true;
         }
-        // ▲▲▲ 수정된 부분 ▲▲▲
 
         document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app-container');
@@ -979,6 +975,41 @@
                 }
             };
             
+            // ▼▼▼ 수정된 부분 ▼▼▼
+            /**
+             * Google Drive에서 '소설 백업' 폴더를 찾거나 생성하고 ID를 반환합니다.
+             * @returns {Promise<string|null>} 폴더 ID 또는 실패 시 null
+             */
+            async function getOrCreateFolderId() {
+                const FOLDER_NAME = '소설 백업';
+                try {
+                    // 1. 폴더 검색
+                    const searchResponse = await gapi.client.drive.files.list({
+                        q: `mimeType='application/vnd.google-apps.folder' and name='${FOLDER_NAME}' and trashed=false`,
+                        fields: 'files(id, name)',
+                        spaces: 'drive',
+                    });
+            
+                    if (searchResponse.result.files.length > 0) {
+                        // 2. 폴더가 있으면 ID 반환
+                        return searchResponse.result.files[0].id;
+                    } else {
+                        // 3. 폴더가 없으면 새로 생성
+                        const createResponse = await gapi.client.drive.files.create({
+                            resource: {
+                                name: FOLDER_NAME,
+                                mimeType: 'application/vnd.google-apps.folder',
+                            },
+                            fields: 'id',
+                        });
+                        return createResponse.result.id;
+                    }
+                } catch (err) {
+                    console.error("Google Drive 폴더 처리 오류:", err);
+                    return null;
+                }
+            }
+
             async function handleSaveToDrive() {
                 if (!gapiAccessToken) {
                     showModal({
@@ -995,9 +1026,16 @@
                     return;
                 }
 
-                showEditorStatus('Google Drive에 백업하는 중...');
+                showEditorStatus('Google Drive 폴더 확인 중...');
                 
                 try {
+                    const folderId = await getOrCreateFolderId();
+                    if (!folderId) {
+                        throw new Error("폴더를 찾거나 생성할 수 없습니다.");
+                    }
+
+                    showEditorStatus('Google Drive에 백업하는 중...');
+
                     const project = getProject(activeProjectId);
                     const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
                     const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
@@ -1005,19 +1043,34 @@
                     
                     const fileMetadata = {
                         'name': fileName,
-                        'mimeType': 'text/plain'
+                        'mimeType': 'text/plain',
+                        'parents': [folderId] // 생성된 폴더 안에 저장
                     };
                     
-                    const createResponse = await gapi.client.drive.files.create({
-                        resource: fileMetadata,
-                        fields: 'id'
+                    // 파일 검색 (같은 이름의 파일이 있는지 확인)
+                    const searchFileResponse = await gapi.client.drive.files.list({
+                        q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
+                        fields: 'files(id)'
                     });
 
-                    const fileId = createResponse.result.id;
-                    if (!fileId) {
-                        throw new Error("파일 생성에 실패했습니다.");
+                    let fileId;
+                    if (searchFileResponse.result.files.length > 0) {
+                        // 파일이 이미 있으면 해당 파일 ID를 사용 (덮어쓰기)
+                        fileId = searchFileResponse.result.files[0].id;
+                    } else {
+                        // 파일이 없으면 새로 생성
+                        const createResponse = await gapi.client.drive.files.create({
+                            resource: fileMetadata,
+                            fields: 'id'
+                        });
+                        fileId = createResponse.result.id;
                     }
 
+                    if (!fileId) {
+                        throw new Error("파일 ID를 가져오는 데 실패했습니다.");
+                    }
+
+                    // 파일 내용 업데이트
                     await gapi.client.request({
                         path: `/upload/drive/v3/files/${fileId}`,
                         method: 'PATCH',
@@ -1337,7 +1390,6 @@
                 }
             });
 
-            // ▼▼▼ 수정된 부분: 커스텀 이벤트 리스너 추가 ▼▼▼
             appContainer.addEventListener('driveConnected', (e) => {
                 gapiAccessToken = e.detail;
                 renderSettings();
@@ -1346,7 +1398,6 @@
             appContainer.addEventListener('showModal', (e) => {
                 showModal(e.detail);
             });
-            // ▲▲▲ 수정된 부분 ▲▲▲
 
             initialize();
         });
