@@ -42,7 +42,6 @@
             -ms-user-select: none;
             user-select: none;
         }
-        /* [수정] editor-content가 div로 바뀌면서 선택자에 추가 */
         input, textarea, #editor-content {
             -webkit-user-select: auto;
             -moz-user-select: auto;
@@ -52,12 +51,10 @@
 
         /* --- 애니메이션 및 효과 --- */
 
-        /* 1. 부드러운 전환 효과를 위한 기본 설정 */
         button, .project-card, .list-item, input, textarea {
             transition: all 0.2s ease-in-out;
         }
 
-        /* 2. 프로젝트 카드 호버 효과 */
         .project-card:hover {
             transform: translateY(-4px);
             border-color: var(--accent-primary);
@@ -67,7 +64,6 @@
             box-shadow: 0 0 12px 0 rgba(187, 134, 252, 0.3);
         }
         
-        /* 3. 버튼 호버 및 클릭 효과 */
         button:hover {
             transform: scale(1.03);
         }
@@ -76,7 +72,6 @@
             opacity: 0.9;
         }
         
-        /* 4. 사이드바 목록 아이템 호버 효과 */
         .list-item:hover {
             transform: translateX(4px);
         }
@@ -84,7 +79,6 @@
             transform: none;
         }
 
-        /* 5. 모달 등장 애니메이션 */
         @keyframes modal-pop-in {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
@@ -93,32 +87,40 @@
             animation: modal-pop-in 0.2s ease-out forwards;
         }
 
-        /* 6. 입력창 포커스 효과 */
-        /* [수정] editor-content가 div로 바뀌면서 선택자에 추가 */
         input:focus, textarea:focus, #editor-content:focus {
-            outline: none; /* 포커스 시 기본 아웃라인 제거 */
+            outline: none;
             border-color: var(--accent-primary);
         }
         
-        /* --- [NEW] 원고 영역 색상 구분 (라이트/다크 모두 적용) --- */
+        /* --- [수정] 원고 영역 색 구분 ON/OFF 기능 --- */
+        /* 기본 상태 (색 구분 OFF) */
         #editor-panel > .overflow-y-auto {
-             background-color: var(--bg-main); /* 바깥 영역 색상 설정 */
+             background-color: var(--bg-surface); /* 전체를 원고지 색으로 통일 */
         }
         #editor-content-wrapper {
-            background-color: var(--bg-surface); /* 원고지 색상 */
-            border-radius: 0.5rem; /* 8px */
-            padding: 2.5rem; /* 원고지 내부 여백 */
+            background-color: transparent; /* 투명하게 만들어 부모 색을 따름 */
+            border-radius: 0.5rem;
+            padding: 2.5rem;
         }
-        [data-theme="light"] #editor-content-wrapper {
+        [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper {
+             box-shadow: none; /* 색 구분 없을 땐 그림자도 제거 */
+        }
+
+        /* 색 구분 ON 상태 */
+        #editor-panel[data-color-separation="true"] > .overflow-y-auto {
+             background-color: var(--bg-main); /* 바깥 영역 색상 */
+        }
+        #editor-panel[data-color-separation="true"] #editor-content-wrapper {
+            background-color: var(--bg-surface); /* 원고지 색상 */
+        }
+        [data-theme="light"][data-color-separation="true"] #editor-content-wrapper {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
         
-        /* --- [수정] 줄/문단 간격 조정 --- */
         #editor-content {
-            line-height: 1.8; /* 일반 줄간격 */
+            line-height: 1.8;
         }
         
-        /* [NEW] contenteditable div가 비었을 때 placeholder 표시 */
         #editor-content:empty:before {
             content: attr(placeholder);
             color: var(--text-secondary);
@@ -126,7 +128,6 @@
             cursor: text;
         }
 
-        /* [NEW] 문단(p 태그) 기본 마진/패딩 제거 (간격은 JS로 제어) */
         #editor-content p {
             margin: 0;
             padding: 0;
@@ -154,12 +155,11 @@
         #editor-sidebar-toggle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 50; width: 24px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out; border-radius: 0 8px 8px 0; }
         #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%); }
         
-        /* --- 사이드바 토글 버튼 색상 수정 --- */
         [data-theme="light"] #editor-sidebar-toggle {
-            background-color: var(--accent-primary); /* 파란색 배경 */
+            background-color: var(--accent-primary);
         }
         [data-theme="light"] #editor-sidebar-toggle:hover {
-            background-color: var(--accent-secondary); /* 더 진한 파란색 호버 */
+            background-color: var(--accent-secondary);
         }
         
         button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -176,10 +176,8 @@
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
             #editor-content-wrapper { padding: 1.5rem; }
 
-            /* --- [최종] 모바일 목록 UI 리셋 및 재설계 --- */
             #item-list {
                 border-top: 1px solid var(--border-main); }
-            /* 1. 목록 아이템 전체 스타일 강제 지정 */
             #item-list .list-item {
                 display: flex !important; flex-direction: row !important;
                 align-items: center !important;
@@ -187,7 +185,7 @@
                 padding: 0 12px !important;
                 border-bottom: 1px solid var(--border-main);
                 border-radius: 0; margin-top: 0 !important;
-                background-color: transparent !important; /* 호버/폴더 배경색 제거 */
+                background-color: transparent !important;
             }
             #item-list .list-item.active {
                 background-color: var(--bg-hover) !important; }
@@ -195,33 +193,28 @@
                 transform: none !important; background-color: var(--bg-hover) !important;
             }
 
-            /* 2. 기존 내부 구조 무시하고 내용물 재배치 */
             #item-list .list-item > .flex {
                 display: contents; }
 
-            /* 3. 아이콘/텍스트 영역 (왼쪽) */
             #item-list .list-item .flex-1 {
                 display: flex; align-items: center;
-                gap: 0.75rem; /* 12px */
+                gap: 0.75rem;
             }
 
-            /* 4. 삭제 버튼 항상 보이게 하고 위치 고정 (오른쪽) */
             #item-list .list-item .action-btn {
                 visibility: visible !important; opacity: 1 !important;
                 margin-left: auto;
             }
             #item-list .list-item .action-btn[data-action="rename-item"] {
-                display: none; /* 모바일에서 이름변경 버튼 숨김 */
+                display: none;
             }
 
-            /* 5. 데스크톱용 스타일 초기화 */
             #item-list .list-item svg.ml-4 {
                 margin-left: 0 !important; }
             #item-list .list-item .folder-toggle {
-                display: none !important; /* 폴더 토글 버튼 숨김 */
+                display: none !important;
             }
             
-            /* 6. 폴더 하위 목록 숨김 */
             #item-list .folder-children {
                 display: none !important; }
         }
@@ -292,6 +285,13 @@
                     </div>
                 </div>
                 <div class="bg-card p-6 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">원고 영역 색 구분</h2>
+                    <div class="flex items-center justify-between">
+                        <p class="text-secondary">에디터의 원고 영역과 바깥 영역의 색상을 구분합니다.</p>
+                        <button id="color-separation-toggle" class="px-4 py-2 rounded-md font-semibold w-24"></button>
+                    </div>
+                </div>
+                <div class="bg-card p-6 rounded-lg">
                     <h2 class="text-xl font-semibold mb-4">에디터 너비 설정</h2>
                     <div class="flex items-center gap-4">
                         <input id="editor-width-slider" type="range" min="300" max="900" step="10" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
@@ -303,7 +303,7 @@
                     <h2 class="text-xl font-semibold mb-4">문단 간격 설정</h2>
                     <div class="flex items-center gap-4">
                         <input id="paragraph-spacing-slider" type="range" min="0" max="2" step="0.1" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
-                        <span id="paragraph-spacing-value" class="font-semibold w-20 text-center">1.0em</span>
+                        <span id="paragraph-spacing-value" class="font-semibold w-20 text-center">0.5em</span>
                         <button id="paragraph-spacing-reset-btn" class="text-sm bg-surface hover:bg-hover px-3 py-1 rounded-md border border-main">기본값</button>
                     </div>
                 </div>
@@ -360,28 +360,28 @@
             </div>
         </header>
         <div class="flex-1 p-4 sm:p-8 overflow-y-auto">
-            <div id="editor-content-wrapper" class="mx-auto h-full flex flex-col">
-                <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
-                <div id="editor-content" contenteditable="true" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
+            <div id="editor-content-wrapper" class="mx-auto min-h-full flex flex-col">
+                <input id="editor-title" type="text" placeholder="제목을 입력하세요" spellcheck="false" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
+                <div id="editor-content" contenteditable="true" spellcheck="false" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
             </div>
         </div>
     </template>
     <template id="character-editor-panel-template">
          <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
             <div class="max-w-4xl mx-auto">
-                <input id="character-name" type="text" placeholder="등장인물 이름" class="bg-transparent text-3xl font-bold outline-none mb-6 w-full pb-2 border-b-2 border-transparent focus:border-main">
+                <input id="character-name" type="text" placeholder="등장인물 이름" spellcheck="false" class="bg-transparent text-3xl font-bold outline-none mb-6 w-full pb-2 border-b-2 border-transparent focus:border-main">
                 <div class="space-y-6">
                     <div>
                         <label for="character-personality" class="block text-sm font-medium text-secondary mb-2">성격</label>
-                        <textarea id="character-personality" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="자신감 넘치지만 때로는 무모함..."></textarea>
+                        <textarea id="character-personality" rows="4" spellcheck="false" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="자신감 넘치지만 때로는 무모함..."></textarea>
                     </div>
                     <div>
                         <label for="character-appearance" class="block text-sm font-medium text-secondary mb-2">외모</label>
-                        <textarea id="character-appearance" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="검은 머리카락과 날카로운 눈매..."></textarea>
+                        <textarea id="character-appearance" rows="4" spellcheck="false" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="검은 머리카락과 날카로운 눈매..."></textarea>
                     </div>
                     <div>
                         <label for="character-characteristics" class="block text-sm font-medium text-secondary mb-2">특징 및 기타</label>
-                        <textarea id="character-characteristics" rows="8" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
+                        <textarea id="character-characteristics" rows="8" spellcheck="false" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="오른쪽 손목의 흉터, 특정 단어를 반복하는 말버릇..."></textarea>
                     </div>
                 </div>
             </div>
@@ -422,22 +422,12 @@
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-        /**
-         * PIN을 간단히 암호화합니다. (고급 보안용 아님)
-         * @param {string} pin - 4자리 PIN 번호
-         * @returns {string} Base64 인코딩된 문자열
-         */
+
         function hashPin(pin) {
             const salt = "novel-writer-salt";
             return btoa(pin + salt);
         }
 
-        /**
-         * 입력된 PIN과 암호화된 PIN을 비교합니다.
-         * @param {string} enteredPin - 사용자가 입력한 PIN
-         * @param {string} hashedPin - 저장된 암호화된 PIN
-         * @returns {boolean} 일치 여부
-         */
         function verifyPin(enteredPin, hashedPin) {
             return hashPin(enteredPin) === hashedPin;
         }
@@ -505,11 +495,12 @@
             let collapsedFolders = new Set();
             let isProjectJustOpened = false;
             
-            // [수정] paragraphSpacing 설정 추가
+            // [수정] colorSeparation 설정 추가
             let settings = {
                 theme: 'dark',
                 editorWidth: 450,
-                paragraphSpacing: 1.0 
+                paragraphSpacing: 0.5,
+                colorSeparation: true
             };
             function initialize() {
                 try {
@@ -675,7 +666,7 @@
                 if (currentUser) {
                     userProfileArea.innerHTML = `
                         <button id="settings-btn" class="p-2 rounded-full hover:bg-hover" title="설정">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </button>
                         <div class="text-right">
                             <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
@@ -740,6 +731,10 @@
                     return;
                 }
                 appContainer.querySelector('#project-title-sidebar').textContent = project.name;
+                
+                // [NEW] 에디터 뷰 렌더링 시 색 구분 설정 적용
+                applyColorSeparationSetting();
+
                 toggleSidebar(window.innerWidth >= 768);
                 updateSidebarUI();
                 
@@ -757,13 +752,11 @@
                 let itemsToRender = sidebarMode === 'chapters' ? chapters : characters;
                 const isMobile = window.innerWidth < 768;
 
-                // 모바일이거나 등장인물 탭일 경우, 단순 목록으로 렌더링
                 if (isMobile || sidebarMode !== 'chapters') {
                     itemsToRender.forEach(item => listEl.appendChild(createItemElement(item)));
                     return;
                 }
 
-                // 데스크톱 회차 탭일 경우, 트리 구조로 렌더링
                 const tree = buildItemTree(itemsToRender);
                 function renderNode(node, container) {
                     container.appendChild(createItemElement(node));
@@ -796,7 +789,6 @@
                 const itemEl = document.createElement('div');
                 const isMobile = window.innerWidth < 768;
 
-                // --- 모바일 UI: 단순하고 안정적인 목록 ---
                 if (isMobile) {
                     const isFolder = item.type === 'folder';
                     itemEl.className = 'list-item flex items-center w-full py-2 px-3 text-sm cursor-pointer';
@@ -820,7 +812,6 @@
                             </button>
                         </div>
                     `;
-                // --- 데스크톱 UI: 기존 트리 구조 ---
                 } else {
                     const isFolder = item.type === 'folder';
                     const isCollapsed = collapsedFolders.has(item.id);
@@ -864,13 +855,9 @@
                 return itemEl;
             }
 
-            // [NEW] 기존 텍스트 데이터를 HTML로 변환하는 함수
             function plainTextToHtml(text) {
                 if (!text) return '';
-                // 앞뒤 공백을 제거하여 불필요한 <p> 태그 방지
                 text = text.trim();
-                // 연속된 개행(문단)을 </p><p>로, 단일 개행(줄바꿈)을 <br>로 변환
-                // 마지막으로 전체를 <p> 태그로 감쌈
                 return `<p>${text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
             }
 
@@ -892,11 +879,9 @@
                     const wrapper = editorPanel.querySelector('#editor-content-wrapper');
                     wrapper.style.maxWidth = `${settings.editorWidth}px`;
                     
-                    // [수정] contenteditable div에 내용 삽입
                     const editorContentEl = editorPanel.querySelector('#editor-content');
                     let content = item.content || '';
                     
-                    // 하위 호환성: 저장된 내용이 plain text이면 HTML로 변환
                     if (content && !content.trim().startsWith('<p>')) {
                         content = plainTextToHtml(content);
                     }
@@ -943,7 +928,6 @@
                 let content = '';
                 if (sidebarMode === 'chapters') {
                     const contentEl = appContainer.querySelector('#editor-content');
-                    // [수정] .value 대신 .innerText로 텍스트 추출
                     if(contentEl) content = contentEl.innerText;
                 }
                 
@@ -955,7 +939,6 @@
                         label = '공백 제외';
                         break;
                     default:
-                        // [수정] 정규식에서 쉼표, 작은따옴표 제거 (오작동 방지)
                         count = content.replace(/[.\s]/g, '').length;
                         label = '공백/특문 제외';
                         break;
@@ -991,13 +974,12 @@
                 const statusEl = document.getElementById('save-status');
                 if (statusEl) {
                     statusEl.textContent = msg;
-                    statusEl.style.color = isError ? 'var(--accent-secondary)' : '#4ade80'; // Green for success
+                    statusEl.style.color = isError ? 'var(--accent-secondary)' : '#4ade80';
                     statusEl.classList.remove('opacity-0');
                     setTimeout(() => statusEl.classList.add('opacity-0'), 3000);
                 }
             }
 
-            // --- Handlers ---
             function handleGoogleLogin() {
                 if (!gapiInited || !gisInited) {
                     showModal({
@@ -1318,7 +1300,6 @@
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    // [수정] .value 대신 .innerHTML로 HTML 콘텐츠 저장
                     data.content = editorPanel.querySelector('#editor-content').innerHTML;
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
@@ -1333,7 +1314,6 @@
 
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
-                // [수정] .value 대신 .innerText로 텍스트만 복사
                 if (!contentEl || !contentEl.innerText.trim()) {
                     showEditorStatus('복사할 내용이 없습니다.', true);
                     return;
@@ -1350,7 +1330,6 @@
                 const item = getItem(activeItemId);
                 if (sidebarMode === 'chapters' && activeItemId && item && item.type !== 'folder') {
                     const project = getProject(activeProjectId);
-                    // [수정] 저장된 HTML이 아닌, 현재 에디터의 텍스트를 가져옴
                     const editorContentEl = document.getElementById('editor-content');
                     const currentContent = editorContentEl ? editorContentEl.innerText : '';
                     
@@ -1421,7 +1400,6 @@
                     const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
                     const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
                     
-                    // [수정] 저장된 HTML이 아닌, 현재 에디터의 텍스트를 가져와 백업
                     const editorContentEl = document.getElementById('editor-content');
                     const currentContent = editorContentEl ? editorContentEl.innerText : '';
                     const fileContent = `# ${item.title}\n\n${currentContent}`;
@@ -1579,13 +1557,11 @@
             function loadSettings() {
                 const savedSettings = localStorage.getItem('novelWriterSettings');
                 if (savedSettings) {
-                    // [수정] 저장된 설정이 없을 경우를 대비하여 기본값과 병합
                     settings = { ...settings, ...JSON.parse(savedSettings) };
                 }
                 applySettings();
             }
 
-            // [NEW] 문단 간격 설정을 CSS에 적용하는 함수
             function applyParagraphSpacingSetting() {
                 let styleEl = document.getElementById('paragraph-spacing-style');
                 if (!styleEl) {
@@ -1593,7 +1569,6 @@
                     styleEl.id = 'paragraph-spacing-style';
                     document.head.appendChild(styleEl);
                 }
-                // p 태그 바로 다음에 오는 p 태그에만 상단 마진을 적용 (문단 사이 간격)
                 styleEl.textContent = `
                     #editor-content p + p {
                         margin-top: ${settings.paragraphSpacing}em;
@@ -1601,19 +1576,29 @@
                 `;
             }
 
+            // [NEW] 원고 영역 색 구분 설정을 적용하는 함수
+            function applyColorSeparationSetting() {
+                const editorPanel = document.getElementById('editor-panel');
+                if (editorPanel) {
+                    editorPanel.dataset.colorSeparation = settings.colorSeparation;
+                }
+            }
+
             function applySettings() {
                 document.body.dataset.theme = settings.theme;
-                // [NEW] 문단 간격 설정 적용
                 applyParagraphSpacingSetting();
+                // [NEW] 페이지 로드 시 색 구분 설정도 함께 적용
+                applyColorSeparationSetting();
             }
             
             async function renderSettings() {
                 const themeButtons = appContainer.querySelectorAll('[data-theme-btn]');
                 const widthSlider = appContainer.querySelector('#editor-width-slider');
                 const widthValue = appContainer.querySelector('#editor-width-value');
-                // [NEW] 문단 간격 UI 요소 선택
                 const paraSlider = appContainer.querySelector('#paragraph-spacing-slider');
                 const paraValue = appContainer.querySelector('#paragraph-spacing-value');
+                // [NEW] 색 구분 토글 버튼 UI 요소 선택
+                const colorToggle = appContainer.querySelector('#color-separation-toggle');
 
                 themeButtons.forEach(btn => {
                     btn.classList.toggle('ring-2', btn.dataset.themeBtn === settings.theme);
@@ -1622,10 +1607,22 @@
                 widthSlider.value = settings.editorWidth;
                 widthValue.textContent = `${settings.editorWidth}px`;
 
-                // [NEW] 문단 간격 슬라이더 값 설정
                 if(paraSlider && paraValue){
                     paraSlider.value = settings.paragraphSpacing;
                     paraValue.textContent = `${settings.paragraphSpacing}em`;
+                }
+                
+                // [NEW] 색 구분 토글 버튼 UI 업데이트
+                if (colorToggle) {
+                    if (settings.colorSeparation) {
+                        colorToggle.textContent = 'ON';
+                        colorToggle.classList.add('accent-bg', 'accent-hover');
+                        colorToggle.classList.remove('bg-surface', 'hover:bg-hover');
+                    } else {
+                        colorToggle.textContent = 'OFF';
+                        colorToggle.classList.remove('accent-bg', 'accent-hover');
+                        colorToggle.classList.add('bg-surface', 'hover:bg-hover');
+                    }
                 }
                 
                 const driveStatusArea = appContainer.querySelector('#drive-status-area');
@@ -1684,7 +1681,6 @@
                 renderSettings();
             }
 
-            // --- Central Event Handler ---
             appContainer.addEventListener('click', (e) => {
                 const target = e.target;
                 const closest = (selector) => target.closest(selector);
@@ -1724,17 +1720,23 @@
                     settings.editorWidth = 450;
                     saveSettings();
                     renderSettings();
-                    // [수정] 너비 리셋 시 에디터가 열려있으면 즉시 반영
                     const wrapper = document.getElementById('editor-content-wrapper');
                     if (wrapper) wrapper.style.maxWidth = `${settings.editorWidth}px`;
                     return;
                 }
-                // [NEW] 문단 간격 리셋 버튼 핸들러
                 if (closest('#paragraph-spacing-reset-btn')) {
-                    settings.paragraphSpacing = 1.0;
+                    settings.paragraphSpacing = 0.5;
                     saveSettings();
                     applyParagraphSpacingSetting();
-                    renderSettings(); // 슬라이더 UI 업데이트
+                    renderSettings();
+                    return;
+                }
+                // [NEW] 색 구분 토글 버튼 클릭 핸들러
+                if (closest('#color-separation-toggle')) {
+                    settings.colorSeparation = !settings.colorSeparation;
+                    saveSettings();
+                    applyColorSeparationSetting();
+                    renderSettings(); // 버튼 UI 업데이트
                     return;
                 }
                 if (closest('#drive-connect-btn')) return handleDriveConnect();
@@ -1787,7 +1789,6 @@
                 }
             });
             appContainer.addEventListener('input', e => {
-                // [수정] contenteditable div의 input 이벤트도 감지
                 if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
                     handleEditorInput(e);
                 }
@@ -1797,7 +1798,6 @@
                     settings.editorWidth = widthSlider.value;
                     widthValueEl.textContent = `${settings.editorWidth}px`;
                     
-                    // [수정] 슬라이더 조작 시 에디터 너비 실시간 변경
                     const wrapper = document.getElementById('editor-content-wrapper');
                     if (wrapper) wrapper.style.maxWidth = `${settings.editorWidth}px`;
 
@@ -1805,13 +1805,12 @@
                     saveTimeouts['settings'] = setTimeout(saveSettings, 300);
                 }
                 
-                // [NEW] 문단 간격 슬라이더 input 핸들러
                 const paraSlider = e.target.closest('#paragraph-spacing-slider');
                 if(paraSlider) {
                     const paraValueEl = appContainer.querySelector('#paragraph-spacing-value');
                     settings.paragraphSpacing = paraSlider.value;
                     paraValueEl.textContent = `${settings.paragraphSpacing}em`;
-                    applyParagraphSpacingSetting(); // 실시간으로 스타일 적용
+                    applyParagraphSpacingSetting();
                     
                     clearTimeout(saveTimeouts['settings']);
                     saveTimeouts['settings'] = setTimeout(saveSettings, 300);
