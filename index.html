@@ -14,13 +14,14 @@
 
     <style>
         :root {
-            --bg-main: #121212; --bg-surface: #1e1e1e; --bg-card: #2a2a2a; --bg-hover: #37373d;
+            --bg-main: #121212;
+            --bg-surface: #1e1e1e; --bg-card: #2a2a2a; --bg-hover: #37373d;
             --border-main: #3f3f46; --text-main: #e0e0e0; --text-secondary: #a0a0a0;
             --accent-primary: #bb86fc; --accent-secondary: #a763ff; --accent-text: #000000;
         }
         /* --- 라이트 테마 수정 --- */
         [data-theme="light"] {
-            --bg-main: #e8eaf0;           /* 원고지 구분을 위한 회색 배경 */
+            --bg-main: #e8eaf0; /* 원고지 구분을 위한 회색 배경 */
             --bg-surface: #ffffff;
             --bg-card: #ffffff;
             --bg-hover: #dfe2e8;          /* 호버 색상 변경 */
@@ -41,7 +42,8 @@
             -ms-user-select: none;
             user-select: none;
         }
-        input, textarea {
+        /* [수정] editor-content가 div로 바뀌면서 선택자에 추가 */
+        input, textarea, #editor-content {
             -webkit-user-select: auto;
             -moz-user-select: auto;
             -ms-user-select: auto;
@@ -92,7 +94,9 @@
         }
 
         /* 6. 입력창 포커스 효과 */
-        input:focus, textarea:focus {
+        /* [수정] editor-content가 div로 바뀌면서 선택자에 추가 */
+        input:focus, textarea:focus, #editor-content:focus {
+            outline: none; /* 포커스 시 기본 아웃라인 제거 */
             border-color: var(--accent-primary);
         }
         
@@ -109,9 +113,23 @@
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
         
-        /* --- [NEW] 문장 간격 조정 --- */
+        /* --- [수정] 줄/문단 간격 조정 --- */
         #editor-content {
-            line-height: 1.8; 
+            line-height: 1.8; /* 일반 줄간격 */
+        }
+        
+        /* [NEW] contenteditable div가 비었을 때 placeholder 표시 */
+        #editor-content:empty:before {
+            content: attr(placeholder);
+            color: var(--text-secondary);
+            pointer-events: none;
+            cursor: text;
+        }
+
+        /* [NEW] 문단(p 태그) 기본 마진/패딩 제거 (간격은 JS로 제어) */
+        #editor-content p {
+            margin: 0;
+            padding: 0;
         }
 
         /* --- 기존 스타일 --- */
@@ -160,44 +178,36 @@
 
             /* --- [최종] 모바일 목록 UI 리셋 및 재설계 --- */
             #item-list {
-                border-top: 1px solid var(--border-main);
-            }
+                border-top: 1px solid var(--border-main); }
             /* 1. 목록 아이템 전체 스타일 강제 지정 */
             #item-list .list-item {
-                display: flex !important;
-                flex-direction: row !important;
+                display: flex !important; flex-direction: row !important;
                 align-items: center !important;
                 height: 48px !important;
                 padding: 0 12px !important;
                 border-bottom: 1px solid var(--border-main);
-                border-radius: 0;
-                margin-top: 0 !important;
+                border-radius: 0; margin-top: 0 !important;
                 background-color: transparent !important; /* 호버/폴더 배경색 제거 */
             }
             #item-list .list-item.active {
-                background-color: var(--bg-hover) !important;
-            }
+                background-color: var(--bg-hover) !important; }
             #item-list .list-item:hover {
-                transform: none !important;
-                background-color: var(--bg-hover) !important;
+                transform: none !important; background-color: var(--bg-hover) !important;
             }
 
             /* 2. 기존 내부 구조 무시하고 내용물 재배치 */
             #item-list .list-item > .flex {
-                display: contents;
-            }
+                display: contents; }
 
             /* 3. 아이콘/텍스트 영역 (왼쪽) */
             #item-list .list-item .flex-1 {
-                display: flex;
-                align-items: center;
+                display: flex; align-items: center;
                 gap: 0.75rem; /* 12px */
             }
 
             /* 4. 삭제 버튼 항상 보이게 하고 위치 고정 (오른쪽) */
             #item-list .list-item .action-btn {
-                visibility: visible !important;
-                opacity: 1 !important;
+                visibility: visible !important; opacity: 1 !important;
                 margin-left: auto;
             }
             #item-list .list-item .action-btn[data-action="rename-item"] {
@@ -206,16 +216,14 @@
 
             /* 5. 데스크톱용 스타일 초기화 */
             #item-list .list-item svg.ml-4 {
-                margin-left: 0 !important;
-            }
+                margin-left: 0 !important; }
             #item-list .list-item .folder-toggle {
                 display: none !important; /* 폴더 토글 버튼 숨김 */
             }
             
             /* 6. 폴더 하위 목록 숨김 */
             #item-list .folder-children {
-                display: none !important;
-            }
+                display: none !important; }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
@@ -278,7 +286,7 @@
                             <span class="font-semibold">다크 테마</span>
                         </button>
                         <button data-theme-btn="light" class="flex-1 p-4 rounded-md border-2 border-transparent text-center">
-                             <div class="w-full h-16 bg-[#e8eaf0] rounded-md border-2 border-[#dce4f2] mb-2"></div>
+                            <div class="w-full h-16 bg-[#e8eaf0] rounded-md border-2 border-[#dce4f2] mb-2"></div>
                             <span class="font-semibold">라이트 테마</span>
                         </button>
                     </div>
@@ -289,6 +297,14 @@
                         <input id="editor-width-slider" type="range" min="300" max="900" step="10" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
                         <span id="editor-width-value" class="font-semibold w-16 text-center">450px</span>
                         <button id="editor-width-reset-btn" class="text-sm bg-surface hover:bg-hover px-3 py-1 rounded-md border border-main">기본값</button>
+                    </div>
+                </div>
+                <div class="bg-card p-6 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">문단 간격 설정</h2>
+                    <div class="flex items-center gap-4">
+                        <input id="paragraph-spacing-slider" type="range" min="0" max="2" step="0.1" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
+                        <span id="paragraph-spacing-value" class="font-semibold w-20 text-center">1.0em</span>
+                        <button id="paragraph-spacing-reset-btn" class="text-sm bg-surface hover:bg-hover px-3 py-1 rounded-md border border-main">기본값</button>
                     </div>
                 </div>
                 <div class="bg-card p-6 rounded-lg">
@@ -346,7 +362,7 @@
         <div class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <div id="editor-content-wrapper" class="mx-auto h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
-                <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
+                <div id="editor-content" contenteditable="true" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
             </div>
         </div>
     </template>
@@ -369,7 +385,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+         </div>
     </template>
     <template id="modal-template">
         <div id="modal-content" class="bg-card rounded-lg shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
@@ -391,7 +407,6 @@
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com';
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-
         /* --- Firebase 설정 --- */
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
@@ -402,12 +417,11 @@
             messagingSenderId: "836560106988",
             appId: "1:836560106988:web:cf90872d7b09b9498ffcc9",
             measurementId: "G-83BZ35QVLC"
-        });
+         });
 
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-        
         /**
          * PIN을 간단히 암호화합니다. (고급 보안용 아님)
          * @param {string} pin - 4자리 PIN 번호
@@ -460,7 +474,7 @@
                             title: "연결 오류",
                             text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
                             buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
-                        }}));
+                         }}));
                     }
                 },
             });
@@ -491,11 +505,12 @@
             let collapsedFolders = new Set();
             let isProjectJustOpened = false;
             
+            // [수정] paragraphSpacing 설정 추가
             let settings = {
                 theme: 'dark',
-                editorWidth: 450
+                editorWidth: 450,
+                paragraphSpacing: 1.0 
             };
-            
             function initialize() {
                 try {
                     loadSettings();
@@ -556,7 +571,8 @@
                 const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
 
                 titleEl.textContent = options.title;
-                if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
+                if (options.text) textEl.textContent = options.text;
+                else textEl.style.display = 'none';
                 if (options.customHtml) customContentEl.innerHTML = options.customHtml;
                 if (options.inputPlaceholder) {
                     inputEl.classList.remove('hidden');
@@ -695,11 +711,9 @@
                 card.dataset.projectId = project.id;
                 card.dataset.locked = project.isLocked || false;
                 const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
-                
                 const lockIcon = project.isLocked
                     ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-secondary ml-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a3 3 0 00-3 3v1H6a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-1V5a3 3 0 00-3-3zm-1 4V5a1 1 0 112 0v1H9z" clip-rule="evenodd" /></svg>`
                     : '';
-
                 card.innerHTML = `
                     <div class="flex-grow">
                         <div class="flex justify-between items-start">
@@ -751,7 +765,6 @@
 
                 // 데스크톱 회차 탭일 경우, 트리 구조로 렌더링
                 const tree = buildItemTree(itemsToRender);
-                
                 function renderNode(node, container) {
                     container.appendChild(createItemElement(node));
                     if (node.children && node.children.length > 0) {
@@ -793,7 +806,6 @@
                     itemEl.dataset.id = item.id;
                     itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
                     itemEl.draggable = false;
-
                     itemEl.innerHTML = `
                         <div class="flex items-center gap-3 truncate flex-1 min-w-0">
                             ${isFolder
@@ -852,6 +864,16 @@
                 return itemEl;
             }
 
+            // [NEW] 기존 텍스트 데이터를 HTML로 변환하는 함수
+            function plainTextToHtml(text) {
+                if (!text) return '';
+                // 앞뒤 공백을 제거하여 불필요한 <p> 태그 방지
+                text = text.trim();
+                // 연속된 개행(문단)을 </p><p>로, 단일 개행(줄바꿈)을 <br>로 변환
+                // 마지막으로 전체를 <p> 태그로 감쌈
+                return `<p>${text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+            }
+
             function renderEditorPanel() {
                 const editorPanel = appContainer.querySelector('#editor-panel');
                 if (!editorPanel) return;
@@ -869,8 +891,18 @@
                 if (sidebarMode === 'chapters') {
                     const wrapper = editorPanel.querySelector('#editor-content-wrapper');
                     wrapper.style.maxWidth = `${settings.editorWidth}px`;
+                    
+                    // [수정] contenteditable div에 내용 삽입
+                    const editorContentEl = editorPanel.querySelector('#editor-content');
+                    let content = item.content || '';
+                    
+                    // 하위 호환성: 저장된 내용이 plain text이면 HTML로 변환
+                    if (content && !content.trim().startsWith('<p>')) {
+                        content = plainTextToHtml(content);
+                    }
+                    
                     editorPanel.querySelector('#editor-title').value = item.title || '';
-                    editorPanel.querySelector('#editor-content').value = item.content || '';
+                    editorContentEl.innerHTML = content;
                 } else {
                     editorPanel.querySelector('#character-name').value = item.name || '';
                     editorPanel.querySelector('#character-personality').value = item.personality || '';
@@ -887,7 +919,6 @@
                 const listTitle = container.querySelector('#list-title');
                 const newItemButtonsContainer = container.querySelector('#new-item-buttons-container');
                 newItemButtonsContainer.innerHTML = '';
-                
                 if (sidebarMode === 'chapters') {
                     listTitle.textContent = '회차 목록';
                     newItemButtonsContainer.innerHTML = `
@@ -898,7 +929,7 @@
                     `;
                 } else {
                     listTitle.textContent = '등장인물';
-                     newItemButtonsContainer.innerHTML = `
+                    newItemButtonsContainer.innerHTML = `
                         <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 추가</button>
                     `;
                 }
@@ -912,7 +943,8 @@
                 let content = '';
                 if (sidebarMode === 'chapters') {
                     const contentEl = appContainer.querySelector('#editor-content');
-                    if(contentEl) content = contentEl.value;
+                    // [수정] .value 대신 .innerText로 텍스트 추출
+                    if(contentEl) content = contentEl.innerText;
                 }
                 
                 let count = 0;
@@ -923,10 +955,12 @@
                         label = '공백 제외';
                         break;
                     default:
-                        count = content.replace(/[.",'\s]/g, '').length;
+                        // [수정] 정규식에서 쉼표, 작은따옴표 제거 (오작동 방지)
+                        count = content.replace(/[.\s]/g, '').length;
                         label = '공백/특문 제외';
                         break;
                 }
+ 
                 countEl.textContent = count.toLocaleString();
                 labelEl.textContent = label;
             }
@@ -1046,7 +1080,6 @@
                     ]
                 });
             };
-            
             function handleDeleteProject(projectId) {
                 const project = getProject(projectId);
                 showModal({
@@ -1085,7 +1118,7 @@
                                 const pinInput = document.getElementById('pin-input');
                                 const pinConfirm = document.getElementById('pin-confirm');
                                 const errorEl = document.getElementById('pin-error');
-                                
+                        
                                 if (pinInput.value.length !== 4 || !/^\d{4}$/.test(pinInput.value)) {
                                     errorEl.textContent = 'PIN은 4자리 숫자여야 합니다.';
                                     return;
@@ -1139,7 +1172,7 @@
             
             function handleUnlockProject(projectId) {
                 const project = getProject(projectId);
-                 showModal({
+                showModal({
                     title: 'PIN 입력',
                     text: `'${project.name}' 프로젝트를 열려면 PIN을 입력하세요.`,
                     inputPlaceholder: '4자리 PIN 입력',
@@ -1203,6 +1236,7 @@
                     
                     renderItemList();
                     renderEditorPanel();
+                
                 }).catch(error => {
                     console.error("Error adding new item:", error);
                     showModal({title: "오류", text: "항목을 추가하는 데 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
@@ -1213,10 +1247,8 @@
                 const item = getItem(itemId);
                 const isFolder = item?.type === 'folder';
                 const itemType = isFolder ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
-
                 let confirmationText = `정말로 이 ${itemType}를 삭제하시겠습니까?`;
                 if (isFolder) confirmationText += ' 폴더 안의 모든 회차도 함께 삭제됩니다.';
-
                 showModal({
                     title: `${itemType} 삭제`, text: confirmationText,
                     buttons: [
@@ -1283,11 +1315,11 @@
 
                 const editorPanel = appContainer.querySelector('#editor-panel');
                 if (!editorPanel) return;
-                
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    data.content = editorPanel.querySelector('#editor-content').value;
+                    // [수정] .value 대신 .innerHTML로 HTML 콘텐츠 저장
+                    data.content = editorPanel.querySelector('#editor-content').innerHTML;
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
@@ -1301,11 +1333,12 @@
 
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
-                if (!contentEl || !contentEl.value) {
+                // [수정] .value 대신 .innerText로 텍스트만 복사
+                if (!contentEl || !contentEl.innerText.trim()) {
                     showEditorStatus('복사할 내용이 없습니다.', true);
                     return;
                 }
-                navigator.clipboard.writeText(contentEl.value).then(() => {
+                navigator.clipboard.writeText(contentEl.innerText).then(() => {
                     showEditorStatus('✅ 복사 완료');
                 }).catch(err => {
                     console.error('Could not copy text: ', err);
@@ -1317,7 +1350,11 @@
                 const item = getItem(activeItemId);
                 if (sidebarMode === 'chapters' && activeItemId && item && item.type !== 'folder') {
                     const project = getProject(activeProjectId);
-                    const content = `# ${item.title}\n\n${item.content}`;
+                    // [수정] 저장된 HTML이 아닌, 현재 에디터의 텍스트를 가져옴
+                    const editorContentEl = document.getElementById('editor-content');
+                    const currentContent = editorContentEl ? editorContentEl.innerText : '';
+                    
+                    const content = `# ${item.title}\n\n${currentContent}`;
                     const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
@@ -1374,7 +1411,6 @@
                 }
 
                 showEditorStatus('백업 중...');
-                
                 try {
                     const folderId = await getOrCreateFolderId();
                     if (!folderId) {
@@ -1384,7 +1420,11 @@
                     const project = getProject(activeProjectId);
                     const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
                     const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
-                    const fileContent = `# ${item.title}\n\n${item.content}`;
+                    
+                    // [수정] 저장된 HTML이 아닌, 현재 에디터의 텍스트를 가져와 백업
+                    const editorContentEl = document.getElementById('editor-content');
+                    const currentContent = editorContentEl ? editorContentEl.innerText : '';
+                    const fileContent = `# ${item.title}\n\n${currentContent}`;
                     
                     const fileMetadata = {
                         'name': fileName,
@@ -1418,7 +1458,6 @@
                         params: { uploadType: 'media' },
                         body: fileContent
                     });
-                    
                     showEditorStatus('백업 완료!');
 
                 } catch(err) {
@@ -1447,7 +1486,6 @@
                         setTimeout(() => target.classList.add('dragging'), 0);
                     }
                 });
-
                 listEl.addEventListener('dragover', e => {
                     if (!draggedItemId) return;
                     e.preventDefault();
@@ -1465,11 +1503,9 @@
                         }
                     }
                 });
-
                 listEl.addEventListener('dragleave', e => {
                     e.target.closest('.list-item')?.classList.remove('drag-over-item', 'drag-over-folder');
                 });
-
                 listEl.addEventListener('dragend', e => {
                     draggedItemId = null;
                     listEl.querySelector('.dragging')?.classList.remove('dragging');
@@ -1477,7 +1513,6 @@
                         el.classList.remove('drag-over-item', 'drag-over-folder');
                     });
                 });
-
                 listEl.addEventListener('drop', e => {
                     e.preventDefault();
                     if (!draggedItemId) return;
@@ -1528,7 +1563,6 @@
                             batch.update(collectionRef.doc(item.id), { order: index });
                         }
                     });
-
                     batch.commit().then(() => {
                         db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                     }).catch(err => {
@@ -1545,19 +1579,41 @@
             function loadSettings() {
                 const savedSettings = localStorage.getItem('novelWriterSettings');
                 if (savedSettings) {
-                    settings = JSON.parse(savedSettings);
+                    // [수정] 저장된 설정이 없을 경우를 대비하여 기본값과 병합
+                    settings = { ...settings, ...JSON.parse(savedSettings) };
                 }
                 applySettings();
             }
 
+            // [NEW] 문단 간격 설정을 CSS에 적용하는 함수
+            function applyParagraphSpacingSetting() {
+                let styleEl = document.getElementById('paragraph-spacing-style');
+                if (!styleEl) {
+                    styleEl = document.createElement('style');
+                    styleEl.id = 'paragraph-spacing-style';
+                    document.head.appendChild(styleEl);
+                }
+                // p 태그 바로 다음에 오는 p 태그에만 상단 마진을 적용 (문단 사이 간격)
+                styleEl.textContent = `
+                    #editor-content p + p {
+                        margin-top: ${settings.paragraphSpacing}em;
+                    }
+                `;
+            }
+
             function applySettings() {
                 document.body.dataset.theme = settings.theme;
+                // [NEW] 문단 간격 설정 적용
+                applyParagraphSpacingSetting();
             }
             
             async function renderSettings() {
                 const themeButtons = appContainer.querySelectorAll('[data-theme-btn]');
                 const widthSlider = appContainer.querySelector('#editor-width-slider');
                 const widthValue = appContainer.querySelector('#editor-width-value');
+                // [NEW] 문단 간격 UI 요소 선택
+                const paraSlider = appContainer.querySelector('#paragraph-spacing-slider');
+                const paraValue = appContainer.querySelector('#paragraph-spacing-value');
 
                 themeButtons.forEach(btn => {
                     btn.classList.toggle('ring-2', btn.dataset.themeBtn === settings.theme);
@@ -1565,6 +1621,12 @@
                 });
                 widthSlider.value = settings.editorWidth;
                 widthValue.textContent = `${settings.editorWidth}px`;
+
+                // [NEW] 문단 간격 슬라이더 값 설정
+                if(paraSlider && paraValue){
+                    paraSlider.value = settings.paragraphSpacing;
+                    paraValue.textContent = `${settings.paragraphSpacing}em`;
+                }
                 
                 const driveStatusArea = appContainer.querySelector('#drive-status-area');
                 if (!driveStatusArea) return;
@@ -1662,6 +1724,17 @@
                     settings.editorWidth = 450;
                     saveSettings();
                     renderSettings();
+                    // [수정] 너비 리셋 시 에디터가 열려있으면 즉시 반영
+                    const wrapper = document.getElementById('editor-content-wrapper');
+                    if (wrapper) wrapper.style.maxWidth = `${settings.editorWidth}px`;
+                    return;
+                }
+                // [NEW] 문단 간격 리셋 버튼 핸들러
+                if (closest('#paragraph-spacing-reset-btn')) {
+                    settings.paragraphSpacing = 1.0;
+                    saveSettings();
+                    applyParagraphSpacingSetting();
+                    renderSettings(); // 슬라이더 UI 업데이트
                     return;
                 }
                 if (closest('#drive-connect-btn')) return handleDriveConnect();
@@ -1671,7 +1744,6 @@
                 if (closest('#home-btn')) return renderView('home');
                 if (closest('#editor-sidebar-toggle')) return toggleSidebar();
                 if (closest('#mobile-overlay')) return toggleSidebar(false);
-                
                 if (closest('#new-item-btn')) return handleNewItem(sidebarMode === 'chapters' ? 'chapter' : 'character');
                 if (closest('#new-folder-btn')) return handleNewItem('folder');
 
@@ -1714,8 +1786,8 @@
                     return;
                 }
             });
-
             appContainer.addEventListener('input', e => {
+                // [수정] contenteditable div의 input 이벤트도 감지
                 if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
                     handleEditorInput(e);
                 }
@@ -1724,19 +1796,34 @@
                     const widthValueEl = appContainer.querySelector('#editor-width-value');
                     settings.editorWidth = widthSlider.value;
                     widthValueEl.textContent = `${settings.editorWidth}px`;
-                    saveSettings();
+                    
+                    // [수정] 슬라이더 조작 시 에디터 너비 실시간 변경
+                    const wrapper = document.getElementById('editor-content-wrapper');
+                    if (wrapper) wrapper.style.maxWidth = `${settings.editorWidth}px`;
+
+                    clearTimeout(saveTimeouts['settings']);
+                    saveTimeouts['settings'] = setTimeout(saveSettings, 300);
+                }
+                
+                // [NEW] 문단 간격 슬라이더 input 핸들러
+                const paraSlider = e.target.closest('#paragraph-spacing-slider');
+                if(paraSlider) {
+                    const paraValueEl = appContainer.querySelector('#paragraph-spacing-value');
+                    settings.paragraphSpacing = paraSlider.value;
+                    paraValueEl.textContent = `${settings.paragraphSpacing}em`;
+                    applyParagraphSpacingSetting(); // 실시간으로 스타일 적용
+                    
+                    clearTimeout(saveTimeouts['settings']);
+                    saveTimeouts['settings'] = setTimeout(saveSettings, 300);
                 }
             });
-
             appContainer.addEventListener('driveConnected', (e) => {
                 gapiAccessToken = e.detail;
                 renderSettings();
             });
-
             appContainer.addEventListener('showModal', (e) => {
                 showModal(e.detail);
             });
-
             initialize();
         });
     </script>
