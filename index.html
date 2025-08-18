@@ -14,17 +14,16 @@
 
     <style>
         :root {
-            --bg-main: #121212;
-            --bg-surface: #1e1e1e; --bg-card: #2a2a2a; --bg-hover: #37373d;
+            --bg-main: #121212; --bg-surface: #1e1e1e; --bg-card: #2a2a2a; --bg-hover: #37373d;
             --border-main: #3f3f46; --text-main: #e0e0e0; --text-secondary: #a0a0a0;
             --accent-primary: #bb86fc; --accent-secondary: #a763ff; --accent-text: #000000;
         }
         /* --- 라이트 테마 수정 --- */
         [data-theme="light"] {
-            --bg-main: #e8eaf0; /* 원고지 구분을 위한 회색 배경 */
+            --bg-main: #e8eaf0;           /* 원고지 구분을 위한 회색 배경 */
             --bg-surface: #ffffff;
             --bg-card: #ffffff;
-            --bg-hover: #dfe2e8;         /* 호버 색상 변경 */
+            --bg-hover: #dfe2e8;          /* 호버 색상 변경 */
             --border-main: #dce4f2;
             --text-main: #1a202c;
             --text-secondary: #718096;
@@ -42,7 +41,7 @@
             -ms-user-select: none;
             user-select: none;
         }
-        input, textarea, [contenteditable] {
+        input, textarea {
             -webkit-user-select: auto;
             -moz-user-select: auto;
             -ms-user-select: auto;
@@ -52,7 +51,7 @@
         /* --- 애니메이션 및 효과 --- */
 
         /* 1. 부드러운 전환 효과를 위한 기본 설정 */
-        button, .project-card, .list-item, input, textarea, [contenteditable] {
+        button, .project-card, .list-item, input, textarea {
             transition: all 0.2s ease-in-out;
         }
 
@@ -93,11 +92,11 @@
         }
 
         /* 6. 입력창 포커스 효과 */
-        input:focus, textarea:focus, [contenteditable]:focus {
+        input:focus, textarea:focus {
             border-color: var(--accent-primary);
         }
         
-        /* --- 원고 영역 색상 구분 (라이트/다크 모두 적용) --- */
+        /* --- [NEW] 원고 영역 색상 구분 (라이트/다크 모두 적용) --- */
         #editor-panel > .overflow-y-auto {
              background-color: var(--bg-main); /* 바깥 영역 색상 설정 */
         }
@@ -110,69 +109,32 @@
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
         
-        /* --- [최종 수정] 줄 간격과 문단 간격 분리 --- */
+        /* --- [NEW] 문장 간격 조정 --- */
         #editor-content {
-            line-height: 1.7; /* 문단 내부의 '줄 간격' */
-        }
-        #editor-content p {
-            margin: 0; /* 브라우저 기본 p태그 마진 초기화 */
-            padding: 0; /* 브라우저 기본 p태그 패딩 초기화 */
-        }
-        #editor-content p + p {
-            margin-top: 1em; /* 문단과 문단 사이의 '문단 간격' */
-        }
-        /* contenteditable div는 placeholder 속성이 없으므로 CSS로 구현 */
-        #editor-content:empty:before {
-            content: attr(data-placeholder);
-            color: var(--text-secondary);
-            cursor: text;
+            line-height: 1.8; 
         }
 
         /* --- 기존 스타일 --- */
 
-        .bg-main { background-color: var(--bg-main); } .bg-surface { background-color: var(--bg-surface); } .bg-card { background-color: var(--bg-card);
-        }
-        .text-main { color: var(--text-main); } .text-secondary { color: var(--text-secondary);
-        } .border-main { border-color: var(--border-main); }
-        .accent-bg { background-color: var(--accent-primary); color: var(--accent-text);
-        } .accent-hover:hover { background-color: var(--accent-secondary); }
-        .project-card { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-        }
-        [data-theme="dark"] .project-card { box-shadow: none;
-        }
-        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-surface);
-        } ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #5a5a5a;
-        }
-        .list-item.active { background-color: var(--bg-hover); } .list-item:not(.active):hover { background-color: var(--bg-hover);
-        } .list-item .action-btn { visibility: hidden; opacity: 0; transition: opacity 0.2s; } .list-item:hover .action-btn { visibility: visible; opacity: 1;
-        }
-        .dragging { opacity: 0.5; background-color: var(--bg-hover);
-        }
-        .drag-over-item { border-top: 2px solid var(--accent-primary);
-        }
-        .drag-over-folder { background-color: var(--bg-hover) !important; box-shadow: 0 0 0 2px var(--accent-primary);
-        }
-        .tab-btn.active { background-color: var(--bg-hover);
-        }
-        .list-item-folder { background-color: rgba(0,0,0,0.05); font-weight: 500;
-        }
-        [data-theme="dark"] .list-item-folder { background-color: #252525;
-        }
-        .folder-children { max-height: 1000px; transition: max-height 0.3s ease-in-out; overflow: hidden;
-        } .folder-children.collapsed { max-height: 0; }
-        .folder-toggle { transition: transform 0.2s;
-        } .folder-toggle.collapsed { transform: rotate(-90deg); }
-        #editor-container { position: relative; overflow-x: hidden;
-        } #editor-sidebar { width: 224px; position: absolute; top: 0; left: 0; height: 100%; z-index: 40; transform: translateX(-100%);
-        transition: transform 0.3s ease-in-out; will-change: transform; } #editor-main-content { flex: 1; transition: padding-left 0.3s ease-in-out; padding-left: 0;
-        }
-        #editor-container.sidebar-open #editor-sidebar { transform: translateX(0); } #mobile-overlay { position: fixed; inset: 0;
-        background-color: rgba(0,0,0,0.5); z-index: 30; transition: opacity 0.3s ease-in-out; }
-        #editor-sidebar-toggle { position: fixed;
-        top: 50%; left: 0; transform: translateY(-50%); z-index: 50; width: 24px; height: 48px; display: flex; align-items: center; justify-content: center;
-        transition: transform 0.3s ease-in-out; border-radius: 0 8px 8px 0; }
-        #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%);
-        }
+        .bg-main { background-color: var(--bg-main); } .bg-surface { background-color: var(--bg-surface); } .bg-card { background-color: var(--bg-card); }
+        .text-main { color: var(--text-main); } .text-secondary { color: var(--text-secondary); } .border-main { border-color: var(--border-main); }
+        .accent-bg { background-color: var(--accent-primary); color: var(--accent-text); } .accent-hover:hover { background-color: var(--accent-secondary); }
+        .project-card { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+        [data-theme="dark"] .project-card { box-shadow: none; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-surface); } ::-webkit-scrollbar-thumb { background: #424242; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #5a5a5a; }
+        .list-item.active { background-color: var(--bg-hover); } .list-item:not(.active):hover { background-color: var(--bg-hover); } .list-item .action-btn { visibility: hidden; opacity: 0; transition: opacity 0.2s; } .list-item:hover .action-btn { visibility: visible; opacity: 1; }
+        .dragging { opacity: 0.5; background-color: var(--bg-hover); }
+        .drag-over-item { border-top: 2px solid var(--accent-primary); }
+        .drag-over-folder { background-color: var(--bg-hover) !important; box-shadow: 0 0 0 2px var(--accent-primary); }
+        .tab-btn.active { background-color: var(--bg-hover); }
+        .list-item-folder { background-color: rgba(0,0,0,0.05); font-weight: 500; }
+        [data-theme="dark"] .list-item-folder { background-color: #252525; }
+        .folder-children { max-height: 1000px; transition: max-height 0.3s ease-in-out; overflow: hidden; } .folder-children.collapsed { max-height: 0; }
+        .folder-toggle { transition: transform 0.2s; } .folder-toggle.collapsed { transform: rotate(-90deg); }
+        #editor-container { position: relative; overflow-x: hidden; } #editor-sidebar { width: 224px; position: absolute; top: 0; left: 0; height: 100%; z-index: 40; transform: translateX(-100%); transition: transform 0.3s ease-in-out; will-change: transform; } #editor-main-content { flex: 1; transition: padding-left 0.3s ease-in-out; padding-left: 0; }
+        #editor-container.sidebar-open #editor-sidebar { transform: translateX(0); } #mobile-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 30; transition: opacity 0.3s ease-in-out; }
+        #editor-sidebar-toggle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 50; width: 24px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out; border-radius: 0 8px 8px 0; }
+        #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%); }
         
         /* --- 사이드바 토글 버튼 색상 수정 --- */
         [data-theme="light"] #editor-sidebar-toggle {
@@ -182,30 +144,19 @@
             background-color: var(--accent-secondary); /* 더 진한 파란색 호버 */
         }
         
-        button:disabled { opacity: 0.5;
-        cursor: not-allowed; }
-        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent;
-        }
-        input[type=range]:focus { outline: none;
-        }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--border-main); border-radius: 5px;
-        }
-        input[type=range]::-moz-range-track { width: 100%; height: 4px; cursor: pointer; background: var(--border-main); border-radius: 5px;
-        }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary);
-        cursor: pointer; margin-top: -6px; }
-        input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%;
-        background: var(--accent-primary); cursor: pointer; }
-        [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0;
-        }
-        [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0;
-        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--border-main); border-radius: 5px; }
+        input[type=range]::-moz-range-track { width: 100%; height: 4px; cursor: pointer; background: var(--border-main); border-radius: 5px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; margin-top: -6px; }
+        input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
+        [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
+        [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
 
         @media (max-width: 767px) { 
-            #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important;
-            }
-            #editor-content-wrapper { padding: 1.5rem;
-            }
+            #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
+            #editor-content-wrapper { padding: 1.5rem; }
 
             /* --- [최종] 모바일 목록 UI 리셋 및 재설계 --- */
             #item-list {
@@ -266,8 +217,7 @@
                 display: none !important;
             }
         }
-        @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px;
-        } }
+        @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
 </head>
 <body class="bg-main text-main">
@@ -328,7 +278,7 @@
                             <span class="font-semibold">다크 테마</span>
                         </button>
                         <button data-theme-btn="light" class="flex-1 p-4 rounded-md border-2 border-transparent text-center">
-                              <div class="w-full h-16 bg-[#e8eaf0] rounded-md border-2 border-[#dce4f2] mb-2"></div>
+                             <div class="w-full h-16 bg-[#e8eaf0] rounded-md border-2 border-[#dce4f2] mb-2"></div>
                             <span class="font-semibold">라이트 테마</span>
                         </button>
                     </div>
@@ -353,28 +303,28 @@
         <div id="editor-container" class="h-screen">
             <div id="mobile-overlay" class="hidden md:hidden"></div>
             <aside id="editor-sidebar" class="bg-surface flex flex-col border-r border-main flex-shrink-0">
-                 <div class="p-4 border-b border-main flex items-center gap-3">
+                <div class="p-4 border-b border-main flex items-center gap-3">
                     <button id="home-btn" class="p-2 rounded-md hover:bg-card">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                     </button>
                     <h2 id="project-title-sidebar" class="text-lg font-bold truncate"></h2>
                 </div>
                 <div class="flex-grow flex flex-col min-h-0">
-                     <div class="p-2 border-b border-main">
+                    <div class="p-2 border-b border-main">
                         <div class="flex bg-card rounded-md">
                             <button data-tab="chapters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">회차</button>
                             <button data-tab="characters" class="tab-btn flex-1 p-2 text-sm font-semibold rounded-md">등장인물</button>
                         </div>
                     </div>
                     <div class="p-3 flex justify-between items-center">
-                         <h3 id="list-title" class="font-semibold"></h3>
+                        <h3 id="list-title" class="font-semibold"></h3>
                         <div id="new-item-buttons-container" class="flex gap-2"></div>
                     </div>
                     <nav id="item-list" class="flex-grow overflow-y-auto px-2 pb-2"></nav>
                 </div>
             </aside>
             <div id="editor-main-content" class="flex flex-col w-full h-full">
-                <main id="editor-panel" class="flex-1 flex flex-col min-h-0 overflow-y-auto"></main>
+                <main id="editor-panel" class="flex-1 flex flex-col min-h-0"></main>
             </div>
             <button id="editor-sidebar-toggle" class="bg-card hover:bg-hover">
                 <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
@@ -382,28 +332,21 @@
         </div>
     </template>
     <template id="editor-panel-template">
-        <header class="sticky top-0 z-10 bg-main p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
+        <header class="relative p-4 border-b border-main flex flex-col sm:flex-row sm:justify-end sm:items-center items-end gap-3 sm:gap-4">
             <span id="save-status" class="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-secondary transition-opacity duration-500 opacity-0"></span>
             <div id="char-count-container" class="text-sm cursor-pointer" title="클릭하여 모드 변경">
-                 <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
+                <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
             </div>
              <div class="flex gap-2 flex-wrap justify-end">
                 <button id="copy-content-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">원고 복사</button>
                 <button id="save-drive-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Google Drive에 백업</button>
-                 <button id="save-txt-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">TXT 저장</button>
+                <button id="save-txt-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">TXT 저장</button>
             </div>
         </header>
-        <div class="flex-1 p-4 sm:p-8">
+        <div class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <div id="editor-content-wrapper" class="mx-auto h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
-                <!-- ▼▼▼ HTML: textarea를 contenteditable div로 변경 ▼▼▼ -->
-                <div id="editor-content" 
-                     contenteditable="true" 
-                     spellcheck="false" 
-                     data-placeholder="이곳에 이야기를 펼쳐보세요..." 
-                     class="w-full flex-grow bg-transparent text-lg resize-none outline-none">
-                </div>
-                <!-- ▲▲▲ HTML: textarea를 contenteditable div로 변경 ▲▲▲ -->
+                <textarea id="editor-content" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none leading-relaxed"></textarea>
             </div>
         </div>
     </template>
@@ -414,11 +357,11 @@
                 <div class="space-y-6">
                     <div>
                         <label for="character-personality" class="block text-sm font-medium text-secondary mb-2">성격</label>
-                         <textarea id="character-personality" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="자신감 넘치지만 때로는 무모함..."></textarea>
+                        <textarea id="character-personality" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="자신감 넘치지만 때로는 무모함..."></textarea>
                     </div>
                     <div>
                         <label for="character-appearance" class="block text-sm font-medium text-secondary mb-2">외모</label>
-                         <textarea id="character-appearance" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="검은 머리카락과 날카로운 눈매..."></textarea>
+                        <textarea id="character-appearance" rows="4" class="w-full bg-surface p-3 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border-2 border-transparent" placeholder="검은 머리카락과 날카로운 눈매..."></textarea>
                     </div>
                     <div>
                         <label for="character-characteristics" class="block text-sm font-medium text-secondary mb-2">특징 및 기타</label>
@@ -426,7 +369,7 @@
                     </div>
                 </div>
             </div>
-         </div>
+        </div>
     </template>
     <template id="modal-template">
         <div id="modal-content" class="bg-card rounded-lg shadow-xl w-full max-w-md mx-4 p-6 flex flex-col gap-4">
@@ -444,27 +387,27 @@
     
     <script>
         /* --- Google Drive API 설정 --- */
-        const GOOGLE_API_KEY = 'YOUR_API_KEY'; // 여기에 실제 API 키를 입력하세요.
-        const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID'; // 여기에 실제 클라이언트 ID를 입력하세요.
+        const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M';
+        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com';
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
         /* --- Firebase 설정 --- */
-        const appId = typeof __app_id !== 'undefined' ?
-        __app_id : 'default-app-id';
-        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ?
-        __firebase_config : JSON.stringify({
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID",
-            measurementId: "YOUR_MEASUREMENT_ID"
-           });
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
+            apiKey: "AIzaSyDuXjdB4DuP2NFF_OeS6nEwhMu_7wGdDs4",
+            authDomain: "novel-8d4ec.firebaseapp.com",
+            projectId: "novel-8d4ec",
+            storageBucket: "novel-8d4ec.appspot.com",
+            messagingSenderId: "836560106988",
+            appId: "1:836560106988:web:cf90872d7b09b9498ffcc9",
+            measurementId: "G-83BZ35QVLC"
+        });
 
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
+        
         /**
          * PIN을 간단히 암호화합니다. (고급 보안용 아님)
          * @param {string} pin - 4자리 PIN 번호
@@ -507,17 +450,17 @@
                 client_id: GOOGLE_CLIENT_ID,
                 scope: SCOPES,
                 callback: (tokenResponse) => {
-                     const appContainer = document.getElementById('app-container');
+                    const appContainer = document.getElementById('app-container');
                     if (tokenResponse && tokenResponse.access_token) {
                         gapi.client.setToken(tokenResponse);
                         appContainer.dispatchEvent(new CustomEvent('driveConnected', { detail: tokenResponse }));
-                     } else {
+                    } else {
                         console.error("Google Drive 연결 실패: 토큰을 받지 못했습니다.");
                         appContainer.dispatchEvent(new CustomEvent('showModal', { detail: {
-                             title: "연결 오류",
-                             text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
-                             buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
-                         }}));
+                            title: "연결 오류",
+                            text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
+                            buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
+                        }}));
                     }
                 },
             });
@@ -546,12 +489,13 @@
             let charCountMode = 'noSpecialChars';
             let saveTimeouts = {};
             let collapsedFolders = new Set();
-             let isProjectJustOpened = false;
+            let isProjectJustOpened = false;
             
             let settings = {
                 theme: 'dark',
                 editorWidth: 450
             };
+            
             function initialize() {
                 try {
                     loadSettings();
@@ -574,21 +518,21 @@
                         if (user) {
                             currentUserId = user.uid;
                             if (!appContainer.querySelector('#project-grid')) {
-                                 renderView('home');
+                                renderView('home');
                             }
                             loadProjects();
                         } else {
                             currentUserId = null;
                             projects = [];
                             gapiAccessToken = null;
-                             Object.values(unsubscribes).forEach(unsub => {
+                            Object.values(unsubscribes).forEach(unsub => {
                                 if (typeof unsub === 'function') unsub();
                             });
-                             unsubscribes = {};
+                            unsubscribes = {};
                             renderView('login');
                         }
                     } catch (error) {
-                         console.error("Error during auth state change:", error);
+                        console.error("Error during auth state change:", error);
                         loadingContent.innerHTML = `<div class="text-center text-red-400"><p class="text-lg font-bold">앱 시작 오류</p><p class="text-sm">${error.message}</p></div>`;
                         return;
                     }
@@ -612,8 +556,7 @@
                 const buttonsEl = modalBackdrop.querySelector('#modal-buttons');
 
                 titleEl.textContent = options.title;
-                if (options.text) textEl.textContent = options.text;
-                else textEl.style.display = 'none';
+                if (options.text) textEl.textContent = options.text; else textEl.style.display = 'none';
                 if (options.customHtml) customContentEl.innerHTML = options.customHtml;
                 if (options.inputPlaceholder) {
                     inputEl.classList.remove('hidden');
@@ -643,11 +586,9 @@
                 if (modal) modal.remove();
             }
 
-            function getProject(projectId) { return projects.find(p => p.id === projectId);
-            }
+            function getProject(projectId) { return projects.find(p => p.id === projectId); }
             function getItem(itemId) {
-                const items = sidebarMode === 'chapters' ?
-                chapters : characters;
+                const items = sidebarMode === 'chapters' ? chapters : characters;
                 return items.find(i => i.id === itemId);
             }
 
@@ -664,7 +605,7 @@
                     console.error("Project Loading Error:", error);
                     const placeholder = appContainer.querySelector('#no-projects-placeholder');
                     if(placeholder) {
-                         placeholder.innerHTML = `<h3 class="text-xl font-semibold text-red-400">데이터 로딩 오류</h3><p class="text-secondary mt-2">프로젝트를 불러오지 못했습니다. Firestore 규칙을 확인해주세요.</p>`;
+                        placeholder.innerHTML = `<h3 class="text-xl font-semibold text-red-400">데이터 로딩 오류</h3><p class="text-secondary mt-2">프로젝트를 불러오지 못했습니다. Firestore 규칙을 확인해주세요.</p>`;
                         placeholder.classList.remove('hidden');
                     }
                 });
@@ -678,21 +619,21 @@
                     let itemList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
                     if (sidebarMode === 'chapters') {
-                         itemList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                        itemList.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
                         chapters = itemList;
                         if (isProjectJustOpened) {
                             chapters.forEach(item => {
-                                 if (item.type === 'folder') {
+                                if (item.type === 'folder') {
                                     collapsedFolders.add(item.id);
                                 }
                             });
                             isProjectJustOpened = false;
                         }
-                     } else {
+                    } else {
                         itemList.sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
                         characters = itemList;
                     }
-                     renderItemList();
+                    renderItemList();
                 }, error => {
                     console.error(`Error loading ${sidebarMode}:`, error);
                     const listEl = appContainer.querySelector('#item-list');
@@ -720,13 +661,13 @@
                         <button id="settings-btn" class="p-2 rounded-full hover:bg-hover" title="설정">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </button>
-                         <div class="text-right">
+                        <div class="text-right">
                             <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
                             <p class="text-xs text-secondary hidden sm:block truncate">${currentUser.email || '이메일 정보 없음'}</p>
                         </div>
                         <img class="w-10 h-10 rounded-full" src="${currentUser.photoURL || 'https://placehold.co/40x40/2a2a2a/e0e0e0?text=?'}" alt="Profile">
                         <button id="logout-btn" class="bg-surface border border-main text-secondary font-bold py-2 px-4 rounded-lg text-sm transition-colors hover:bg-hover">로그아웃</button>
-                       `;
+                    `;
                 }
                 renderProjectGrid();
             }
@@ -754,25 +695,26 @@
                 card.dataset.projectId = project.id;
                 card.dataset.locked = project.isLocked || false;
                 const lastModified = project.lastModified ? new Date(project.lastModified.toMillis()).toLocaleString('ko-KR') : '날짜 정보 없음';
+                
                 const lockIcon = project.isLocked
-                    ?
-                    `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-secondary ml-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a3 3 0 00-3 3v1H6a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-1V5a3 3 0 00-3-3zm-1 4V5a1 1 0 112 0v1H9z" clip-rule="evenodd" /></svg>`
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-secondary ml-2 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a3 3 0 00-3 3v1H6a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V8a2 2 0 00-2-2h-1V5a3 3 0 00-3-3zm-1 4V5a1 1 0 112 0v1H9z" clip-rule="evenodd" /></svg>`
                     : '';
+
                 card.innerHTML = `
                     <div class="flex-grow">
                         <div class="flex justify-between items-start">
                             <div class="flex items-center">
-                                 <h3 class="text-lg font-bold"></h3>
+                                <h3 class="text-lg font-bold"></h3>
                                 ${lockIcon}
                             </div>
-                             <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
+                            <button data-action="options" class="p-1 rounded-full hover:bg-surface -mr-1 -mt-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
-                             </button>
+                            </button>
                         </div>
                     </div>
                     <div class="text-xs text-secondary">
                         <span>${lastModified} 수정됨</span>
-                     </div>`;
+                    </div>`;
                 card.querySelector('h3').textContent = project.name;
                 return card;
             }
@@ -809,6 +751,7 @@
 
                 // 데스크톱 회차 탭일 경우, 트리 구조로 렌더링
                 const tree = buildItemTree(itemsToRender);
+                
                 function renderNode(node, container) {
                     container.appendChild(createItemElement(node));
                     if (node.children && node.children.length > 0) {
@@ -850,20 +793,20 @@
                     itemEl.dataset.id = item.id;
                     itemEl.dataset.type = isFolder ? 'folder' : 'chapter';
                     itemEl.draggable = false;
+
                     itemEl.innerHTML = `
                         <div class="flex items-center gap-3 truncate flex-1 min-w-0">
                             ${isFolder
-                                ?
-                                `<svg class="h-5 w-5 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
+                                ? `<svg class="h-5 w-5 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>`
                                 : `<svg class="h-5 w-5 text-secondary flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>`
                             }
                             <span class="truncate">${item.title || item.name}</span>
                         </div>
                         <div class="flex-shrink-0">
                             <button data-action="delete-item" class="p-1 rounded-full text-red-400 hover:bg-red-500/20">
-                                 <svg class="h-5 w-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                <svg class="h-5 w-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
                             </button>
-                         </div>
+                        </div>
                     `;
                 // --- 데스크톱 UI: 기존 트리 구조 ---
                 } else {
@@ -878,21 +821,20 @@
                     let itemHeaderHTML = `
                         <div class="flex justify-between items-center w-full">
                             <div class="flex items-center gap-2 truncate flex-1">
-                                 ${isFolder ? `
+                                ${isFolder ? `
                                     <svg data-action="toggle-folder" class="folder-toggle h-4 w-4 flex-shrink-0 ${isCollapsed ? 'collapsed' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                                     <svg class="h-4 w-4 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
+                                    <svg class="h-4 w-4 text-yellow-400 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                                 ` : `
-                                     <svg class="h-4 w-4 text-secondary flex-shrink-0 ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                                    <svg class="h-4 w-4 text-secondary flex-shrink-0 ml-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A1 1 0 0111 2.586L15.414 7A1 1 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
                                 `}
-                                 <span class="truncate pointer-events-none"></span>
+                                <span class="truncate pointer-events-none"></span>
                             </div>
                             <div class="flex items-center">
-                                 ${isFolder ?
-                                `<button class="action-btn p-1 rounded-full hover:bg-blue-500/20" data-action="rename-item" title="이름 변경"><svg class="h-4 w-4 pointer-events-none text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
+                                ${isFolder ? `<button class="action-btn p-1 rounded-full hover:bg-blue-500/20" data-action="rename-item" title="이름 변경"><svg class="h-4 w-4 pointer-events-none text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
                                 <button class="action-btn p-1 rounded-full hover:bg-red-500/20" data-action="delete-item" title="삭제"><svg class="h-4 w-4 pointer-events-none text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg></button>
                             </div>
                         </div>
-                       `;
+                    `;
                     
                     itemEl.innerHTML = itemHeaderHTML;
                     if (isFolder) {
@@ -923,21 +865,12 @@
                 editorPanel.innerHTML = '';
                 const templateId = sidebarMode === 'chapters' ? 'editor-panel-template' : 'character-editor-panel-template';
                 editorPanel.appendChild(document.getElementById(templateId).content.cloneNode(true));
+                
                 if (sidebarMode === 'chapters') {
                     const wrapper = editorPanel.querySelector('#editor-content-wrapper');
                     wrapper.style.maxWidth = `${settings.editorWidth}px`;
                     editorPanel.querySelector('#editor-title').value = item.title || '';
-                    
-                    // ▼▼▼ JS 수정: .value 대신 .innerHTML 사용 ▼▼▼
-                    const editorContentEl = editorPanel.querySelector('#editor-content');
-                    // Firestore에서 불러온 내용이 비어있거나 p 태그로 시작하지 않으면 p 태그로 감싸줍니다.
-                    let initialContent = item.content || '';
-                    if (!initialContent.trim().startsWith('<p>')) {
-                        initialContent = `<p>${initialContent.replace(/\n/g, '</p><p>')}</p>`;
-                    }
-                    editorContentEl.innerHTML = initialContent;
-                    // ▲▲▲ JS 수정 ▲▲▲
-
+                    editorPanel.querySelector('#editor-content').value = item.content || '';
                 } else {
                     editorPanel.querySelector('#character-name').value = item.name || '';
                     editorPanel.querySelector('#character-personality').value = item.personality || '';
@@ -954,17 +887,18 @@
                 const listTitle = container.querySelector('#list-title');
                 const newItemButtonsContainer = container.querySelector('#new-item-buttons-container');
                 newItemButtonsContainer.innerHTML = '';
+                
                 if (sidebarMode === 'chapters') {
                     listTitle.textContent = '회차 목록';
                     newItemButtonsContainer.innerHTML = `
                         <button id="new-folder-btn" title="새 폴더" class="accent-bg accent-hover p-2 rounded-md transition-colors">
                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
-                         </button>
+                        </button>
                         <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 새 회차</button>
                     `;
                 } else {
                     listTitle.textContent = '등장인물';
-                    newItemButtonsContainer.innerHTML = `
+                     newItemButtonsContainer.innerHTML = `
                         <button id="new-item-btn" class="accent-bg accent-hover font-bold py-1 px-3 rounded-md transition-colors">+ 추가</button>
                     `;
                 }
@@ -978,9 +912,7 @@
                 let content = '';
                 if (sidebarMode === 'chapters') {
                     const contentEl = appContainer.querySelector('#editor-content');
-                    // ▼▼▼ JS 수정: .innerHTML 대신 .innerText 사용 ▼▼▼
-                    if(contentEl) content = contentEl.innerText;
-                    // ▲▲▲ JS 수정 ▲▲▲
+                    if(contentEl) content = contentEl.value;
                 }
                 
                 let count = 0;
@@ -995,7 +927,6 @@
                         label = '공백/특문 제외';
                         break;
                 }
-
                 countEl.textContent = count.toLocaleString();
                 labelEl.textContent = label;
             }
@@ -1003,8 +934,7 @@
             function toggleSidebar(forceOpen) {
                 const container = appContainer.querySelector('#editor-container');
                 if (!container) return;
-
-                 const shouldBeOpen = typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open');
+                const shouldBeOpen = typeof forceOpen !== 'undefined' ? forceOpen : !container.classList.contains('sidebar-open');
                 container.classList.toggle('sidebar-open', shouldBeOpen);
                 updateSidebarVisuals();
             };
@@ -1020,8 +950,7 @@
                 } else {
                     overlay.classList.add('hidden');
                 }
-                icon.innerHTML = isOpen ?
-                `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
+                icon.innerHTML = isOpen ? `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />` : `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />`;
             }
             
             function showEditorStatus(msg, isError = false) {
@@ -1038,7 +967,7 @@
             function handleGoogleLogin() {
                 if (!gapiInited || !gisInited) {
                     showModal({
-                         title: "준비 중",
+                        title: "준비 중",
                         text: "Google 로그인 서비스가 아직 준비 중입니다. 잠시 후 다시 시도해주세요.",
                         buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
                     });
@@ -1069,10 +998,10 @@
                                 if (!name) return;
                                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).add({
                                     name: name,
-                                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                                     lastModified: firebase.firestore.FieldValue.serverTimestamp(),
                                     isLocked: false,
-                                     pin: null
+                                    pin: null
                                 });
                             }
                         }
@@ -1095,7 +1024,7 @@
                     title: `'${project.name}' 설정`, text: '프로젝트 설정을 변경합니다.',
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                         lockButton,
+                        lockButton,
                         { text: '이름 변경', class: 'px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleRenameProject(projectId), 10)},
                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold', onClick: () => setTimeout(() => handleDeleteProject(projectId), 10)}
                     ]
@@ -1108,36 +1037,37 @@
                     title: '이름 변경', text: `'${project.name}'의 새 이름을 입력하세요.`, inputPlaceholder: project.name, initialValue: project.name,
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                         { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
+                        { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
                             onClick: function(newName) {
                                 if (!newName) return;
-                                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
+                                db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({ name: newName, lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                             }
                         }
                     ]
-                 });
+                });
             };
+            
             function handleDeleteProject(projectId) {
                 const project = getProject(projectId);
                 showModal({
                     title: `'${project.name}' 삭제`, text: '정말로 이 프로젝트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold',
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold',
                             onClick: function() {
                                 const projectRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId);
-                                 projectRef.delete();
+                                projectRef.delete();
                             }
                         }
                     ]
-                 });
+                });
             };
             
             function handleSetPin(projectId) {
                 const customHtml = `
                     <div class="space-y-2">
                         <input id="pin-input" type="password" placeholder="4자리 PIN 입력" maxlength="4" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border border-main">
-                         <input id="pin-confirm" type="password" placeholder="PIN 확인" maxlength="4" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border border-main">
+                        <input id="pin-confirm" type="password" placeholder="PIN 확인" maxlength="4" class="w-full bg-surface p-2 rounded-md outline-none focus:ring-2 focus:ring-accent-primary border border-main">
                         <p id="pin-error" class="text-red-400 text-sm h-4"></p>
                     </div>
                 `;
@@ -1146,13 +1076,13 @@
                     text: '프로젝트를 잠그려면 4자리 숫자로 PIN을 설정하세요.',
                     customHtml: customHtml,
                     buttons: [
-                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
+                        { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
                         {
                             text: '설정',
-                             class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
+                            class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
                             closeOnClick: false,
                             onClick: function() {
-                                 const pinInput = document.getElementById('pin-input');
+                                const pinInput = document.getElementById('pin-input');
                                 const pinConfirm = document.getElementById('pin-confirm');
                                 const errorEl = document.getElementById('pin-error');
                                 
@@ -1169,7 +1099,7 @@
                                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({
                                     isLocked: true,
                                     pin: hashedPin,
-                                     lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
                                 });
                                 closeModal();
                             }
@@ -1185,19 +1115,19 @@
                     text: `'${project.name}' 프로젝트의 잠금을 해제하려면 PIN을 입력하세요.`,
                     inputPlaceholder: '4자리 PIN 입력',
                     inputType: 'password',
-                     maxLength: 4,
+                    maxLength: 4,
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
                         {
-                             text: '확인',
+                            text: '확인',
                             class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
                             onClick: function(enteredPin) {
-                                 if (verifyPin(enteredPin, project.pin)) {
+                                if (verifyPin(enteredPin, project.pin)) {
                                     db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(projectId).update({
-                                         isLocked: false,
-                                          pin: firebase.firestore.FieldValue.delete(),
-                                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                                     });
+                                        isLocked: false,
+                                        pin: firebase.firestore.FieldValue.delete(),
+                                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
                                 } else {
                                     alert('PIN이 올바르지 않습니다.');
                                 }
@@ -1209,25 +1139,25 @@
             
             function handleUnlockProject(projectId) {
                 const project = getProject(projectId);
-                showModal({
+                 showModal({
                     title: 'PIN 입력',
                     text: `'${project.name}' 프로젝트를 열려면 PIN을 입력하세요.`,
                     inputPlaceholder: '4자리 PIN 입력',
                     inputType: 'password',
-                     maxLength: 4,
+                    maxLength: 4,
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
                         {
-                             text: '열기',
+                            text: '열기',
                             class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
                             onClick: function(enteredPin) {
-                                 if (verifyPin(enteredPin, project.pin)) {
+                                if (verifyPin(enteredPin, project.pin)) {
                                     openProject(projectId);
                                 } else {
-                                     alert('PIN이 올바르지 않습니다.');
+                                    alert('PIN이 올바르지 않습니다.');
                                 }
                             }
-                         }
+                        }
                     ]
                 });
             }
@@ -1254,7 +1184,7 @@
                     if (type === 'folder') {
                         newItemData = { title: '새 폴더', type: 'folder', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                     } else {
-                        newItemData = { title: '새 회차', content: '<p><br></p>', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                        newItemData = { title: '새 회차', content: '', type: 'chapter', parentId: parentId, order: siblings.length, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
                     }
                 } else {
                     newItemData = { name: '새 등장인물', personality: '', appearance: '', characteristics: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
@@ -1263,9 +1193,9 @@
                 collectionRef.add(newItemData).then(newDocRef => {
                     const newItemObject = { id: newDocRef.id, ...newItemData };
                     if (sidebarMode === 'chapters') {
-                         chapters.push(newItemObject);
-                     } else {
-                         characters.push(newItemObject);
+                        chapters.push(newItemObject);
+                    } else {
+                        characters.push(newItemObject);
                     }
                     
                     activeItemId = newDocRef.id;
@@ -1283,23 +1213,25 @@
                 const item = getItem(itemId);
                 const isFolder = item?.type === 'folder';
                 const itemType = isFolder ? '폴더' : (sidebarMode === 'chapters' ? '회차' : '등장인물');
+
                 let confirmationText = `정말로 이 ${itemType}를 삭제하시겠습니까?`;
                 if (isFolder) confirmationText += ' 폴더 안의 모든 회차도 함께 삭제됩니다.';
+
                 showModal({
                     title: `${itemType} 삭제`, text: confirmationText,
                     buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
-                         { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold',
+                        { text: '삭제', class: 'px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-md font-semibold',
                             onClick: async function() {
                                 const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                                 const batch = db.batch();
+                                const batch = db.batch();
                                 
                                 if (isFolder) {
-                                     const childrenToDelete = chapters.filter(c => c.parentId === itemId);
-                                     childrenToDelete.forEach(child => batch.delete(collectionRef.doc(child.id)));
+                                    const childrenToDelete = chapters.filter(c => c.parentId === itemId);
+                                    childrenToDelete.forEach(child => batch.delete(collectionRef.doc(child.id)));
                                 }
 
-                                 batch.delete(collectionRef.doc(itemId));
+                                batch.delete(collectionRef.doc(itemId));
                                 await batch.commit();
 
                                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
@@ -1322,13 +1254,13 @@
                     text: '새로운 이름을 입력하세요.',
                     inputPlaceholder: item.title || item.name,
                     initialValue: item.title || item.name,
-                     buttons: [
+                    buttons: [
                         { text: '취소', class: 'px-4 py-2 bg-surface hover:bg-hover rounded-md font-semibold' },
                         { text: '저장', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold',
-                             onClick: function(newName) {
+                            onClick: function(newName) {
                                 if (!newName || newName === (item.title || item.name)) return;
                                 const collectionRef = db.collection(`artifacts/${appId}/users/${currentUserId}/projects/${activeProjectId}/${sidebarMode}`);
-                                 const fieldToUpdate = sidebarMode === 'chapters' ? 'title' : 'name';
+                                const fieldToUpdate = sidebarMode === 'chapters' ? 'title' : 'name';
                                 collectionRef.doc(itemId).update({ [fieldToUpdate]: newName });
                             }
                         }
@@ -1351,12 +1283,11 @@
 
                 const editorPanel = appContainer.querySelector('#editor-panel');
                 if (!editorPanel) return;
+                
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    // ▼▼▼ JS 수정: .value 대신 .innerHTML 사용 ▼▼▼
-                    data.content = editorPanel.querySelector('#editor-content').innerHTML;
-                    // ▲▲▲ JS 수정 ▲▲▲
+                    data.content = editorPanel.querySelector('#editor-content').value;
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
@@ -1370,14 +1301,11 @@
 
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
-                // ▼▼▼ JS 수정: .value 대신 .innerText 사용 ▼▼▼
-                const textToCopy = contentEl ? contentEl.innerText : '';
-                if (!textToCopy) {
-                // ▲▲▲ JS 수정 ▲▲▲
+                if (!contentEl || !contentEl.value) {
                     showEditorStatus('복사할 내용이 없습니다.', true);
                     return;
                 }
-                navigator.clipboard.writeText(textToCopy).then(() => {
+                navigator.clipboard.writeText(contentEl.value).then(() => {
                     showEditorStatus('✅ 복사 완료');
                 }).catch(err => {
                     console.error('Could not copy text: ', err);
@@ -1389,12 +1317,7 @@
                 const item = getItem(activeItemId);
                 if (sidebarMode === 'chapters' && activeItemId && item && item.type !== 'folder') {
                     const project = getProject(activeProjectId);
-                    // ▼▼▼ JS 수정: item.content(HTML) 대신 innerText 사용 ▼▼▼
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = item.content;
-                    const plainText = tempDiv.innerText;
-                    const content = `# ${item.title}\n\n${plainText}`;
-                    // ▲▲▲ JS 수정 ▲▲▲
+                    const content = `# ${item.title}\n\n${item.content}`;
                     const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
@@ -1403,7 +1326,7 @@
                     a.click();
                     URL.revokeObjectURL(a.href);
                 } else {
-                     showModal({title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                    showModal({title: "알림", text: "회차를 선택해야 TXT 파일로 저장할 수 있습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
                 }
             };
             
@@ -1413,19 +1336,19 @@
                     const searchResponse = await gapi.client.drive.files.list({
                         q: `mimeType='application/vnd.google-apps.folder' and name='${FOLDER_NAME}' and trashed=false`,
                         fields: 'files(id, name)',
-                         spaces: 'drive',
+                        spaces: 'drive',
                     });
-                
+            
                     if (searchResponse.result.files.length > 0) {
-                         return searchResponse.result.files[0].id;
+                        return searchResponse.result.files[0].id;
                     } else {
                         const createResponse = await gapi.client.drive.files.create({
                             resource: {
                                 name: FOLDER_NAME,
-                                 mimeType: 'application/vnd.google-apps.folder',
+                                mimeType: 'application/vnd.google-apps.folder',
                             },
                             fields: 'id',
-                         });
+                        });
                         return createResponse.result.id;
                     }
                 } catch (err) {
@@ -1438,7 +1361,7 @@
                 if (!gapiAccessToken) {
                     showModal({
                         title: "Google Drive 연결 필요",
-                         text: "Google Drive가 연결되지 않았습니다. 설정 페이지에서 먼저 계정을 연결해주세요.",
+                        text: "Google Drive가 연결되지 않았습니다. 설정 페이지에서 먼저 계정을 연결해주세요.",
                         buttons: [ { text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' } ]
                     });
                     return;
@@ -1451,6 +1374,7 @@
                 }
 
                 showEditorStatus('백업 중...');
+                
                 try {
                     const folderId = await getOrCreateFolderId();
                     if (!folderId) {
@@ -1460,33 +1384,27 @@
                     const project = getProject(activeProjectId);
                     const sanitizedTitle = (item.title || '회차').replace(/[\/\\?%*:|"<>]/g, '-');
                     const fileName = `[${project.name}] ${sanitizedTitle}.txt`;
-                    
-                    // ▼▼▼ JS 수정: item.content(HTML) 대신 innerText 사용 ▼▼▼
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = item.content;
-                    const plainText = tempDiv.innerText;
-                    const fileContent = `# ${item.title}\n\n${plainText}`;
-                    // ▲▲▲ JS 수정 ▲▲▲
+                    const fileContent = `# ${item.title}\n\n${item.content}`;
                     
                     const fileMetadata = {
-                         'name': fileName,
+                        'name': fileName,
                         'mimeType': 'text/plain',
                         'parents': [folderId]
                     };
-                     
+                    
                     const searchFileResponse = await gapi.client.drive.files.list({
                         q: `name='${fileName}' and '${folderId}' in parents and trashed=false`,
                         fields: 'files(id)'
-                       });
+                    });
 
                     let fileId;
                     if (searchFileResponse.result.files.length > 0) {
                         fileId = searchFileResponse.result.files[0].id;
-                     } else {
+                    } else {
                         const createResponse = await gapi.client.drive.files.create({
                             resource: fileMetadata,
                             fields: 'id'
-                         });
+                        });
                         fileId = createResponse.result.id;
                     }
 
@@ -1498,8 +1416,9 @@
                         path: `/upload/drive/v3/files/${fileId}`,
                         method: 'PATCH',
                         params: { uploadType: 'media' },
-                         body: fileContent
+                        body: fileContent
                     });
+                    
                     showEditorStatus('백업 완료!');
 
                 } catch(err) {
@@ -1528,40 +1447,44 @@
                         setTimeout(() => target.classList.add('dragging'), 0);
                     }
                 });
+
                 listEl.addEventListener('dragover', e => {
                     if (!draggedItemId) return;
                     e.preventDefault();
                     const targetEl = e.target.closest('.list-item');
                     
-                     listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
+                    listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
                         el.classList.remove('drag-over-item', 'drag-over-folder');
                     });
 
                     if (targetEl && targetEl.dataset.id !== draggedItemId) {
-                         if (targetEl.dataset.type === 'folder') {
+                        if (targetEl.dataset.type === 'folder') {
                             targetEl.classList.add('drag-over-folder');
                         } else {
                             targetEl.classList.add('drag-over-item');
-                         }
+                        }
                     }
                 });
+
                 listEl.addEventListener('dragleave', e => {
                     e.target.closest('.list-item')?.classList.remove('drag-over-item', 'drag-over-folder');
                 });
+
                 listEl.addEventListener('dragend', e => {
                     draggedItemId = null;
                     listEl.querySelector('.dragging')?.classList.remove('dragging');
                     listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => {
                         el.classList.remove('drag-over-item', 'drag-over-folder');
-                     });
+                    });
                 });
+
                 listEl.addEventListener('drop', e => {
                     e.preventDefault();
                     if (!draggedItemId) return;
 
                     const targetEl = e.target.closest('.list-item');
                     const draggedItem = getItem(draggedItemId);
-                     
+                    
                     listEl.querySelectorAll('.drag-over-item, .drag-over-folder').forEach(el => el.classList.remove('drag-over-item', 'drag-over-folder'));
 
                     if (!draggedItem) return;
@@ -1574,13 +1497,12 @@
                         if (targetItem && targetItem.id !== draggedItem.id) {
                              if (targetItem.type === 'folder') {
                                 newParentId = targetItem.id;
-                                 targetOrder = chapters.filter(c => c.parentId === newParentId).length;
+                                targetOrder = chapters.filter(c => c.parentId === newParentId).length;
                             } else {
                                 newParentId = targetItem.parentId || null;
                                 targetOrder = targetItem.order;
                             }
-                        } else { return;
-                        }
+                        } else { return; }
                     } else {
                         newParentId = null;
                         targetOrder = chapters.filter(c => !c.parentId).length;
@@ -1594,7 +1516,7 @@
                         if (item.order !== index) {
                             batch.update(collectionRef.doc(item.id), { order: index });
                         }
-                     });
+                    });
 
                     const newSiblings = chapters.filter(c => c.parentId === newParentId && c.id !== draggedItem.id).sort((a, b) => a.order - b.order);
                     newSiblings.splice(targetOrder, 0, draggedItem);
@@ -1603,14 +1525,15 @@
                         if (item.id === draggedItem.id) {
                             batch.update(collectionRef.doc(item.id), { order: index, parentId: newParentId });
                         } else if (item.order !== index) {
-                             batch.update(collectionRef.doc(item.id), { order: index });
+                            batch.update(collectionRef.doc(item.id), { order: index });
                         }
                     });
+
                     batch.commit().then(() => {
                         db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
                     }).catch(err => {
                         console.error("Failed to reorder items:", err);
-                         showModal({title: "오류", text: "순서 변경에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
+                        showModal({title: "오류", text: "순서 변경에 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
                     });
                 });
             }
@@ -1664,17 +1587,17 @@
                         <div class="flex items-center gap-4">
                             <img src="${driveUser.photoLink}" class="w-10 h-10 rounded-full" alt="Google User Photo">
                             <div class="flex-grow">
-                                 <p class="font-semibold">${driveUser.displayName}</p>
+                                <p class="font-semibold">${driveUser.displayName}</p>
                                 <p class="text-sm text-secondary">${driveUser.emailAddress}</p>
                             </div>
-                             <button id="drive-disconnect-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결 해제</button>
+                            <button id="drive-disconnect-btn" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결 해제</button>
                         </div>
                     `;
                 } else {
                     driveStatusArea.innerHTML = `
                         <div class="flex items-center justify-between">
                             <p class="text-secondary">파일 백업을 위해 Google Drive를 연결하세요.</p>
-                             <button id="drive-connect-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결하기</button>
+                            <button id="drive-connect-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">연결하기</button>
                         </div>
                     `;
                 }
@@ -1691,7 +1614,7 @@
             function handleDriveDisconnect() {
                 if (gapiAccessToken && gapiAccessToken.access_token) {
                     google.accounts.oauth2.revoke(gapiAccessToken.access_token, () => {
-                         console.log('Access token revoked.');
+                        console.log('Access token revoked.');
                     });
                 }
                 gapiAccessToken = null;
@@ -1705,7 +1628,7 @@
                 const closest = (selector) => target.closest(selector);
 
                 if (closest('#google-login-btn')) return handleGoogleLogin();
-                 if (closest('#new-project-btn')) return handleNewProject();
+                if (closest('#new-project-btn')) return handleNewProject();
                 if (closest('#logout-btn')) return handleLogout();
                 if (closest('#settings-btn')) return renderView('settings');
                 
@@ -1716,11 +1639,11 @@
 
                     if (closest('[data-action="options"]')) {
                         e.stopPropagation();
-                         return handleProjectOptions(projectId);
+                        return handleProjectOptions(projectId);
                     }
                     
                     if (isLocked) {
-                         return handleUnlockProject(projectId);
+                        return handleUnlockProject(projectId);
                     } else {
                         return openProject(projectId);
                     }
@@ -1748,6 +1671,7 @@
                 if (closest('#home-btn')) return renderView('home');
                 if (closest('#editor-sidebar-toggle')) return toggleSidebar();
                 if (closest('#mobile-overlay')) return toggleSidebar(false);
+                
                 if (closest('#new-item-btn')) return handleNewItem(sidebarMode === 'chapters' ? 'chapter' : 'character');
                 if (closest('#new-folder-btn')) return handleNewItem('folder');
 
@@ -1790,32 +1714,29 @@
                     return;
                 }
             });
-            
-            // ▼▼▼ JS 수정: input 이벤트를 contenteditable div에 맞게 수정 ▼▼▼
+
             appContainer.addEventListener('input', e => {
-                if (e.target.closest('#editor-title, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
-                    handleEditorInput(e);
-                }
-                if (e.target.closest('#editor-content')) {
+                if (e.target.closest('#editor-title, #editor-content, #character-name, #character-personality, #character-appearance, #character-characteristics')) {
                     handleEditorInput(e);
                 }
                 const widthSlider = e.target.closest('#editor-width-slider');
                 if(widthSlider) {
-                     const widthValueEl = appContainer.querySelector('#editor-width-value');
+                    const widthValueEl = appContainer.querySelector('#editor-width-value');
                     settings.editorWidth = widthSlider.value;
                     widthValueEl.textContent = `${settings.editorWidth}px`;
                     saveSettings();
-                 }
+                }
             });
-            // ▲▲▲ JS 수정 ▲▲▲
 
             appContainer.addEventListener('driveConnected', (e) => {
                 gapiAccessToken = e.detail;
                 renderSettings();
             });
+
             appContainer.addEventListener('showModal', (e) => {
                 showModal(e.detail);
             });
+
             initialize();
         });
     </script>
