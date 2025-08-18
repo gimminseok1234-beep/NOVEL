@@ -1303,8 +1303,12 @@
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
                     const contentEl = editorPanel.querySelector('#editor-content');
-                    const paragraphs = Array.from(contentEl.querySelectorAll('p')).map(p => p.innerHTML.replace(/<br>/g, '\n'));
-                    data.content = paragraphs.join('\n\n');
+                    const paragraphsHTML = Array.from(contentEl.querySelectorAll('p')).map(p => {
+                        let tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = p.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+                        return tempDiv.textContent || '';
+                    });
+                    data.content = paragraphsHTML.join('\n\n');
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
