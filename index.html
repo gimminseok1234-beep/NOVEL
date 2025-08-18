@@ -15,16 +15,23 @@
     <style>
         :root {
             --bg-main: #121212;
-            --bg-surface: #1e1e1e; --bg-card: #2a2a2a; --bg-hover: #37373d;
-            --border-main: #3f3f46; --text-main: #e0e0e0; --text-secondary: #a0a0a0;
-            --accent-primary: #bb86fc; --accent-secondary: #a763ff; --accent-text: #000000;
+            /* [수정] 다크 테마 원고지 색상을 이미지에 맞춰 변경 */
+            --bg-surface: #212121; 
+            --bg-card: #2a2a2a; 
+            --bg-hover: #37373d;
+            --border-main: #3f3f46; 
+            --text-main: #e0e0e0; 
+            --text-secondary: #a0a0a0;
+            --accent-primary: #bb86fc; 
+            --accent-secondary: #a763ff; 
+            --accent-text: #000000;
         }
-        /* --- 라이트 테마 수정 --- */
+        /* --- 라이트 테마 --- */
         [data-theme="light"] {
-            --bg-main: #e8eaf0; /* 원고지 구분을 위한 회색 배경 */
+            --bg-main: #e8eaf0;
             --bg-surface: #ffffff;
             --bg-card: #ffffff;
-            --bg-hover: #dfe2e8;          /* 호버 색상 변경 */
+            --bg-hover: #dfe2e8;
             --border-main: #dce4f2;
             --text-main: #1a202c;
             --text-secondary: #718096;
@@ -92,28 +99,28 @@
             border-color: var(--accent-primary);
         }
         
-        /* --- [수정] 원고 영역 색 구분 ON/OFF 기능 --- */
+        /* --- 원고 영역 색 구분 ON/OFF 기능 --- */
         /* 기본 상태 (색 구분 OFF) */
         #editor-panel > .overflow-y-auto {
-             background-color: var(--bg-surface); /* 전체를 원고지 색으로 통일 */
+             background-color: var(--bg-surface);
         }
         #editor-content-wrapper {
-            background-color: transparent; /* 투명하게 만들어 부모 색을 따름 */
+            background-color: transparent;
             border-radius: 0.5rem;
             padding: 2.5rem;
         }
         [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper {
-             box-shadow: none; /* 색 구분 없을 땐 그림자도 제거 */
+             box-shadow: none;
         }
 
         /* 색 구분 ON 상태 */
         #editor-panel[data-color-separation="true"] > .overflow-y-auto {
-             background-color: var(--bg-main); /* 바깥 영역 색상 */
+             background-color: var(--bg-main);
         }
         #editor-panel[data-color-separation="true"] #editor-content-wrapper {
-            background-color: var(--bg-surface); /* 원고지 색상 */
+            background-color: var(--bg-surface);
         }
-        [data-theme="light"][data-color-separation="true"] #editor-content-wrapper {
+        [data-theme="light"] #editor-panel[data-color-separation="true"] #editor-content-wrapper {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
         
@@ -495,7 +502,6 @@
             let collapsedFolders = new Set();
             let isProjectJustOpened = false;
             
-            // [수정] colorSeparation 설정 추가
             let settings = {
                 theme: 'dark',
                 editorWidth: 450,
@@ -666,7 +672,10 @@
                 if (currentUser) {
                     userProfileArea.innerHTML = `
                         <button id="settings-btn" class="p-2 rounded-full hover:bg-hover" title="설정">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
                         </button>
                         <div class="text-right">
                             <span class="font-semibold text-sm hidden sm:inline">${currentUser.displayName || '사용자'}</span>
@@ -732,7 +741,6 @@
                 }
                 appContainer.querySelector('#project-title-sidebar').textContent = project.name;
                 
-                // [NEW] 에디터 뷰 렌더링 시 색 구분 설정 적용
                 applyColorSeparationSetting();
 
                 toggleSidebar(window.innerWidth >= 768);
@@ -1576,7 +1584,6 @@
                 `;
             }
 
-            // [NEW] 원고 영역 색 구분 설정을 적용하는 함수
             function applyColorSeparationSetting() {
                 const editorPanel = document.getElementById('editor-panel');
                 if (editorPanel) {
@@ -1587,7 +1594,6 @@
             function applySettings() {
                 document.body.dataset.theme = settings.theme;
                 applyParagraphSpacingSetting();
-                // [NEW] 페이지 로드 시 색 구분 설정도 함께 적용
                 applyColorSeparationSetting();
             }
             
@@ -1597,7 +1603,6 @@
                 const widthValue = appContainer.querySelector('#editor-width-value');
                 const paraSlider = appContainer.querySelector('#paragraph-spacing-slider');
                 const paraValue = appContainer.querySelector('#paragraph-spacing-value');
-                // [NEW] 색 구분 토글 버튼 UI 요소 선택
                 const colorToggle = appContainer.querySelector('#color-separation-toggle');
 
                 themeButtons.forEach(btn => {
@@ -1612,7 +1617,6 @@
                     paraValue.textContent = `${settings.paragraphSpacing}em`;
                 }
                 
-                // [NEW] 색 구분 토글 버튼 UI 업데이트
                 if (colorToggle) {
                     if (settings.colorSeparation) {
                         colorToggle.textContent = 'ON';
@@ -1731,12 +1735,11 @@
                     renderSettings();
                     return;
                 }
-                // [NEW] 색 구분 토글 버튼 클릭 핸들러
                 if (closest('#color-separation-toggle')) {
                     settings.colorSeparation = !settings.colorSeparation;
                     saveSettings();
                     applyColorSeparationSetting();
-                    renderSettings(); // 버튼 UI 업데이트
+                    renderSettings();
                     return;
                 }
                 if (closest('#drive-connect-btn')) return handleDriveConnect();
