@@ -1303,12 +1303,7 @@
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
                     const contentEl = editorPanel.querySelector('#editor-content');
-                    const paragraphsHTML = Array.from(contentEl.querySelectorAll('p')).map(p => {
-                        let tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = p.innerHTML.replace(/<br\s*\/?>/gi, '\n');
-                        return tempDiv.textContent || '';
-                    });
-                    data.content = paragraphsHTML.join('\n\n');
+                    data.content = contentEl.innerText;
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
@@ -1741,8 +1736,8 @@
                 if (editorContent) {
                     e.preventDefault();
                     const text = e.clipboardData.getData('text/plain');
-                    const paragraphs = text.split(/\n\s*\n/);
-                    const html = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>') || '<br>'}</p>`).join('');
+                    const paragraphs = text.split(/\n/);
+                    const html = paragraphs.map(p => `<p>${p || '<br>'}</p>`).join('');
                     document.execCommand('insertHTML', false, html);
                 }
             });
