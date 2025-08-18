@@ -97,7 +97,7 @@
             outline: none;
         }
         
-        /* --- 원고 영역 색상 구분 및 스크롤 오류 수정 --- */
+        /* --- [FIX] 원고 영역 색상 구분 및 스크롤 오류 수정 --- */
         #editor-panel, #editor-panel > .overflow-y-auto {
              background-color: var(--bg-main);
         }
@@ -111,7 +111,7 @@
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
         
-        /* --- 문장 및 문단 간격 조정 --- */
+        /* --- [FIX] 문장 및 문단 간격 조정 --- */
         #editor-content p {
             line-height: 1.7; /* 문장 내 줄 간격은 좁게 유지 */
             margin-bottom: 0.7rem; /* 문단 사이의 간격을 적절하게 설정 */
@@ -880,8 +880,9 @@
                     
                     let contentHTML = '';
                     if (item.content) {
-                        const paragraphs = item.content.split(/\n\s*\n/);
-                        contentHTML = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>') || '<br>'}</p>`).join('');
+                        // FIX: Preserve multiple newlines to create empty paragraphs
+                        const paragraphs = item.content.split('\n');
+                        contentHTML = paragraphs.map(p => `<p>${p || '<br>'}</p>`).join('');
                     } else {
                         contentHTML = '<p><br></p>';
                     }
@@ -1735,9 +1736,8 @@
                 const editorContent = e.target.closest('#editor-content');
                 if (editorContent) {
                     e.preventDefault();
-                    const text = e.clipboardData.getData('text/plain');
-                    const paragraphs = text.split(/\n/);
-                    const html = paragraphs.map(p => `<p>${p || '<br>'}</p>`).join('');
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    const html = text.split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>') || '<br>'}</p>`).join('');
                     document.execCommand('insertHTML', false, html);
                 }
             });
