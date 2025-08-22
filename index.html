@@ -15,7 +15,6 @@
     <style>
         :root {
             --bg-main: #121212;
-            /* [수정] 다크 테마 원고지 색상을 #1c1c1c로 변경 */
             --bg-surface: #1c1c1c; 
             --bg-card: #2a2a2a; 
             --bg-hover: #37373d;
@@ -140,7 +139,7 @@
             padding: 0;
         }
 
-        /* --- [수정] 원고 작성 영역 하단에 여백을 추가하여 가독성 향상 --- */
+        /* --- 원고 작성 영역 하단에 여백을 추가하여 가독성 향상 --- */
         #editor-panel > .overflow-y-auto {
             padding-bottom: 50vh;
         }
@@ -1312,8 +1311,19 @@
                 if (!editorPanel) return;
                 let data = {};
                 if (sidebarMode === 'chapters') {
+                    const editorContentEl = editorPanel.querySelector('#editor-content');
+                    
+                    // [수정] 저장 시 불필요한 빈 p 태그를 제거하여 데이터 정제
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = editorContentEl.innerHTML;
+                    tempDiv.querySelectorAll('p').forEach(p => {
+                        if (p.innerHTML.trim() === '' || p.innerHTML.trim() === '<br>' || p.innerHTML.trim() === '&nbsp;') {
+                            p.remove();
+                        }
+                    });
+
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    data.content = editorPanel.querySelector('#editor-content').innerHTML;
+                    data.content = tempDiv.innerHTML; // 정제된 HTML을 저장
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
@@ -1325,7 +1335,6 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
-            // [수정] 클립보드 복사 함수를 iframe 환경에 더 적합한 방식으로 변경
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
@@ -1841,6 +1850,28 @@
                     saveTimeouts['settings'] = setTimeout(saveSettings, 300);
                 }
             });
+            
+            // [수정] 붙여넣기 이벤트 리스너 추가
+            appContainer.addEventListener('paste', e => {
+                // editor-content 영역에서만 작동하도록 제한
+                if (e.target.id === 'editor-content') {
+                    e.preventDefault(); // 기본 붙여넣기 동작을 막음
+                    // 클립보드에서 순수 텍스트 데이터만 가져옴
+                    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                    
+                    // 텍스트를 문단 단위로 나누고, 각 문단을 <p> 태그로 감싸서 HTML을 생성
+                    const cleanedHtml = text
+                        .split(/\n\s*\n/) // 하나 이상의 빈 줄을 기준으로 문단을 나눔
+                        .map(p => p.trim().replace(/\n/g, '<br>')) // 문단 내의 줄바꿈은 <br>로 처리
+                        .filter(p => p) // 내용이 없는 빈 문단은 제거
+                        .map(p => `<p>${p}</p>`) // 각 문단을 <p> 태그로 감쌈
+                        .join('');
+
+                    // 정제된 HTML을 현재 커서 위치에 삽입
+                    document.execCommand('insertHTML', false, cleanedHtml);
+                }
+            });
+
             appContainer.addEventListener('driveConnected', (e) => {
                 gapiAccessToken = e.detail;
                 renderSettings();
