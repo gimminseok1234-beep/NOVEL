@@ -107,7 +107,7 @@
             background-color: transparent;
             border-radius: 0.5rem;
             padding: 2.5rem;
-            /* [수정] 원고지 색상이 여백까지 늘어나는 문제를 해결하기 위해 padding 대신 margin 사용 */
+            /* [수정] 하단 여백을 50vh로 변경 */
             margin-bottom: 50vh;
         }
         [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper {
@@ -126,7 +126,6 @@
         }
         
         #editor-content {
-            /* 폰트 크기 12pt 및 줄 간격 조정 */
             font-size: 12pt;
             line-height: 1.75;
         }
@@ -186,8 +185,8 @@
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
             #editor-content-wrapper {
                 padding: 1.5rem;
-                /* [수정] 모바일에서도 margin-bottom을 사용해 여백 색상 문제 해결 */
-                margin-bottom: 40vh;
+                /* [수정] 하단 여백을 50vh로 변경 */
+                margin-bottom: 50vh;
             }
 
             #item-list {
@@ -248,7 +247,68 @@
 <body class="bg-main text-main">
     <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
         <div id="loading-content" class="text-center text-white">
-            <svg class="animate-spin h-10 w-10 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <svg class="animate-spin h-10 w-10 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 * **1. Sizing Adjustments:**
+* **Left/Right Padding:** The user wants the default width to be `400px`. This refers to the `editorWidth` setting.
+* **Bottom Margin:** The user wants the bottom margin to be `50vh`, up from the current `40vh`.
+
+**2. Paste Handling (Revisited):**
+* **Problem:** My previous fix for the paste issue (`document.execCommand('insertText', ...`) had an unintended side effect: it strips out blank lines entirely. The user wants blank lines (paragraph breaks) to be preserved when pasting.
+* **Desired Outcome:** Pasted text should retain its original structure, including blank lines. A single blank line between paragraphs in the source should result in a single blank line in the editor.
+* **Analysis of the root cause:**
+    * **Why did my first attempt fail (default browser behavior)?** When pasting HTML (which happens by default even from simple editors), browsers often wrap each line in a `<div>` or `<p>` tag. If the source text is `Paragraph 1\n\nParagraph 2`, the clipboard might contain something like `<p>Paragraph 1</p><p>Paragraph 2</p>`. But sometimes, it's more complex, like `<div>Paragraph 1</div><div><br></div><div>Paragraph 2</div>`. When this gets pasted into a `contenteditable` that uses `<p>` for its own structure, you can get nested blocks or extra blocks, causing the "triple spacing" effect (`<p>Paragraph 1</p><p><br></p><p>Paragraph 2</p>`, plus CSS margins between the paragraphs).
+    * **Why did my second attempt fail (`execCommand('insertText', ...)`?** This command, by design, inserts *plain text*. It treats the pasted content as if the user typed it. When you type and press Enter, it creates a new paragraph (`</p><p>`). However, it interprets the pasted text's newline characters (`\n`) literally. A single newline is treated as a space or is ignored within a block, and a double newline (`\n\n`) is often treated as a single paragraph break. It doesn't have a standard way to represent a "blank line paragraph". This is why the blank lines were stripped. The command essentially sanitizes the input into a continuous stream of text, breaking it into paragraphs only where it deems appropriate, which removes the empty paragraphs.
+    * **What's the correct solution?** I need a paste handler that gets the clipboard data as plain text, but then manually and intelligently converts that plain text into the correct HTML structure (`<p>` tags for paragraphs, `<p><br></p>` for blank lines) before inserting it. This gives me full control and avoids the pitfalls of both default browser behavior and the overly simplistic `insertText` command.
+
+**Plan for the new Paste Handler:**
+1.  Keep the `paste` event listener.
+2.  Keep `e.preventDefault();`.
+3.  Get the plain text from the clipboard: `const text = e.clipboardData.getData('text/plain');`.
+4.  **Process the text:**
+    * Normalize line endings (`\r\n` to `\n`).
+    * Split the text into paragraphs based on one or more newline characters. A good way to do this is to split by `\n`.
+    * No, splitting by `\n` is wrong. `Paragraph 1\nLine 2` would become two paragraphs. I need to split by sequences of newlines that represent paragraph breaks. Usually, that's two or more newlines (`\n\n+`). But that would lose single newlines intended as line breaks (`<br>`).
+    * Let's try a better approach. Split the text by `\n\n` (double newline) to get the paragraphs. Then, within each paragraph, replace single `\n` with `<br>`.
+        ```javascript
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text/plain');
+        
+        // 1. Normalize line endings
+        const normalizedText = pastedText.replace(/\r\n?/g, '\n');
+        
+        // 2. Split into blocks by one or more empty lines
+        const blocks = normalizedText.split(/\n{2,}/g);
+        
+        // 3. Convert each block into a <p> tag, with <br> for internal newlines
+        const htmlToInsert = blocks.map(block => {
+            if (block.trim() === '') {
+                // This handles the case of multiple blank lines creating multiple <p><br></p>
+                return '<p><br></p>';
+            }
+            // Replace single newlines within a block with <br>
+            const withLineBreaks = block.replace(/\n/g, '<br>');
+            return `<p>${withLineBreaks}</p>`;
+        }).join('');
+        ```
+    * This logic seems sound. `Text A\n\nText B` becomes `['Text A', 'Text B']` which becomes `<p>Text A</p><p>Text B</p>`. `Text C\n\n\nText D` (two blank lines) becomes `['Text C', '', 'Text D']` which becomes `<p>Text C</p><p><br></p><p>Text D</p>`. This correctly preserves a single blank line.
+5.  **Insert the generated HTML:** The deprecated `document.execCommand('insertHTML', false, htmlToInsert);` is the most straightforward way to insert this generated HTML at the cursor's position. While it's deprecated, it's the de-facto standard for `contenteditable` and much simpler than trying to manipulate the selection range and DOM manually, which is notoriously complex and buggy across browsers. Given the context of this application, it's an acceptable solution.
+
+**Plan for Sizing Adjustments:**
+1.  **Default Editor Width:**
+    * In the JavaScript, find the `settings` object declaration.
+    * Change `editorWidth: 450` to `editorWidth: 400`.
+    * Find the `handleEditorInput` event handler logic for the reset button.
+    * Change `settings.editorWidth = 450;` to `settings.editorWidth = 400;` inside the `'#editor-width-reset-btn'` click handler.
+
+2.  **Bottom Margin:**
+    * In the `<style>` block, find the CSS for `#editor-content-wrapper`.
+    * Change `margin-bottom: 40vh;` to `margin-bottom: 50vh;`.
+    * Do the same for the rule inside the mobile media query.
+
+**Final Action Plan:**
+1.  Modify the `settings` object in the JS to set `editorWidth: 400`.
+2.  Modify the `#editor-width-reset-btn` click handler in the JS to reset `editorWidth` to `400`.
+3.  Modify the CSS for `#editor-content-wrapper` (both desktop and mobile) to use `margin-bottom: 50vh`.
+4.  Replace the `paste` event handler logic in the `renderEditorPanel` function with the new, more robust version that manually converts plain text to structured HTML using `<p>` and `<br>` tags and inserts it with `execCommand('insertHTML', ...)`.
+5.  Provide the complete, updated code.0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p class="text-lg">인증 정보를 확인하는 중입니다...</p>
         </div>
     </div>
@@ -319,7 +379,7 @@
                     <h2 class="text-xl font-semibold mb-4">에디터 너비 설정</h2>
                     <div class="flex items-center gap-4">
                         <input id="editor-width-slider" type="range" min="300" max="900" step="10" class="w-full h-2 rounded-lg appearance-none cursor-pointer">
-                        <span id="editor-width-value" class="font-semibold w-16 text-center">450px</span>
+                        <span id="editor-width-value" class="font-semibold w-16 text-center">400px</span>
                         <button id="editor-width-reset-btn" class="text-sm bg-surface hover:bg-hover px-3 py-1 rounded-md border border-main">기본값</button>
                     </div>
                 </div>
@@ -520,7 +580,8 @@
             
             let settings = {
                 theme: 'dark',
-                editorWidth: 450,
+                // [수정] 에디터 너비 기본값을 400px로 변경
+                editorWidth: 400,
                 paragraphSpacing: 0.5,
                 colorSeparation: true
             };
@@ -897,6 +958,7 @@
                 editorPanel.innerHTML = '';
                 const templateId = sidebarMode === 'chapters' ? 'editor-panel-template' : 'character-editor-panel-template';
                 editorPanel.appendChild(document.getElementById(templateId).content.cloneNode(true));
+
                 if (sidebarMode === 'chapters') {
                     const wrapper = editorPanel.querySelector('#editor-content-wrapper');
                     wrapper.style.maxWidth = `${settings.editorWidth}px`;
@@ -910,12 +972,20 @@
                     editorPanel.querySelector('#editor-title').value = item.title || '';
                     editorContentEl.innerHTML = content;
 
-                    // [수정] 붙여넣기 이벤트 핸들러 추가
+                    // [수정] 붙여넣기 시 빈 줄이 유지되도록 핸들러 수정
                     editorContentEl.addEventListener('paste', e => {
                         e.preventDefault();
-                        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-                        // 일반 텍스트로 삽입하여 브라우저의 자동 HTML 변환으로 인한 추가 공백 문제 방지
-                        document.execCommand('insertText', false, text);
+                        const pastedText = (e.clipboardData || window.clipboardData).getData('text/plain');
+                        
+                        const normalizedText = pastedText.replace(/\r\n?/g, '\n');
+                        const blocks = normalizedText.split(/\n{2,}/g);
+                        
+                        const htmlToInsert = blocks.map(block => {
+                            const withLineBreaks = block.replace(/\n/g, '<br>');
+                            return `<p>${withLineBreaks || '<br>'}</p>`;
+                        }).join('');
+
+                        document.execCommand('insertHTML', false, htmlToInsert);
                     });
 
                 } else {
@@ -1741,7 +1811,8 @@
                     return;
                 }
                 if (closest('#editor-width-reset-btn')) {
-                    settings.editorWidth = 450;
+                    // [수정] 너비 기본값을 400px로 변경
+                    settings.editorWidth = 400;
                     saveSettings();
                     renderSettings();
                     const wrapper = document.getElementById('editor-content-wrapper');
