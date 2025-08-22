@@ -106,11 +106,9 @@
         #editor-content-wrapper {
             background-color: transparent;
             border-radius: 0.5rem;
-            /* 원고 하단에 여유 공간을 추가하기 위해 padding 속성을 분리합니다. */
-            padding-top: 2.5rem;
-            padding-left: 2.5rem;
-            padding-right: 2.5rem;
-            padding-bottom: 50vh; /* 원고 하단에 뷰포트 높이의 40%만큼 여백 추가 */
+            padding: 2.5rem;
+            /* [수정] 원고지 색상이 여백까지 늘어나는 문제를 해결하기 위해 padding 대신 margin 사용 */
+            margin-bottom: 50vh;
         }
         [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper {
              box-shadow: none;
@@ -128,7 +126,7 @@
         }
         
         #editor-content {
-            /* [수정] 폰트 크기 12pt로 변경 및 줄 간격 조정 */
+            /* 폰트 크기 12pt 및 줄 간격 조정 */
             font-size: 12pt;
             line-height: 1.75;
         }
@@ -187,11 +185,9 @@
         @media (max-width: 767px) { 
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
             #editor-content-wrapper {
-                /* 모바일 환경에서도 원고 하단에 여유 공간을 추가합니다. */
-                padding-top: 1.5rem;
-                padding-left: 1.5rem;
-                padding-right: 1.5rem;
-                padding-bottom: 40vh; /* 원고 하단에 뷰포트 높이의 40%만큼 여백 추가 */
+                padding: 1.5rem;
+                /* [수정] 모바일에서도 margin-bottom을 사용해 여백 색상 문제 해결 */
+                margin-bottom: 40vh;
             }
 
             #item-list {
@@ -913,6 +909,15 @@
                     
                     editorPanel.querySelector('#editor-title').value = item.title || '';
                     editorContentEl.innerHTML = content;
+
+                    // [수정] 붙여넣기 이벤트 핸들러 추가
+                    editorContentEl.addEventListener('paste', e => {
+                        e.preventDefault();
+                        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                        // 일반 텍스트로 삽입하여 브라우저의 자동 HTML 변환으로 인한 추가 공백 문제 방지
+                        document.execCommand('insertText', false, text);
+                    });
+
                 } else {
                     editorPanel.querySelector('#character-name').value = item.name || '';
                     editorPanel.querySelector('#character-personality').value = item.personality || '';
