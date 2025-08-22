@@ -15,6 +15,7 @@
     <style>
         :root {
             --bg-main: #121212;
+            /* [수정] 다크 테마 원고지 색상을 #1c1c1c로 변경 */
             --bg-surface: #1c1c1c; 
             --bg-card: #2a2a2a; 
             --bg-hover: #37373d;
@@ -139,6 +140,11 @@
             padding: 0;
         }
 
+        /* --- [수정] 원고 작성 영역 하단에 여백을 추가하여 가독성 향상 --- */
+        #editor-panel > .overflow-y-auto {
+            padding-bottom: 50vh;
+        }
+
         /* --- 기존 스타일 --- */
 
         .bg-main { background-color: var(--bg-main); } .bg-surface { background-color: var(--bg-surface); } .bg-card { background-color: var(--bg-card); }
@@ -225,11 +231,6 @@
                 display: none !important; }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
-
-        /* --- [수정] 원고 하단 여백 --- */
-        #editor-bottom-padding {
-            height: 40vh; /* 화면 높이의 40%만큼 여백을 추가합니다 */
-        }
     </style>
 </head>
 <body class="bg-main text-main">
@@ -375,8 +376,6 @@
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" spellcheck="false" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
                 <div id="editor-content" contenteditable="true" spellcheck="false" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
             </div>
-            <!-- [추가] 글을 길게 작성해도 편안한 위치에서 작업할 수 있도록 하단에 보이지 않는 여백을 추가합니다. -->
-            <div id="editor-bottom-padding"></div>
         </div>
     </template>
     <template id="character-editor-panel-template">
@@ -432,10 +431,18 @@
             measurementId: "G-83BZ35QVLC"
          });
 
-        // [수정] gapiLoaded, gisLoaded 함수를 전역 스코프로 이동하여 ReferenceError를 해결합니다.
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
+
+        function hashPin(pin) {
+            const salt = "novel-writer-salt";
+            return btoa(pin + salt);
+        }
+
+        function verifyPin(enteredPin, hashedPin) {
+            return hashPin(enteredPin) === hashedPin;
+        }
 
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
@@ -1306,20 +1313,7 @@
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    
-                    let contentHTML = editorPanel.querySelector('#editor-content').innerHTML;
-                    
-                    // [수정] 저장 시 HTML을 정리하여 빈 줄이 여러 개로 늘어나는 오류를 수정합니다.
-                    // 브라우저가 생성하는 일관성 없는 HTML(div, &nbsp; 등)을 표준 <p><br></p> 형태로 통일하고,
-                    // 연속된 빈 줄은 하나로 합칩니다.
-                    contentHTML = contentHTML.replace(/<div>/g, '<p>').replace(/<\/div>/g, '</p>');
-                    contentHTML = contentHTML.replace(/<p>&nbsp;<\/p>/g, '<p><br></p>');
-                    contentHTML = contentHTML.replace(/<p><\/p>/g, '');
-                    contentHTML = contentHTML.replace(/(<p><br><\/p>\s*){2,}/g, '<p><br></p>');
-                    contentHTML = contentHTML.trim().replace(/^(\s*<p><br><\/p>\s*)+|(\s*<p><br><\/p>\s*)+$/g, '');
-
-                    data.content = contentHTML;
-
+                    data.content = editorPanel.querySelector('#editor-content').innerHTML;
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
@@ -1331,18 +1325,35 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
+            // [수정] 클립보드 복사 함수를 iframe 환경에 더 적합한 방식으로 변경
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
                     showEditorStatus('복사할 내용이 없습니다.', true);
                     return;
                 }
-                navigator.clipboard.writeText(contentEl.innerText).then(() => {
-                    showEditorStatus('✅ 복사 완료');
-                }).catch(err => {
+
+                const textToCopy = contentEl.innerText;
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.style.position = 'fixed'; // 화면에 보이지 않게 처리
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showEditorStatus('✅ 복사 완료');
+                    } else {
+                        showEditorStatus('❌ 복사 실패', true);
+                    }
+                } catch (err) {
                     console.error('Could not copy text: ', err);
                     showEditorStatus('❌ 복사 실패', true);
-                });
+                }
+
+                document.body.removeChild(textarea);
             }
 
             function handleSaveTxt() {
