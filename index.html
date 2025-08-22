@@ -226,6 +226,11 @@
                 display: none !important; }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
+
+        /* --- [추가] 원고 하단 여백 --- */
+        #editor-bottom-padding {
+            height: 70vh; /* 화면 높이의 70%만큼 여백을 추가합니다 */
+        }
     </style>
 </head>
 <body class="bg-main text-main">
@@ -371,6 +376,8 @@
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" spellcheck="false" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
                 <div id="editor-content" contenteditable="true" spellcheck="false" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
             </div>
+            <!-- [추가] 글을 길게 작성해도 편안한 위치에서 작업할 수 있도록 하단에 보이지 않는 여백을 추가합니다. -->
+            <div id="editor-bottom-padding"></div>
         </div>
     </template>
     <template id="character-editor-panel-template">
