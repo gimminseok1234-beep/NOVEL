@@ -15,8 +15,7 @@
     <style>
         :root {
             --bg-main: #121212;
-            /* [수정] 다크 테마 원고지 색상을 #1c1c1c로 변경 */
-            --bg-surface: #1c1c1c; 
+            --bg-surface: #1c1c1c; /* 다크 테마 원고지 색상 */
             --bg-card: #2a2a2a; 
             --bg-hover: #37373d;
             --border-main: #3f3f46; 
@@ -107,7 +106,11 @@
         #editor-content-wrapper {
             background-color: transparent;
             border-radius: 0.5rem;
-            padding: 2.5rem;
+            /* 원고 하단에 여유 공간을 추가하기 위해 padding 속성을 분리합니다. */
+            padding-top: 2.5rem;
+            padding-left: 2.5rem;
+            padding-right: 2.5rem;
+            padding-bottom: 50vh; /* 원고 하단에 뷰포트 높이의 40%만큼 여백 추가 */
         }
         [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper {
              box-shadow: none;
@@ -125,7 +128,9 @@
         }
         
         #editor-content {
-            line-height: 1.8;
+            /* [수정] 폰트 크기 12pt로 변경 및 줄 간격 조정 */
+            font-size: 12pt;
+            line-height: 1.75;
         }
         
         #editor-content:empty:before {
@@ -181,35 +186,49 @@
 
         @media (max-width: 767px) { 
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
-            #editor-content-wrapper { padding: 1.5rem; }
+            #editor-content-wrapper {
+                /* 모바일 환경에서도 원고 하단에 여유 공간을 추가합니다. */
+                padding-top: 1.5rem;
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
+                padding-bottom: 40vh; /* 원고 하단에 뷰포트 높이의 40%만큼 여백 추가 */
+            }
 
             #item-list {
-                border-top: 1px solid var(--border-main); }
+                border-top: 1px solid var(--border-main);
+            }
             #item-list .list-item {
-                display: flex !important; flex-direction: row !important;
+                display: flex !important;
+                flex-direction: row !important;
                 align-items: center !important;
                 height: 48px !important;
                 padding: 0 12px !important;
                 border-bottom: 1px solid var(--border-main);
-                border-radius: 0; margin-top: 0 !important;
+                border-radius: 0;
+                margin-top: 0 !important;
                 background-color: transparent !important;
             }
             #item-list .list-item.active {
-                background-color: var(--bg-hover) !important; }
+                background-color: var(--bg-hover) !important;
+            }
             #item-list .list-item:hover {
-                transform: none !important; background-color: var(--bg-hover) !important;
+                transform: none !important;
+                background-color: var(--bg-hover) !important;
             }
 
             #item-list .list-item > .flex {
-                display: contents; }
+                display: contents;
+            }
 
             #item-list .list-item .flex-1 {
-                display: flex; align-items: center;
+                display: flex;
+                align-items: center;
                 gap: 0.75rem;
             }
 
             #item-list .list-item .action-btn {
-                visibility: visible !important; opacity: 1 !important;
+                visibility: visible !important;
+                opacity: 1 !important;
                 margin-left: auto;
             }
             #item-list .list-item .action-btn[data-action="rename-item"] {
@@ -217,13 +236,15 @@
             }
 
             #item-list .list-item svg.ml-4 {
-                margin-left: 0 !important; }
+                margin-left: 0 !important;
+            }
             #item-list .list-item .folder-toggle {
                 display: none !important;
             }
             
             #item-list .folder-children {
-                display: none !important; }
+                display: none !important;
+            }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
@@ -360,7 +381,7 @@
             <div id="char-count-container" class="text-sm cursor-pointer" title="클릭하여 모드 변경">
                 <span id="char-count-label">공백/특문 제외</span>: <span id="char-count" class="font-bold">0</span>
             </div>
-             <div class="flex gap-2 flex-wrap justify-end">
+            <div class="flex gap-2 flex-wrap justify-end">
                 <button id="copy-content-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">원고 복사</button>
                 <button id="save-drive-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">Google Drive에 백업</button>
                 <button id="save-txt-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">TXT 저장</button>
@@ -369,7 +390,7 @@
         <div class="flex-1 p-4 sm:p-8 overflow-y-auto">
             <div id="editor-content-wrapper" class="mx-auto min-h-full flex flex-col">
                 <input id="editor-title" type="text" placeholder="제목을 입력하세요" spellcheck="false" class="bg-transparent text-2xl font-bold outline-none mb-4 pb-2 border-b-2 border-transparent focus:border-main">
-                <div id="editor-content" contenteditable="true" spellcheck="false" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent text-lg resize-none outline-none"></div>
+                <div id="editor-content" contenteditable="true" spellcheck="false" placeholder="이곳에 이야기를 펼쳐보세요..." class="w-full flex-grow bg-transparent resize-none outline-none"></div>
             </div>
         </div>
     </template>
@@ -424,12 +445,11 @@
             messagingSenderId: "836560106988",
             appId: "1:836560106988:web:cf90872d7b09b9498ffcc9",
             measurementId: "G-83BZ35QVLC"
-         });
+        });
 
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-
         function hashPin(pin) {
             const salt = "novel-writer-salt";
             return btoa(pin + salt);
@@ -471,7 +491,7 @@
                             title: "연결 오류",
                             text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
                             buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
-                         }}));
+                        }}));
                     }
                 },
             });
@@ -740,7 +760,6 @@
                     return;
                 }
                 appContainer.querySelector('#project-title-sidebar').textContent = project.name;
-                
                 applyColorSeparationSetting();
 
                 toggleSidebar(window.innerWidth >= 768);
@@ -882,14 +901,12 @@
                 editorPanel.innerHTML = '';
                 const templateId = sidebarMode === 'chapters' ? 'editor-panel-template' : 'character-editor-panel-template';
                 editorPanel.appendChild(document.getElementById(templateId).content.cloneNode(true));
-                
                 if (sidebarMode === 'chapters') {
                     const wrapper = editorPanel.querySelector('#editor-content-wrapper');
                     wrapper.style.maxWidth = `${settings.editorWidth}px`;
                     
                     const editorContentEl = editorPanel.querySelector('#editor-content');
                     let content = item.content || '';
-                    
                     if (content && !content.trim().startsWith('<p>')) {
                         content = plainTextToHtml(content);
                     }
@@ -963,7 +980,6 @@
                 container.classList.toggle('sidebar-open', shouldBeOpen);
                 updateSidebarVisuals();
             };
-
             function updateSidebarVisuals() {
                 const container = appContainer.querySelector('#editor-container');
                 if (!container) return;
@@ -1226,7 +1242,7 @@
                     
                     renderItemList();
                     renderEditorPanel();
-                
+
                 }).catch(error => {
                     console.error("Error adding new item:", error);
                     showModal({title: "오류", text: "항목을 추가하는 데 실패했습니다.", buttons: [{text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold'}]});
@@ -1604,7 +1620,6 @@
                 const paraSlider = appContainer.querySelector('#paragraph-spacing-slider');
                 const paraValue = appContainer.querySelector('#paragraph-spacing-value');
                 const colorToggle = appContainer.querySelector('#color-separation-toggle');
-
                 themeButtons.forEach(btn => {
                     btn.classList.toggle('ring-2', btn.dataset.themeBtn === settings.theme);
                     btn.classList.toggle('ring-accent-primary', btn.dataset.themeBtn === settings.theme);
