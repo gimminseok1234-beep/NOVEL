@@ -15,7 +15,6 @@
     <style>
         :root {
             --bg-main: #121212;
-            /* [수정] 다크 테마 원고지 색상을 #1c1c1c로 변경 */
             --bg-surface: #1c1c1c; 
             --bg-card: #2a2a2a; 
             --bg-hover: #37373d;
@@ -227,9 +226,9 @@
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
 
-        /* --- [추가] 원고 하단 여백 --- */
+        /* --- [수정] 원고 하단 여백 --- */
         #editor-bottom-padding {
-            height: 70vh; /* 화면 높이의 70%만큼 여백을 추가합니다 */
+            height: 40vh; /* 화면 높이의 40%만큼 여백을 추가합니다 */
         }
     </style>
 </head>
@@ -433,18 +432,10 @@
             measurementId: "G-83BZ35QVLC"
          });
 
+        // [수정] gapiLoaded, gisLoaded 함수를 전역 스코프로 이동하여 ReferenceError를 해결합니다.
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
-
-        function hashPin(pin) {
-            const salt = "novel-writer-salt";
-            return btoa(pin + salt);
-        }
-
-        function verifyPin(enteredPin, hashedPin) {
-            return hashPin(enteredPin) === hashedPin;
-        }
 
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
@@ -1315,7 +1306,20 @@
                 let data = {};
                 if (sidebarMode === 'chapters') {
                     data.title = editorPanel.querySelector('#editor-title').value;
-                    data.content = editorPanel.querySelector('#editor-content').innerHTML;
+                    
+                    let contentHTML = editorPanel.querySelector('#editor-content').innerHTML;
+                    
+                    // [수정] 저장 시 HTML을 정리하여 빈 줄이 여러 개로 늘어나는 오류를 수정합니다.
+                    // 브라우저가 생성하는 일관성 없는 HTML(div, &nbsp; 등)을 표준 <p><br></p> 형태로 통일하고,
+                    // 연속된 빈 줄은 하나로 합칩니다.
+                    contentHTML = contentHTML.replace(/<div>/g, '<p>').replace(/<\/div>/g, '</p>');
+                    contentHTML = contentHTML.replace(/<p>&nbsp;<\/p>/g, '<p><br></p>');
+                    contentHTML = contentHTML.replace(/<p><\/p>/g, '');
+                    contentHTML = contentHTML.replace(/(<p><br><\/p>\s*){2,}/g, '<p><br></p>');
+                    contentHTML = contentHTML.trim().replace(/^(\s*<p><br><\/p>\s*)+|(\s*<p><br><\/p>\s*)+$/g, '');
+
+                    data.content = contentHTML;
+
                 } else {
                     data.name = editorPanel.querySelector('#character-name').value;
                     data.personality = editorPanel.querySelector('#character-personality').value;
