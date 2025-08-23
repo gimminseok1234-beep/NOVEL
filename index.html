@@ -9,47 +9,34 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- [수정] 시작: gapiLoaded, gisLoaded 함수를 스크립트 로드보다 먼저 정의 -->
     <script>
         /* --- Google Drive API 설정 (콜백용) --- */
         const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com';
         const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
-        // API 로드 상태를 추적할 전역 변수
         let gapiInited = false;
         let gisInited = false;
         let tokenClient;
 
-        /**
-         * Google API 클라이언트 스크립트가 로드된 후 호출될 콜백 함수입니다.
-         */
         function gapiLoaded() {
             gapi.load('client', initializeGapiClient);
         }
         
-        /**
-         * GAPI 클라이언트를 초기화합니다.
-         */
         async function initializeGapiClient() {
             try {
                 await gapi.client.init({ discoveryDocs: DISCOVERY_DOCS });
                 gapiInited = true;
             } catch (error) {
                 console.error("Google API 클라이언트 초기화 오류:", error);
-                // 메인 스크립트가 로드된 후 gapiInited 플래그를 확인하여 UI에 오류를 표시할 수 있습니다.
             }
         }
 
-        /**
-         * Google Sign-In 스크립트가 로드된 후 호출될 콜백 함수입니다.
-         */
         function gisLoaded() {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: SCOPES,
                 callback: (tokenResponse) => {
-                    // 이 콜백은 사용자가 로그인 버튼을 클릭했을 때 실행되므로 DOM이 준비된 상태입니다.
                     const appContainer = document.getElementById('app-container');
                     if (tokenResponse && tokenResponse.access_token) {
                         gapi.client.setToken(tokenResponse);
@@ -67,7 +54,6 @@
             gisInited = true;
         }
     </script>
-    <!-- [수정] 끝 -->
 
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
@@ -85,7 +71,6 @@
             --accent-secondary: #a763ff; 
             --accent-text: #000000;
         }
-        /* --- 라이트 테마 --- */
         [data-theme="light"] {
             --bg-main: #e8eaf0;
             --bg-surface: #ffffff;
@@ -114,13 +99,9 @@
             -ms-user-select: auto;
             user-select: auto;
         }
-
-        /* --- 애니메이션 및 효과 --- */
-
         button, .project-card, .list-item, input, textarea {
             transition: all 0.2s ease-in-out;
         }
-
         .project-card:hover {
             transform: translateY(-4px);
             border-color: var(--accent-primary);
@@ -129,79 +110,40 @@
         [data-theme="dark"] .project-card:hover {
             box-shadow: 0 0 12px 0 rgba(187, 134, 252, 0.3);
         }
-        
-        button:hover {
-            transform: scale(1.03);
-        }
-        button:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
-        
-        .list-item:hover {
-            transform: translateX(4px);
-        }
-        .list-item.active {
-            transform: none;
-        }
-
+        button:hover { transform: scale(1.03); }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        .list-item:hover { transform: translateX(4px); }
+        .list-item.active { transform: none; }
         @keyframes modal-pop-in {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
         }
-        #modal-content {
-            animation: modal-pop-in 0.2s ease-out forwards;
-        }
-
+        #modal-content { animation: modal-pop-in 0.2s ease-out forwards; }
         input:focus, textarea:focus, #editor-content:focus {
             outline: none;
             border-color: var(--accent-primary);
         }
-        
-        /* --- 원고 영역 색 구분 ON/OFF 기능 --- */
-        /* 기본 상태 (색 구분 OFF) */
-        #editor-panel > .overflow-y-auto {
-             background-color: var(--bg-surface);
-        }
+        #editor-panel > .overflow-y-auto { background-color: var(--bg-surface); }
         #editor-content-wrapper {
             background-color: transparent;
             border-radius: 0.5rem;
             padding: 2.5rem;
             margin-bottom: 50vh;
         }
-        [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper {
-             box-shadow: none;
-        }
-
-        /* 색 구분 ON 상태 */
-        #editor-panel[data-color-separation="true"] > .overflow-y-auto {
-             background-color: var(--bg-main);
-        }
-        #editor-panel[data-color-separation="true"] #editor-content-wrapper {
-            background-color: var(--bg-surface);
-        }
+        [data-theme="light"] #editor-panel[data-color-separation="false"] #editor-content-wrapper { box-shadow: none; }
+        #editor-panel[data-color-separation="true"] > .overflow-y-auto { background-color: var(--bg-main); }
+        #editor-panel[data-color-separation="true"] #editor-content-wrapper { background-color: var(--bg-surface); }
         [data-theme="light"] #editor-panel[data-color-separation="true"] #editor-content-wrapper {
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
         }
-        
-        #editor-content {
-            font-size: 12pt;
-            line-height: 1.75;
-        }
-        
+        #editor-content { font-size: 12pt; line-height: 1.75; }
         #editor-content:empty:before {
             content: attr(placeholder);
             color: var(--text-secondary);
             pointer-events: none;
             cursor: text;
         }
-
-        #editor-content p {
-            margin: 0;
-            padding: 0;
-        }
-        
-        /* [추가] 선택된 텍스트 글자 수 툴팁 스타일 */
+        #editor-content p { margin: 0; padding: 0; }
         #selection-char-count-tooltip {
             position: fixed;
             display: none;
@@ -215,9 +157,6 @@
             pointer-events: none;
             transition: opacity 0.1s;
         }
-
-        /* --- 기존 스타일 --- */
-
         .bg-main { background-color: var(--bg-main); } .bg-surface { background-color: var(--bg-surface); } .bg-card { background-color: var(--bg-card); }
         .text-main { color: var(--text-main); } .text-secondary { color: var(--text-secondary); } .border-main { border-color: var(--border-main); }
         .accent-bg { background-color: var(--accent-primary); color: var(--accent-text); } .accent-hover:hover { background-color: var(--accent-secondary); }
@@ -237,14 +176,8 @@
         #editor-container.sidebar-open #editor-sidebar { transform: translateX(0); } #mobile-overlay { position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 30; transition: opacity 0.3s ease-in-out; }
         #editor-sidebar-toggle { position: fixed; top: 50%; left: 0; transform: translateY(-50%); z-index: 50; width: 24px; height: 48px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out; border-radius: 0 8px 8px 0; }
         #editor-container.sidebar-open #editor-sidebar-toggle { transform: translate(224px, -50%); }
-        
-        [data-theme="light"] #editor-sidebar-toggle {
-            background-color: var(--accent-primary);
-        }
-        [data-theme="light"] #editor-sidebar-toggle:hover {
-            background-color: var(--accent-secondary);
-        }
-        
+        [data-theme="light"] #editor-sidebar-toggle { background-color: var(--accent-primary); }
+        [data-theme="light"] #editor-sidebar-toggle:hover { background-color: var(--accent-secondary); }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
         input[type=range]:focus { outline: none; }
@@ -254,65 +187,20 @@
         input[type=range]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-primary); cursor: pointer; }
         [data-theme="light"] input[type=range]::-webkit-slider-runnable-track { background: #a0aec0; }
         [data-theme="light"] input[type=range]::-moz-range-track { background: #a0aec0; }
-
         @media (max-width: 767px) { 
             #editor-container.sidebar-open #editor-main-content { padding-left: 0 !important; }
-            #editor-content-wrapper {
-                padding: 1.5rem;
-                margin-bottom: 50vh;
-            }
-
-            #item-list {
-                border-top: 1px solid var(--border-main);
-            }
-            #item-list .list-item {
-                display: flex !important;
-                flex-direction: row !important;
-                align-items: center !important;
-                height: 48px !important;
-                padding: 0 12px !important;
-                border-bottom: 1px solid var(--border-main);
-                border-radius: 0;
-                margin-top: 0 !important;
-                background-color: transparent !important;
-            }
-            #item-list .list-item.active {
-                background-color: var(--bg-hover) !important;
-            }
-            #item-list .list-item:hover {
-                transform: none !important;
-                background-color: var(--bg-hover) !important;
-            }
-
-            #item-list .list-item > .flex {
-                display: contents;
-            }
-
-            #item-list .list-item .flex-1 {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-            }
-
-            #item-list .list-item .action-btn {
-                visibility: visible !important;
-                opacity: 1 !important;
-                margin-left: auto;
-            }
-            #item-list .list-item .action-btn[data-action="rename-item"] {
-                display: none;
-            }
-
-            #item-list .list-item svg.ml-4 {
-                margin-left: 0 !important;
-            }
-            #item-list .list-item .folder-toggle {
-                display: none !important;
-            }
-            
-            #item-list .folder-children {
-                display: none !important;
-            }
+            #editor-content-wrapper { padding: 1.5rem; margin-bottom: 50vh; }
+            #item-list { border-top: 1px solid var(--border-main); }
+            #item-list .list-item { display: flex !important; flex-direction: row !important; align-items: center !important; height: 48px !important; padding: 0 12px !important; border-bottom: 1px solid var(--border-main); border-radius: 0; margin-top: 0 !important; background-color: transparent !important; }
+            #item-list .list-item.active { background-color: var(--bg-hover) !important; }
+            #item-list .list-item:hover { transform: none !important; background-color: var(--bg-hover) !important; }
+            #item-list .list-item > .flex { display: contents; }
+            #item-list .list-item .flex-1 { display: flex; align-items: center; gap: 0.75rem; }
+            #item-list .list-item .action-btn { visibility: visible !important; opacity: 1 !important; margin-left: auto; }
+            #item-list .list-item .action-btn[data-action="rename-item"] { display: none; }
+            #item-list .list-item svg.ml-4 { margin-left: 0 !important; }
+            #item-list .list-item .folder-toggle { display: none !important; }
+            #item-list .folder-children { display: none !important; }
         }
         @media (min-width: 768px) { #editor-container.sidebar-open #editor-main-content { padding-left: 224px; } }
     </style>
@@ -326,7 +214,6 @@
     </div>
     <div id="app-container" class="h-screen w-screen"></div>
 
-    <!-- [추가] 선택 영역 글자 수 표시를 위한 툴팁 요소 -->
     <div id="selection-char-count-tooltip"></div>
 
     <template id="login-view-template">
@@ -515,7 +402,6 @@
             measurementId: "G-83BZ35QVLC"
         });
 
-        // [수정] PIN 관련 함수를 메인 스크립트 시작 부분으로 이동
         function hashPin(pin) {
             const salt = "novel-writer-salt";
             return btoa(pin + salt);
@@ -1380,7 +1266,6 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
-            // [수정] 시작: 글자 수를 미세하게 늘리는 기능으로 변경
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
@@ -1391,13 +1276,11 @@
                 const originalText = contentEl.innerText;
                 const originalLength = originalText.length;
 
-                // 목표 증가율 (약 5%)
-                const inflationRate = 0.05; 
+                // [수정] 목표 증가율을 10%로 변경
+                const inflationRate = 0.1; 
                 
-                // 추가할 글자 수 계산
                 const charsToAdd = Math.floor(originalLength * inflationRate);
                 
-                // 추가할 글자 수가 0이면, 그냥 원본 복사
                 if (charsToAdd === 0) {
                     navigator.clipboard.writeText(originalText).then(() => {
                         showEditorStatus('✅ 원고가 복사되었습니다.');
@@ -1408,9 +1291,8 @@
                     return;
                 }
 
-                // 글자를 삽입할 간격 계산
                 const interval = Math.floor(originalLength / charsToAdd);
-                const invisibleChar = '\u200b'; // Zero-width space
+                const invisibleChar = '\u200b';
                 
                 let inflatedText = '';
                 let counter = 0;
@@ -1418,7 +1300,6 @@
                 for (let i = 0; i < originalLength; i++) {
                     inflatedText += originalText[i];
                     counter++;
-                    // 간격에 도달하고, 추가할 글자 수가 남아있으면 보이지 않는 문자 추가
                     if (counter >= interval) {
                         inflatedText += invisibleChar;
                         counter = 0;
@@ -1464,7 +1345,6 @@
 
                 document.body.removeChild(textArea);
             }
-            // [수정] 끝
 
             function handleSaveTxt() {
                 const item = getItem(activeItemId);
