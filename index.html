@@ -1266,6 +1266,7 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
+            // [수정] 시작: 연재 사이트 계산 방식(공백/줄바꿈 포함)으로 원고를 복사하는 기능
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
@@ -1273,52 +1274,23 @@
                     return;
                 }
 
-                const originalText = contentEl.innerText;
-                const originalLength = originalText.length;
+                // .innerText는 contenteditable div의 텍스트를 공백과 줄바꿈(\n)을 포함하여 가져옵니다.
+                // 이것이 바로 연재 사이트에서 글자 수를 계산하는 방식입니다.
+                const textToCopy = contentEl.innerText;
 
-                // [수정] 목표 증가율을 10%로 변경
-                const inflationRate = 0.1; 
-                
-                const charsToAdd = Math.floor(originalLength * inflationRate);
-                
-                if (charsToAdd === 0) {
-                    navigator.clipboard.writeText(originalText).then(() => {
-                        showEditorStatus('✅ 원고가 복사되었습니다.');
-                    }).catch(err => {
-                        console.error('클립보드 복사 실패, Fallback 시도: ', err);
-                        fallbackCopyTextToClipboard(originalText);
-                    });
-                    return;
-                }
-
-                const interval = Math.floor(originalLength / charsToAdd);
-                const invisibleChar = '\u200b';
-                
-                let inflatedText = '';
-                let counter = 0;
-
-                for (let i = 0; i < originalLength; i++) {
-                    inflatedText += originalText[i];
-                    counter++;
-                    if (counter >= interval) {
-                        inflatedText += invisibleChar;
-                        counter = 0;
-                    }
-                }
-
-                const inflatedLength = inflatedText.length;
-
-                navigator.clipboard.writeText(inflatedText).then(() => {
-                    showEditorStatus(`✅ ${originalLength.toLocaleString()}자 → ${inflatedLength.toLocaleString()}자로 늘려 복사 완료!`);
+                // navigator.clipboard.writeText를 사용하여 텍스트를 클립보드에 복사합니다.
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showEditorStatus(`✅ 원고 복사 완료 (공백/줄바꿈 포함: ${textToCopy.length.toLocaleString()}자)`);
                 }).catch(err => {
                     console.error('클립보드 복사 실패, Fallback 시도: ', err);
-                    fallbackCopyTextToClipboard(inflatedText, true); 
+                    fallbackCopyTextToClipboard(textToCopy);
                 });
             }
 
-            function fallbackCopyTextToClipboard(text, isInflated = false) {
+            function fallbackCopyTextToClipboard(text) {
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
+                // 화면에 보이지 않도록 스타일 설정
                 textArea.style.position = 'fixed';
                 textArea.style.top = '-9999px';
                 textArea.style.left = '-9999px';
@@ -1330,11 +1302,7 @@
                 try {
                     const successful = document.execCommand('copy');
                     if (successful) {
-                        if (isInflated) {
-                             showEditorStatus('✅ 글자 수를 늘려 복사 완료! (Fallback)');
-                        } else {
-                             showEditorStatus('✅ 원고가 복사되었습니다. (Fallback)');
-                        }
+                        showEditorStatus(`✅ 원고 복사 완료 (Fallback: ${text.length.toLocaleString()}자)`);
                     } else {
                         showEditorStatus('❌ 복사에 실패했습니다.', true);
                     }
@@ -1345,6 +1313,7 @@
 
                 document.body.removeChild(textArea);
             }
+            // [수정] 끝
 
             function handleSaveTxt() {
                 const item = getItem(activeItemId);
