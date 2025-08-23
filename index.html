@@ -1364,72 +1364,51 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
-            // [수정] 시작: 글자 수를 늘리는 메커니즘을 적용한 원고 복사 기능
+            // [수정] 시작: 연재 사이트 기준(공백, 줄바꿈 포함)으로 원고를 복사하는 기능
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
                     showEditorStatus('복사할 내용이 없습니다.', true);
                     return;
                 }
-                
-                // 1. 복사할 내용을 담을 임시 컨테이너를 만듭니다.
-                const tempContainer = document.createElement('div');
-                tempContainer.innerHTML = contentEl.innerHTML;
 
-                // 2. 글자 수를 늘리기 위해 삽입할 보이지 않는 특수 문자를 정의합니다.
-                const zeroWidthSpace = '\u200b'; // 제로 너비 공백
+                // .innerText는 contenteditable div의 텍스트를 공백과 줄바꿈(\n)을 포함하여 가져옵니다.
+                // 이것이 대부분의 연재 사이트에서 글자 수를 계산하는 방식입니다.
+                const textToCopy = contentEl.innerText;
 
-                // 3. 각 문단(p 또는 div 태그)을 순회하며 끝에 특수 문자를 추가합니다.
-                const paragraphs = tempContainer.querySelectorAll('p, div');
-                paragraphs.forEach((p) => {
-                    // 문단에 내용이 있을 경우에만 추가합니다.
-                    if (p.textContent.trim().length > 0) {
-                        p.innerHTML += zeroWidthSpace;
-                    }
+                // navigator.clipboard.writeText를 사용하여 텍스트를 클립보드에 복사합니다.
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showEditorStatus('✅ 원고가 복사되었습니다.');
+                }).catch(err => {
+                    console.error('클립보드 복사 실패, Fallback 시도: ', err);
+                    fallbackCopyTextToClipboard(textToCopy);
                 });
-                
-                // 4. 특수 문자가 추가된 HTML 내용을 가져옵니다.
-                const htmlToCopy = tempContainer.innerHTML;
-
-                // 5. 수정된 HTML 내용을 클립보드에 복사합니다.
-                try {
-                    const blob = new Blob([htmlToCopy], { type: 'text/html' });
-                    const clipboardItem = new ClipboardItem({ 'text/html': blob });
-                    navigator.clipboard.write([clipboardItem]).then(() => {
-                        showEditorStatus('✅ 글자 수 추가하여 복사 완료');
-                    }).catch(err => {
-                        console.error('HTML 복사 실패 (fallback 시도): ', err);
-                        fallbackCopyTextToClipboard(htmlToCopy, true);
-                    });
-                } catch (e) {
-                    console.error('ClipboardItem API 미지원 (fallback 시도): ', e);
-                    fallbackCopyTextToClipboard(htmlToCopy, true);
-                }
             }
 
-            function fallbackCopyTextToClipboard(html, isAugmented = false) {
-                const tempEl = document.createElement('div');
-                tempEl.style.position = 'absolute';
-                tempEl.style.left = '-9999px';
-                tempEl.innerHTML = html;
-                document.body.appendChild(tempEl);
-                
-                const range = document.createRange();
-                range.selectNodeContents(tempEl);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-                
+            function fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.position = "fixed";
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
                 try {
-                    document.execCommand('copy');
-                    const message = isAugmented ? '✅ 글자 수 추가하여 복사 완료 (Fallback)' : '✅ 복사 완료 (Fallback)';
-                    showEditorStatus(message);
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showEditorStatus('✅ 원고가 복사되었습니다. (Fallback)');
+                    } else {
+                        showEditorStatus('❌ 복사에 실패했습니다.', true);
+                    }
                 } catch (err) {
                     console.error('Fallback 복사 실패: ', err);
-                    showEditorStatus('❌ 복사 실패', true);
+                    showEditorStatus('❌ 복사에 실패했습니다.', true);
                 }
-                
-                document.body.removeChild(tempEl);
+
+                document.body.removeChild(textArea);
             }
             // [수정] 끝
 
