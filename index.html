@@ -1380,6 +1380,7 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
+            // [수정] 시작: 글자 수를 미세하게 늘리는 기능으로 변경
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
@@ -1388,18 +1389,45 @@
                 }
 
                 const originalText = contentEl.innerText;
-                const invisibleChars = ['\u200b', '\u200c', '\u2060'];
+                const originalLength = originalText.length;
+
+                // 목표 증가율 (약 5%)
+                const inflationRate = 0.05; 
                 
-                let inflatedText = '';
+                // 추가할 글자 수 계산
+                const charsToAdd = Math.floor(originalLength * inflationRate);
                 
-                for (let i = 0; i < originalText.length; i++) {
-                    inflatedText += originalText[i];
-                    inflatedText += invisibleChars.join('');
+                // 추가할 글자 수가 0이면, 그냥 원본 복사
+                if (charsToAdd === 0) {
+                    navigator.clipboard.writeText(originalText).then(() => {
+                        showEditorStatus('✅ 원고가 복사되었습니다.');
+                    }).catch(err => {
+                        console.error('클립보드 복사 실패, Fallback 시도: ', err);
+                        fallbackCopyTextToClipboard(originalText);
+                    });
+                    return;
                 }
 
+                // 글자를 삽입할 간격 계산
+                const interval = Math.floor(originalLength / charsToAdd);
+                const invisibleChar = '\u200b'; // Zero-width space
+                
+                let inflatedText = '';
+                let counter = 0;
+
+                for (let i = 0; i < originalLength; i++) {
+                    inflatedText += originalText[i];
+                    counter++;
+                    // 간격에 도달하고, 추가할 글자 수가 남아있으면 보이지 않는 문자 추가
+                    if (counter >= interval) {
+                        inflatedText += invisibleChar;
+                        counter = 0;
+                    }
+                }
+
+                const inflatedLength = inflatedText.length;
+
                 navigator.clipboard.writeText(inflatedText).then(() => {
-                    const originalLength = originalText.length;
-                    const inflatedLength = inflatedText.length;
                     showEditorStatus(`✅ ${originalLength.toLocaleString()}자 → ${inflatedLength.toLocaleString()}자로 늘려 복사 완료!`);
                 }).catch(err => {
                     console.error('클립보드 복사 실패, Fallback 시도: ', err);
@@ -1436,6 +1464,7 @@
 
                 document.body.removeChild(textArea);
             }
+            // [수정] 끝
 
             function handleSaveTxt() {
                 const item = getItem(activeItemId);
