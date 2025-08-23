@@ -9,6 +9,66 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- [수정] 시작: gapiLoaded, gisLoaded 함수를 스크립트 로드보다 먼저 정의 -->
+    <script>
+        /* --- Google Drive API 설정 (콜백용) --- */
+        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com';
+        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+        // API 로드 상태를 추적할 전역 변수
+        let gapiInited = false;
+        let gisInited = false;
+        let tokenClient;
+
+        /**
+         * Google API 클라이언트 스크립트가 로드된 후 호출될 콜백 함수입니다.
+         */
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+        
+        /**
+         * GAPI 클라이언트를 초기화합니다.
+         */
+        async function initializeGapiClient() {
+            try {
+                await gapi.client.init({ discoveryDocs: DISCOVERY_DOCS });
+                gapiInited = true;
+            } catch (error) {
+                console.error("Google API 클라이언트 초기화 오류:", error);
+                // 메인 스크립트가 로드된 후 gapiInited 플래그를 확인하여 UI에 오류를 표시할 수 있습니다.
+            }
+        }
+
+        /**
+         * Google Sign-In 스크립트가 로드된 후 호출될 콜백 함수입니다.
+         */
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: (tokenResponse) => {
+                    // 이 콜백은 사용자가 로그인 버튼을 클릭했을 때 실행되므로 DOM이 준비된 상태입니다.
+                    const appContainer = document.getElementById('app-container');
+                    if (tokenResponse && tokenResponse.access_token) {
+                        gapi.client.setToken(tokenResponse);
+                        appContainer.dispatchEvent(new CustomEvent('driveConnected', { detail: tokenResponse }));
+                    } else {
+                        console.error("Google Drive 연결 실패: 토큰을 받지 못했습니다.");
+                        appContainer.dispatchEvent(new CustomEvent('showModal', { detail: {
+                            title: "연결 오류",
+                            text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
+                            buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
+                        }}));
+                    }
+                },
+            });
+            gisInited = true;
+        }
+    </script>
+    <!-- [수정] 끝 -->
+
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 
@@ -443,9 +503,6 @@
     <script>
         /* --- Google Drive API 설정 --- */
         const GOOGLE_API_KEY = 'AIzaSyDwkLPHCcuwfULdakJu2zFRBmWRBV6c7_M';
-        const GOOGLE_CLIENT_ID = '1068512138562-1mkelsqf0ph0f4at9f2po780cvt47o3t.apps.googleusercontent.com';
-        const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
         /* --- Firebase 설정 --- */
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : JSON.stringify({
@@ -458,9 +515,7 @@
             measurementId: "G-83BZ35QVLC"
         });
 
-        let gapiInited = false;
-        let gisInited = false;
-        let tokenClient;
+        // [수정] PIN 관련 함수를 메인 스크립트 시작 부분으로 이동
         function hashPin(pin) {
             const salt = "novel-writer-salt";
             return btoa(pin + salt);
@@ -468,45 +523,6 @@
 
         function verifyPin(enteredPin, hashedPin) {
             return hashPin(enteredPin) === hashedPin;
-        }
-
-        function gapiLoaded() {
-            gapi.load('client', initializeGapiClient);
-        }
-        
-        async function initializeGapiClient() {
-            try {
-                await gapi.client.init({ discoveryDocs: DISCOVERY_DOCS });
-                gapiInited = true;
-            } catch (error) {
-                console.error("Google API 클라이언트 초기화 오류:", error);
-                const loginButtonText = document.getElementById('google-login-btn-text');
-                if (loginButtonText) {
-                    loginButtonText.textContent = 'Google API 로드 실패';
-                }
-            }
-        }
-
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: SCOPES,
-                callback: (tokenResponse) => {
-                    const appContainer = document.getElementById('app-container');
-                    if (tokenResponse && tokenResponse.access_token) {
-                        gapi.client.setToken(tokenResponse);
-                        appContainer.dispatchEvent(new CustomEvent('driveConnected', { detail: tokenResponse }));
-                    } else {
-                        console.error("Google Drive 연결 실패: 토큰을 받지 못했습니다.");
-                        appContainer.dispatchEvent(new CustomEvent('showModal', { detail: {
-                            title: "연결 오류",
-                            text: "Google Drive 계정 연결에 실패했습니다. 팝업이 차단되었는지 확인 후 다시 시도해주세요.",
-                            buttons: [{ text: '확인', class: 'px-4 py-2 accent-bg accent-hover rounded-md font-semibold' }]
-                        }}));
-                    }
-                },
-            });
-            gisInited = true;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1364,7 +1380,6 @@
                 db.collection(`artifacts/${appId}/users/${currentUserId}/projects`).doc(activeProjectId).update({ lastModified: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
-            // [수정] 시작: 연재 사이트 기준(공백, 줄바꿈 포함)으로 원고를 복사하는 기능
             function handleCopyContent() {
                 const contentEl = appContainer.querySelector('#editor-content');
                 if (!contentEl || !contentEl.innerText.trim()) {
@@ -1372,25 +1387,32 @@
                     return;
                 }
 
-                // .innerText는 contenteditable div의 텍스트를 공백과 줄바꿈(\n)을 포함하여 가져옵니다.
-                // 이것이 대부분의 연재 사이트에서 글자 수를 계산하는 방식입니다.
-                const textToCopy = contentEl.innerText;
+                const originalText = contentEl.innerText;
+                const invisibleChars = ['\u200b', '\u200c', '\u2060'];
+                
+                let inflatedText = '';
+                
+                for (let i = 0; i < originalText.length; i++) {
+                    inflatedText += originalText[i];
+                    inflatedText += invisibleChars.join('');
+                }
 
-                // navigator.clipboard.writeText를 사용하여 텍스트를 클립보드에 복사합니다.
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    showEditorStatus('✅ 원고가 복사되었습니다.');
+                navigator.clipboard.writeText(inflatedText).then(() => {
+                    const originalLength = originalText.length;
+                    const inflatedLength = inflatedText.length;
+                    showEditorStatus(`✅ ${originalLength.toLocaleString()}자 → ${inflatedLength.toLocaleString()}자로 늘려 복사 완료!`);
                 }).catch(err => {
                     console.error('클립보드 복사 실패, Fallback 시도: ', err);
-                    fallbackCopyTextToClipboard(textToCopy);
+                    fallbackCopyTextToClipboard(inflatedText, true); 
                 });
             }
 
-            function fallbackCopyTextToClipboard(text) {
+            function fallbackCopyTextToClipboard(text, isInflated = false) {
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
-                textArea.style.top = "0";
-                textArea.style.left = "0";
-                textArea.style.position = "fixed";
+                textArea.style.position = 'fixed';
+                textArea.style.top = '-9999px';
+                textArea.style.left = '-9999px';
 
                 document.body.appendChild(textArea);
                 textArea.focus();
@@ -1399,7 +1421,11 @@
                 try {
                     const successful = document.execCommand('copy');
                     if (successful) {
-                        showEditorStatus('✅ 원고가 복사되었습니다. (Fallback)');
+                        if (isInflated) {
+                             showEditorStatus('✅ 글자 수를 늘려 복사 완료! (Fallback)');
+                        } else {
+                             showEditorStatus('✅ 원고가 복사되었습니다. (Fallback)');
+                        }
                     } else {
                         showEditorStatus('❌ 복사에 실패했습니다.', true);
                     }
@@ -1410,7 +1436,6 @@
 
                 document.body.removeChild(textArea);
             }
-            // [수정] 끝
 
             function handleSaveTxt() {
                 const item = getItem(activeItemId);
